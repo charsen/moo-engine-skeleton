@@ -1,0 +1,144 @@
+###
+# Personnel Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'Personnel'
+    name: '人员管理'
+    desc: []
+actions:
+    create_get:
+        name: 创建表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels/create]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    edit_get:
+        name: 编辑表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels/{personnel}/edit]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    index_get:
+        name: 人员列表
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    trashed_get:
+        name: 人员回收站
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels/trashed]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    store_post:
+        name: 创建人员
+        desc: []
+        prototype: ''
+        request: [POST, api/admin/personnels]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    update_put:
+        name: 更新人员
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/personnels/{personnel}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    show_get:
+        name: 查看人员
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels/{personnel}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    destroyBatch_delete:
+        name: 批量删除人员
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/personnels/batch]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    restore_patch:
+        name: 恢复人员
+        desc: []
+        prototype: ''
+        request: [PATCH, api/admin/personnels/restore]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    setup_get:
+        name: 设置帐号表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/personnels/{id}/account]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    account_put:
+        name: 设置帐号
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/personnels/{id}/account]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

@@ -1,0 +1,154 @@
+###
+# Api Publish History
+#
+# @author charsen
+# @date 2026-06-05 14:21:15
+##
+meta:
+    app: admin
+    namespace: Food
+    published_at: '2026-06-05 14:21:15'
+    controller_count: 1
+    action_count: 10
+    author: charsen
+actions:
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/food/create
+        name: 创建表单
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/food/{food}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/food
+        name: 食品列表
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: trashed_get
+        action: trashed
+        action_key: trashed_get
+        method: GET
+        uri: api/admin/food/trashed
+        name: 食品回收站
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/food
+        name: 创建食品
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/food/{food}'
+        name: 更新食品
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: show_get
+        action: show
+        action_key: show_get
+        method: GET
+        uri: 'api/admin/food/{food}'
+        name: 查看食品
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/food/batch
+        name: 删除食品
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: forceDestroy_delete
+        action: forceDestroy
+        action_key: forceDestroy_delete
+        method: DELETE
+        uri: 'api/admin/food/forever/{id}'
+        name: 永久删除食品
+    -
+        operation: create
+        controller: Food
+        file: scaffold/api/admin/Food/Food.yaml
+        debug:
+            app: admin
+            folder: Food
+            controller: Food
+            action: restore_patch
+        action: restore
+        action_key: restore_patch
+        method: PATCH
+        uri: api/admin/food/restore
+        name: 恢复食品
