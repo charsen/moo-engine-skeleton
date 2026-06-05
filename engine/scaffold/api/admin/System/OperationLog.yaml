@@ -1,0 +1,36 @@
+###
+# OperationLog Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'OperationLog'
+    name: '操作日志管理'
+    desc: []
+actions:
+    index_get:
+        name: 操作日志列表
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/operation-logs]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    show_get:
+        name: 查看操作日志
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/operation-logs/{operation_log}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

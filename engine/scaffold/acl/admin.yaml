@@ -1,0 +1,11 @@
+meta:
+    app: admin
+    app_name: 后台管理
+    generated_at: '2026-06-05 14:20:13'
+    generated_by: charsen
+    stats:
+        module_count: 0
+        controller_count: 0
+        action_count: 0
+        whitelist_count: 0
+modules: {  }

@@ -1,0 +1,96 @@
+###
+# Department Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'Department'
+    name: '部门管理'
+    desc: []
+actions:
+    create_get:
+        name: 创建表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/departments/create]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    edit_get:
+        name: 编辑表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/departments/{department}/edit]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    index_get:
+        name: 部门列表
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/departments]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    store_post:
+        name: 创建部门
+        desc: []
+        prototype: ''
+        request: [POST, api/admin/departments]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    update_put:
+        name: 更新部门
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/departments/{department}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    destroyBatch_delete:
+        name: 删除部门
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/departments/batch]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    move_post:
+        name: 在父级内前后移动
+        desc: []
+        prototype: ''
+        request: [POST, api/admin/department/{id}/move]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

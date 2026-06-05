@@ -1,0 +1,108 @@
+###
+# Position Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'Position'
+    name: '岗位管理'
+    desc: []
+actions:
+    create_get:
+        name: 创建表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/positions/create]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    edit_get:
+        name: 编辑表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/positions/{position}/edit]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    index_get:
+        name: 岗位列表
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/positions]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    trashed_get:
+        name: 岗位回收站
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/positions/trashed]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    store_post:
+        name: 创建岗位
+        desc: []
+        prototype: ''
+        request: [POST, api/admin/positions]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    update_put:
+        name: 更新岗位
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/positions/{position}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    destroyBatch_delete:
+        name: 批量删除岗位
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/positions/batch]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    restore_patch:
+        name: 恢复岗位
+        desc: []
+        prototype: ''
+        request: [PATCH, api/admin/positions/restore]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

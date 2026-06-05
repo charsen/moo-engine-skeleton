@@ -1,0 +1,72 @@
+###
+# Role Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'Role'
+    name: '角色管理'
+    desc: []
+actions:
+    create_get:
+        name: 创建表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/roles/create]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    edit_get:
+        name: 编辑表单
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/roles/{role}/edit]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    store_post:
+        name: 创建角色
+        desc: []
+        prototype: ''
+        request: [POST, api/admin/roles]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    update_put:
+        name: 更新角色
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/roles/{role}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    destroyBatch_delete:
+        name: 批量删除角色
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/roles/batch]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

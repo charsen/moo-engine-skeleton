@@ -1,0 +1,840 @@
+###
+# Api Publish History
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+meta:
+    app: admin
+    namespace: System
+    published_at: '2026-06-05 14:52:04'
+    controller_count: 10
+    action_count: 59
+    author: charsen
+actions:
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/departments/create
+        name: 创建表单
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/departments/{department}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/departments
+        name: 部门列表
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/departments
+        name: 创建部门
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/departments/{department}'
+        name: 更新部门
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/departments/batch
+        name: 删除部门
+    -
+        operation: create
+        controller: Department
+        file: scaffold/api/admin/System/Department.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Department
+            action: move_post
+        action: move
+        action_key: move_post
+        method: POST
+        uri: 'api/admin/department/{id}/move'
+        name: 在父级内前后移动
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/notify-robots/create
+        name: 创建表单
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/notify-robots/{notify_robot}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/notify-robots
+        name: 通知机器人列表
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/notify-robots
+        name: 创建通知机器人
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/notify-robots/{notify_robot}'
+        name: 更新通知机器人
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/notify-robots/batch
+        name: 删除通知机器人
+    -
+        operation: create
+        controller: NotifyRobot
+        file: scaffold/api/admin/System/NotifyRobot.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: NotifyRobot
+            action: bless_post
+        action: bless
+        action_key: bless_post
+        method: POST
+        uri: api/admin/notify-robot/bless
+        name: 测试通知
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/personnels/create
+        name: 创建表单
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/personnels/{personnel}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/personnels
+        name: 人员列表
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: trashed_get
+        action: trashed
+        action_key: trashed_get
+        method: GET
+        uri: api/admin/personnels/trashed
+        name: 人员回收站
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/personnels
+        name: 创建人员
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/personnels/{personnel}'
+        name: 更新人员
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: show_get
+        action: show
+        action_key: show_get
+        method: GET
+        uri: 'api/admin/personnels/{personnel}'
+        name: 查看人员
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/personnels/batch
+        name: 批量删除人员
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: restore_patch
+        action: restore
+        action_key: restore_patch
+        method: PATCH
+        uri: api/admin/personnels/restore
+        name: 恢复人员
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: setup_get
+        action: setup
+        action_key: setup_get
+        method: GET
+        uri: 'api/admin/personnels/{id}/account'
+        name: 设置帐号表单
+    -
+        operation: create
+        controller: Personnel
+        file: scaffold/api/admin/System/Personnel.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Personnel
+            action: account_put
+        action: account
+        action_key: account_put
+        method: PUT
+        uri: 'api/admin/personnels/{id}/account'
+        name: 设置帐号
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/positions/create
+        name: 创建表单
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/positions/{position}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/positions
+        name: 岗位列表
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: trashed_get
+        action: trashed
+        action_key: trashed_get
+        method: GET
+        uri: api/admin/positions/trashed
+        name: 岗位回收站
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/positions
+        name: 创建岗位
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/positions/{position}'
+        name: 更新岗位
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/positions/batch
+        name: 批量删除岗位
+    -
+        operation: create
+        controller: Position
+        file: scaffold/api/admin/System/Position.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Position
+            action: restore_patch
+        action: restore
+        action_key: restore_patch
+        method: PATCH
+        uri: api/admin/positions/restore
+        name: 恢复岗位
+    -
+        operation: create
+        controller: Role
+        file: scaffold/api/admin/System/Role.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Role
+            action: create_get
+        action: create
+        action_key: create_get
+        method: GET
+        uri: api/admin/roles/create
+        name: 创建表单
+    -
+        operation: create
+        controller: Role
+        file: scaffold/api/admin/System/Role.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Role
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/roles/{role}/edit'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Role
+        file: scaffold/api/admin/System/Role.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Role
+            action: store_post
+        action: store
+        action_key: store_post
+        method: POST
+        uri: api/admin/roles
+        name: 创建角色
+    -
+        operation: create
+        controller: Role
+        file: scaffold/api/admin/System/Role.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Role
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/roles/{role}'
+        name: 更新角色
+    -
+        operation: create
+        controller: Role
+        file: scaffold/api/admin/System/Role.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Role
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/roles/batch
+        name: 批量删除角色
+    -
+        operation: create
+        controller: OperationLog
+        file: scaffold/api/admin/System/OperationLog.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: OperationLog
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/operation-logs
+        name: 操作日志列表
+    -
+        operation: create
+        controller: OperationLog
+        file: scaffold/api/admin/System/OperationLog.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: OperationLog
+            action: show_get
+        action: show
+        action_key: show_get
+        method: GET
+        uri: 'api/admin/operation-logs/{operation_log}'
+        name: 查看操作日志
+    -
+        operation: create
+        controller: LoginManagement
+        file: scaffold/api/admin/System/LoginManagement.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: LoginManagement
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/login-managements
+        name: 登录列表
+    -
+        operation: create
+        controller: LoginManagement
+        file: scaffold/api/admin/System/LoginManagement.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: LoginManagement
+            action: destroyBatch_delete
+        action: destroyBatch
+        action_key: destroyBatch_delete
+        method: DELETE
+        uri: api/admin/login-managements/batch
+        name: 删除登录管理
+    -
+        operation: create
+        controller: PersonnelOperationLog
+        file: scaffold/api/admin/System/PersonnelOperationLog.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: PersonnelOperationLog
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/personnel-operation-logs
+        name: 人员操作日志列表
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/authorizations
+        name: 授权管理
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: export_get
+        action: export
+        action_key: export_get
+        method: GET
+        uri: api/admin/authorizations-export
+        name: 导出角色动作
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: editAuthorization_get
+        action: editAuthorization
+        action_key: editAuthorization_get
+        method: GET
+        uri: 'api/admin/authorizations/role/{id}/edit-authorization'
+        name: 复制角色授权
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: editPersonnel_get
+        action: editPersonnel
+        action_key: editPersonnel_get
+        method: GET
+        uri: 'api/admin/authorizations/role/{id}/edit-personnel'
+        name: 编辑角色人员
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: removePersonnel_delete
+        action: removePersonnel
+        action_key: removePersonnel_delete
+        method: DELETE
+        uri: 'api/admin/authorizations/role/{id}/remove-personnel'
+        name: 从角色中移出单个人员
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: updateActions_put
+        action: updateActions
+        action_key: updateActions_put
+        method: PUT
+        uri: 'api/admin/authorizations/role/{id}/update-actions'
+        name: 更新角色动作
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: updateAuthorization_put
+        action: updateAuthorization
+        action_key: updateAuthorization_put
+        method: PUT
+        uri: 'api/admin/authorizations/role/{id}/update-authorization'
+        name: 复制角色授权
+    -
+        operation: create
+        controller: Authorization
+        file: scaffold/api/admin/System/Authorization.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Authorization
+            action: updatePersonnel_put
+        action: updatePersonnel
+        action_key: updatePersonnel_put
+        method: PUT
+        uri: 'api/admin/authorizations/role/{id}/update-personnel'
+        name: 更新角色人员
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: edit_get
+        action: edit
+        action_key: edit_get
+        method: GET
+        uri: 'api/admin/me/{id}/update'
+        name: 编辑表单
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: index_get
+        action: index
+        action_key: index_get
+        method: GET
+        uri: api/admin/me
+        name: 个人中心
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: update_put
+        action: update
+        action_key: update_put
+        method: PUT
+        uri: 'api/admin/me/{id}/update'
+        name: 更新个人资料
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: avatarForm_get
+        action: avatarForm
+        action_key: avatarForm_get
+        method: GET
+        uri: api/admin/me/avatar
+        name: 修改个人头像表单
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: avatar_put
+        action: avatar
+        action_key: avatar_put
+        method: PUT
+        uri: api/admin/me/avatar
+        name: 更换个人头像
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: logins_get
+        action: logins
+        action_key: logins_get
+        method: GET
+        uri: api/admin/me/logins
+        name: 个人的登录管理列表
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: passwordForm_get
+        action: passwordForm
+        action_key: passwordForm_get
+        method: GET
+        uri: api/admin/me/password
+        name: 修改个人密码表单
+    -
+        operation: create
+        controller: Admin
+        file: scaffold/api/admin/System/Admin.yaml
+        debug:
+            app: admin
+            folder: System
+            controller: Admin
+            action: password_put
+        action: password
+        action_key: password_put
+        method: PUT
+        uri: api/admin/me/password
+        name: 更新个人密码
