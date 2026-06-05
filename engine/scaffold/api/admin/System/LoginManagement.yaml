@@ -1,0 +1,36 @@
+###
+# LoginManagement Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'LoginManagement'
+    name: '登录管理管理'
+    desc: []
+actions:
+    index_get:
+        name: 登录列表
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/login-managements]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    destroyBatch_delete:
+        name: 删除登录管理
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/login-managements/batch]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

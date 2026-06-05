@@ -1,0 +1,108 @@
+###
+# Authorization Api
+#
+# @author charsen
+# @date 2026-06-05 14:52:04
+##
+controller:
+    code: 
+    class: 'Authorization'
+    name: '授权管理'
+    desc: []
+actions:
+    index_get:
+        name: 授权管理
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/authorizations]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    export_get:
+        name: 导出角色动作
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/authorizations-export]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    editAuthorization_get:
+        name: 复制角色授权
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/authorizations/role/{id}/edit-authorization]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    editPersonnel_get:
+        name: 编辑角色人员
+        desc: []
+        prototype: ''
+        request: [GET, api/admin/authorizations/role/{id}/edit-personnel]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    removePersonnel_delete:
+        name: 从角色中移出单个人员
+        desc: []
+        prototype: ''
+        request: [DELETE, api/admin/authorizations/role/{id}/remove-personnel]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    updateActions_put:
+        name: 更新角色动作
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/authorizations/role/{id}/update-actions]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    updateAuthorization_put:
+        name: 复制角色授权
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/authorizations/role/{id}/update-authorization]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    updatePersonnel_put:
+        name: 更新角色人员
+        desc: []
+        prototype: ''
+        request: [PUT, api/admin/authorizations/role/{id}/update-personnel]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-05 14:52:04'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

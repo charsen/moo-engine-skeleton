@@ -1,0 +1,31 @@
+module:
+    name: 食品管理
+    folder: Food
+tables:
+    foods:
+        model:
+            class: Food
+        controller:
+            app: [admin]
+            class: FoodController
+        attrs:
+            name: 食品
+            desc: 存储食品基础信息（新手教程示例表）
+            remark: ['1. 这是 moo-scaffold 代码生成的演示表；', '2. 价格单位为分。']
+        index:
+            id: { type: primary, fields: id }
+            food_name: { type: index, fields: food_name }
+        fields:
+            id: {  }
+            food_name: { name: 名称, type: varchar, size: '2,128', unique: true }
+            food_category: { name: 分类, type: tinyint, default: 1 }
+            price: { name: 价格, type: int, default: 0, desc: 单位：分 }
+            calories: { required: false, name: 热量, type: int, default: 0, desc: 单位：大卡 }
+            food_status: { name: 状态, type: tinyint, default: 1 }
+            description: { required: false, name: 描述, type: varchar, size: 255 }
+            deleted_at: {  }
+            created_at: {  }
+            updated_at: {  }
+        enums:
+            food_category: { fruit: [1, fruit, 水果], vegetable: [2, vegetable, 蔬菜], meat: [3, meat, 肉类], staple: [4, staple, 主食] }
+            food_status: { on_shelf: [1, 'on shelf', 上架], off_shelf: [2, 'off shelf', 下架] }
