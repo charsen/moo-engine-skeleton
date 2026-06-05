@@ -1,0 +1,18 @@
+###
+# 润色，手动修改翻译（生成时不会被替换）
+#
+# append_fields: 为手工添加字段，一直保存
+# table_fields: 数据库里的字段，会自动做增量、减量
+# duplicate_fields: 数据库里重复出现的，有可能是重名了
+##
+table_fields:
+    id: { en: 'Id', 'zh-CN': '编号' }
+    food_name: { en: 'Food Name', 'zh-CN': '名称' }
+    food_category: { en: 'Food Category', 'zh-CN': '分类' }
+    price: { en: 'Price', 'zh-CN': '价格' }
+    calories: { en: 'Calories', 'zh-CN': '热量' }
+    food_status: { en: 'Food Status', 'zh-CN': '状态' }
+    description: { en: 'Description', 'zh-CN': '描述' }
+    deleted_at: { en: 'Deleted At', 'zh-CN': '删除于' }
+    created_at: { en: 'Created At', 'zh-CN': '创建于' }
+    updated_at: { en: 'Updated At', 'zh-CN': '更新于' }
