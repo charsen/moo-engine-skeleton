@@ -181,8 +181,10 @@ php artisan moo:free admin Food -a   # Model+Resource+Controller+Request+路由+
   `Route::iResource` 宏、一个含 JWT 的 `admin` 中间件组，以及
   `config/auth.php` → `providers.personnels.model = Mooeen\System\Models\Personnel::class` +
   一个用 `personnels` 的 `admin` 守卫。
-- **不带 seeder**——`php artisan migrate` 之后 `system_*` 表是空的；第一个
-  人员/角色/部门要自己建（tinker/factory）。
+- **包本身不带 seeder**，但本骨架在 `engine/database/seeders/` 提供了一套：`RoleSeeder` /
+  `DepartmentSeeder`（嵌套集树）/ `PositionSeeder` / `PersonnelSeeder`，由 `DatabaseSeeder`
+  按 角色→部门→岗位→人员 顺序调用。`php artisan migrate --seed` 即可得到含可登录管理员的初始数据。
+  注意 `DatabaseSeeder` **不能用** `WithoutModelEvents`——会静默 nestedset 的事件、把部门树 `_lft/_rgt` 建坏。
 - 通过 `config/scaffold.php` → `controller.admin.extra_modules` =
   `['System' => 'Mooeen\System\Http\Controllers\Admin']` 把它的控制器登记进 scaffold 的 ACL/路由工具。
 - 维护命令：`php artisan moo-system check`（6 项 host 自检）、`moo-system update`。
@@ -256,6 +258,7 @@ README 的 5 步全部搭好并真机验证；从 0 开始的过程写在 `docs/
 4. ✅ moo-system 的接口在 scaffold 调试器里（带 `Bearer` JWT）联调通过。
 5. ✅ JWT（php-open-source-saver）登录/me/refresh/logout；无 token 401、有 token 200。
 
-第一个管理员人员：手机 `13800000000` / 密码 `admin888`。Scaffold 开发 UI 账号：
+第一个管理员人员由 `PersonnelSeeder` 生成：手机 `13800000000` / 密码 `admin888`
+（`php artisan migrate --seed`）。Scaffold 开发 UI 账号：
 `charsen` / `skeleton2026`。`foods` 演示路由故意保持公开（不加 JWT），让第 2 章的调试器演练
 无需 token 即可进行。

@@ -178,13 +178,36 @@ php artisan moo-system check     # 6 项 host 集成自检，应全绿
 🎉  All 6 required checks passed.
 ```
 
-moo-system 不带 seeder，自己建第一个管理员人员（密码用 Hash 加密；id 是雪花算法生成）：
+moo-system 包本身不带 seeder，但本骨架在 `engine/database/seeders/` 写了一套，
+按 **角色 → 部门 → 岗位 → 人员** 顺序建初始数据（含一个可登录的管理员）：
+
+| Seeder | 内容 |
+|---|---|
+| `RoleSeeder` | 系统管理员 / 开发 / 编辑员 |
+| `DepartmentSeeder` | 猫途科技（根）→ 技术部[后端组/前端组] / 市场部（嵌套集树 `_lft/_rgt`） |
+| `PositionSeeder` | 后端工程师 / 前端工程师 / 市场专员（`department_ids` 存 JSON 数组） |
+| `PersonnelSeeder` | 管理员 `13800000000` / `admin888`，挂技术部·后端工程师·系统管理员角色 |
+
+```bash
+php artisan migrate --seed                          # 迁移顺带 seed
+# 或已迁移过：
+php artisan db:seed                                 # 跑全部
+php artisan db:seed --class=PositionSeeder          # 只跑某一个
+```
+
+> ⚠️ **坑（嵌套集树）**：`DatabaseSeeder` 千万**别用** `WithoutModelEvents`。
+> Department 用 kalnoy/nestedset，靠 `creating/saving` 模型事件维护 `_lft/_rgt`，
+> 事件被静默会建出坏树（节点边界全 0）。
+>
+> 密码在 seeder 里直接写明文即可——Personnel 的 `setPasswordAttribute` 会自动 bcrypt
+> （已是 hash 则不重复加密）。
+
+也可以用 tinker 手动建单个人员：
 
 ```bash
 php artisan tinker --execute='
 $p = \Mooeen\System\Models\Personnel::firstOrNew(["mobile" => "13800000000"]);
-$p->real_name = "管理员";
-$p->password = \Illuminate\Support\Facades\Hash::make("admin888");
+$p->real_name = "管理员"; $p->password = "admin888";   // mutator 自动 hash
 $p->staff_status = 7; $p->account_status = 7; $p->save();
 echo $p->id;
 '
