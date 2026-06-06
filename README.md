@@ -56,7 +56,7 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 # 3. 配 .env 的数据库（DB_CONNECTION=mysql / DB_DATABASE=moo_skeleton / DB_USERNAME=root / DB_PASSWORD=7777）
 #    再接入私有包（开发用 path、生产用 vcs，详见 docs 第 2、3 章），然后：
 composer update --with-all-dependencies
-php artisan migrate
+php artisan migrate --seed      # 迁移 + seed（角色 / 部门树 / 岗位 / 可登录管理员）
 
 # 4. 启动（用多 worker，否则 scaffold 调试器代理会和单线程服务死锁）
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
@@ -86,14 +86,14 @@ moo-engine-skeleton/
 | [第 3 章 安装 moo-system（含 JWT）](./docs/03-安装-moo-system-与-jwt.md) | 系统管理模块、host 契约、JWT 登录、健康检查 |
 | [第 4 章 真机调试 moo-system 接口](./docs/04-真机调试-moo-system-接口.md) | 登录拿 token、鉴权验证、在调试器里联调 |
 
-教程目录页还附了一张**「踩过的坑」速查表**（8 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（9 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
-## 🔑 默认账号（教程中创建）
+## 🔑 默认账号
 
-| 用途 | 账号 | 密码 |
-|---|---|---|
-| 后台管理员（Personnel） | `13800000000` | `admin888` |
-| scaffold 调试台 | `charsen` | `skeleton2026` |
+| 用途 | 账号 | 密码 | 创建方式 |
+|---|---|---|---|
+| 后台管理员（Personnel） | `13800000000` | `admin888` | `migrate --seed`（PersonnelSeeder） |
+| scaffold 调试台 | `charsen` | `skeleton2026` | `php artisan moo:account:add` |
 
 ## 🧭 设计原则
 
