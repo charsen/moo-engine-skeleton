@@ -222,7 +222,7 @@ php artisan migrate               # 执行迁移（重建用 migrate:fresh）
 php artisan test                  # 全量测试
 php artisan test --filter=Name    # 单个测试（Pest/PHPUnit 过滤）
 ./vendor/bin/pint                 # 格式化 / lint（Laravel Pint）
-php artisan tinker                # REPL —— 在这里建第一个 Personnel/Role
+php artisan tinker                # REPL（调试 / 临时造数据；初始数据见 database/seeders）
 php artisan list | grep moo       # 确认 moo-scaffold / moo-system 的命令已注册
 php artisan moo-system check      # 6 项 host 集成自检（装包 / 升级后跑）
 ```
