@@ -56,3 +56,4 @@ moo-engine-skeleton/
 | 6 | 调部门列表报 `undefined function toLabelValue()` | 补 `app/Helpers/helpers.php` 并 `composer` files 自动加载 | 3 |
 | 7 | `moo-system check` 的中间件组那项总 FAIL | 中间件组要注册到 router（provider boot），否则 console 看不到 | 3 |
 | 8 | 调试器里带了 token 仍 401 | Authorization 值要加 `Bearer ` 前缀 | 4 |
+| 9 | seed 后部门树 `_lft/_rgt` 错乱 | `DatabaseSeeder` 别用 `WithoutModelEvents`，否则静默 nestedset 事件 | 3 |
