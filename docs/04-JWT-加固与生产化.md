@@ -7,15 +7,25 @@
 > 本章的每一处改动，都对应作者真实项目在生产里踩过的坑。
 > 跟着做就好，每一步只需要知道"改什么 + 为什么"各一句话。
 
+> **「坑 #N」编号怎么查**：本章会反复出现「坑 #10」「坑 #18」这类编号——它们是全书统一编号，
+> 索引在 [docs/README.md](./README.md) 的「踩过的坑速查」表里，不是你漏看了前文。
+>
+> **「见仓库」怎么读**：仓库 `engine/` 目录是全书走完后的**最终态**。凡是会被后续章节改掉、
+> 与「本章时间点」不一致的文件，正文都用 📦 标注；没标 📦 的（如本章的 `jwt.php`、`cors.php`）
+> 最终态与本章一致，可放心整文件照抄。
+
 ---
 
 ## 4.1 加固 `config/jwt.php`（5 处）
 
-打开 `engine/config/jwt.php`，逐处核对（**完整文件见仓库**，注释已全部中文化，
-与认证主体无关、抄了就能用）：
+两种走法任选：直接整份照抄仓库 `engine/config/jwt.php`（该文件后续章节不再改动，
+注释已全部中文化、与认证主体无关，抄了就能用）；或打开自己的 `config/jwt.php`，
+逐处核对下面 5 处：
 
-**① 续签时保留 guard 声明** —— 不配它，换发的新 token 会丢掉 `guard`，
-下次请求过 `JWTGuardAuth` 直接 401（坑 #10，生产偶发 401 的真因）：
+**① 续签时保留 guard 声明** —— 不配它，在 jwt-auth **2.8.x** 上换发的新 token 会丢掉
+`guard`，下次请求过 `JWTGuardAuth` 直接 401（坑 #10，生产偶发 401 的真因）。
+本仓库锁定的是 **2.9.2**（见 `engine/composer.lock`），这个版本因内部实现"碰巧"保留、
+现象不复现——但契约写在文档里，不赌内部实现，**任何版本都要配**：
 
 ```php
 'persistent_claims' => [
@@ -45,11 +55,18 @@
 ```
 
 **⑤ 黑名单异常开关显式写上** —— 名字像日志开关，实际控制"已拉黑的 token 是否被拒"。
-包的代码级默认是关，全靠包内配置回填才是开，这里显式写死不赌运气：
+它有两层"默认"：包源码里读取这个键时的**兜底值**（配置里找不到该键时用的值）是 `false`（关）；
+而包**自带的配置文件**把它设成了 `true`——也就是说，"开着"全靠你的配置文件里有这个键，
+精简或重写配置时一旦漏掉，黑名单就**静默失效**。这里显式写死不赌运气：
 
 ```php
 'show_black_list_exception' => true,
 ```
+
+> 顺带认识 `engine/config/jwt.php` 里另一个与认证主体相关的**既有键**（包默认就有、
+> 保持 `true` 即可，不算本次 5 处改动）：`'lock_subject' => true` —— 它往 token 里写入
+> `prv` 字段（主体模型类名的 sha1 哈希）并在校验时比对，防止两个不同模型恰好同 id 时
+> 拿 A 模型的 token 冒充 B 模型。4.9 节真机验证还会遇到它。
 
 ## 4.2 新建 `config/cors.php`
 
@@ -63,12 +80,20 @@
 'exposed_headers' => ['Authorization'],   // 关键行
 ```
 
-其余键照抄 Laravel 默认即可（完整文件见仓库）。
+注意 Laravel 12 默认**不发布** `config/cors.php`（框架用内置默认值），所以"其余键照抄默认"
+之前要先把默认文件发布出来再改上面两行：
+
+```bash
+php artisan config:publish cors
+```
+
+嫌麻烦也可以直接整份照抄仓库 `engine/config/cors.php`（已带中文注释，最终态与本章一致）。
 
 ## 4.3 登录补账号状态检查
 
-第 3 章的登录只校验了密码——被停用的账号照样能登录。自建 users 表最现成的状态位
-是 `email_verified_at`，在 `Hash::check` 之后补一段：
+第 3 章的登录只校验了密码——被停用的账号照样能登录。改的是第 3 章创建的
+`engine/app/Admin/Controllers/AuthController.php`：自建 users 表最现成的状态位
+是 `email_verified_at`，在 `authenticate()` 里的 `Hash::check` 之后补一段：
 
 ```php
 // 最简状态检查：未验证邮箱不允许登录（自建表的"激活"语义）
@@ -78,7 +103,9 @@ if ($user->email_verified_at === null) {
 ```
 
 > 📦 第 7 章换成 Personnel 后，对应的是 `account_status` 枚举检查——那里有个
-> 大坑（裸 int 和枚举实例比较恒为 false，坑 #19），到时再讲。
+> 大坑（裸 int 和枚举实例比较恒为 false，坑 #19），到时再讲。也因此，
+> **仓库里这段代码已不存在**：`AuthController.php` 的最终态是 Personnel + `account_status`
+> 版，本节的 `email_verified_at` 版只活在本章时间点的你本地，别去仓库里对照找它。
 
 ## 4.4 `/refresh` 路由单独挂中间件
 
@@ -121,6 +148,22 @@ public function refresh(): JsonResponse
 }
 ```
 
+和它对照，第 3 章写的 `logout()` 走的是**永久拉黑**（4.9 节验证表第 8 行验的就是这个差别），
+顺手确认一下你的实现是这样：
+
+```php
+public function logout(): JsonResponse
+{
+    Auth::guard('admin')->logout(true);   // forceForever=true：立即作废，不吃 90 秒宽限
+
+    return response()->json(['message' => 'ok']);
+}
+```
+
+> 同一个 `forceForever` 参数、两种取值：`refresh` 传 `false`——旧 token 留 90 秒宽限，
+> 保护同批在途的并发请求；`logout` 传 `true`——用户主动登出，立刻失效才符合预期。
+> 两处不矛盾，是各自场景的正确选择。
+>
 > refresh 本身就接受"过期但在续期窗口内"的 token，不需要前置强制认证。
 > 📦 第 7 章接入 moo-system 后，这里还会补一行 `UpdateLoginTokenJob`（同步包里的登录记录）。
 
@@ -130,7 +173,10 @@ public function refresh(): JsonResponse
 
 ```php
 // use Illuminate\Cache\RateLimiting\Limit;
+// use Mooeen\Scaffold\Exceptions\BaseException;
 // use Mooeen\Scaffold\Support\ExceptionDispatcher;
+// use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+// use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 // 第 3 章写过的渲染之外，再加：同一异常只报一次 + 预期异常不上报
 $exceptions->dontReportDuplicates()->dontReport([
@@ -160,11 +206,15 @@ RateLimiter::for('admin', fn (Request $r) => Limit::perMinute(300)->by($r->user(
 RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
 ```
 
-`admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`。
+`admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`
+（`moo-system` 组你现在就有——第 3 章注册中间件组时已为第 7 章的商业包**预先建好**，
+见第 3 章 `AppServiceProvider::boot()` 那段，不是你漏装了什么）。
 
 **登录接口要再单独限**：组限流的 300 次/分钟对 `/authenticate` 等于不设防
 （爆破一分钟能试 300 个密码）。按「账号 + IP」5 次/分钟单独限——锁单账号尝试、
-也锁同 IP 换号扫射——两条登录路由挂 `->middleware('throttle:login')`：
+也锁同 IP 换号扫射。本章时间点登录路由只有 `routes/admin.php` 一条，给它挂上
+`->middleware('throttle:login')`；📦 第 6 章建移动端 `routes/api.php` 的登录路由时，
+**记得回来照样补挂一条**（第 6 章正文的路由片段没写这行）：
 
 ```php
 RateLimiter::for('login', function (Request $r) {
@@ -189,18 +239,29 @@ RateLimiter::for('login', function (Request $r) {
 - 新建 `composer.production.json`：moo-* 包换成版本约束 + VCS 仓库。
   部署时 `cp composer.production.json composer.json && composer install --no-dev`，
   和第 2 章讲的"开发 path / 生产 vcs"双轨制闭环。
-  （📦 仓库版里有 moo-system 的行——没装第 7 章的包就先删掉那两处。）
+  （📦 仓库版里有 moo-system 的内容——没装第 7 章的包就先删掉**两处**：
+  `require` 里的 `"charsen/moo-system"` 一行，和 `repositories` 里的 `system` 块。
+  另外注意两个 VCS 地址都是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好
+  对应仓库的访问权（SSH key），否则 `composer install --no-dev` 拉包会直接失败。）
 
 ## 4.8 第一批接口测试
 
-先给 `engine/phpunit.xml` 加一行测试专用密钥（测试跑在 sqlite 内存库上，不读你的 `.env`）：
+先给 `engine/phpunit.xml` 加一行测试专用密钥：
 
 ```xml
 <env name="JWT_SECRET" value="testing-secret-do-not-use-in-production"/>
 ```
 
-新建 `tests/Feature/AuthTest.php`。本章是 **User 版**（📦 第 7 章接入 moo-system 后
-整套换成仓库的最终版，用例一一对应、只是登录字段不同），完整代码：
+> 测试跑在 sqlite 内存库上、不读你的 `.env`——这不是本章配的：Laravel 12 自带的
+> `phpunit.xml` 默认就有 `DB_CONNECTION=sqlite` + `DB_DATABASE=:memory:`
+> （`engine/phpunit.xml` 里能看到）。前提是 PHP 装了 `pdo_sqlite` 扩展；
+> 跑测试报 `could not find driver` 就是缺它，装上即可。
+
+新建 `tests/Feature/AuthTest.php`，完整代码如下。这是本章时间点的 **User 版**——
+📦 注意仓库里**已经存在**同名文件，但那是第 7 章接入 moo-system 后的 **Personnel 最终版**
+（登录字段是 `account` / `13800000000` / `admin888`，不是这里的
+`email` / `admin@example.com` / `password`）。两版用例一一对应、只是登录主体不同，
+对照仓库时别怀疑自己看错了文件：
 
 ```php
 <?php
@@ -278,12 +339,16 @@ class AuthTest extends TestCase
 
 ```bash
 php artisan test
-# Tests: 9 passed   ← AuthTest 7 个 + Laravel 自带 Example 2 个
+# 本章时间点：Tests: 9 passed   ← AuthTest 7 个 + Laravel 自带 Example 2 个
 ```
+
+> 这个「9 passed」只对**跟到本章为止的你本地**成立。仓库是全书最终态，
+> `tests/Feature/` 下已有 9 个测试文件，在仓库里直接跑会得到
+> `Tests: 41 passed (130 assertions)`——数字对不上不代表你做错了。
 
 > ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的服务链是单例
 > （payload 工厂的 claim 残留、auth 适配器绑死首个守卫），跨守卫/跨请求断言会
-> 测出假结果。仓库 `tests/TestCase.php` 的 `freshJwtProcess()` 演示了怎么彻底
+> 测出假结果。仓库 `engine/tests/TestCase.php` 的 `freshJwtProcess()` 演示了怎么彻底
 > 重置模拟真实跨进程——写更复杂的用例（续签保 claim、双守卫隔离）时要用它。
 
 ## 4.9 真机验证清单
@@ -301,16 +366,23 @@ php artisan test
 | 9 | 带 `Origin` 的跨域请求 | 响应头 `Access-Control-Expose-Headers: Authorization` |
 | 10 | 任意 admin 接口 | 响应头 `X-RateLimit-Limit: 300` |
 
-过期 token 没法用 `auth()->login()` 直接造（签完自检就抛异常），手工签一个
-`exp` 在过去、`iat` 在续期窗口内的即可——完整可运行实现见仓库
-`tests/TestCase.php` 的 `makeExpiredToken()`。
+两个手工操作的小抄：
+
+- **第 3 行的「解码」**不用写代码：JWT 的 payload 只是 base64url 编码、并未加密，
+  把 token 粘进 [jwt.io](https://jwt.io) 的调试器就能看到 `guard` / `exp` / `iat` 等字段。
+- **第 5~6 行的过期 token**：没法用 `auth()->login()` 直接造（签完自检就抛异常）。
+  测试里有现成的手工签发实现——`exp` 在过去、`iat` 在续期窗口内——见仓库
+  `engine/tests/TestCase.php` 的 `makeExpiredToken()`；真机 curl 场景最省事的造法是
+  把 `.env` 的 `JWT_TTL` 临时改成 `1`（1 分钟），登录拿到 token、等它过期再验，验完改回来。
 
 > 第 5~8 项新手手工做不动也没关系——这几条已由仓库的 AuthTest / JwtAutoRefreshTest /
 > RegressionTest 自动守护（`php artisan test`），手工复现属进阶选做。
 
-> 📦 仓库版的 admin 分支主体是 Personnel（第 7 章最终态）。本章时间点后台主体
-> 还是 User——照抄时把主体查询和 `prv`（`sha1(User::class)`）都换成 User，
-> 否则签出的 token 过不了 `lock_subject` 的模型哈希校验。
+> 📦 仓库最终态里 **admin 守卫（后台侧）**的认证主体是 Personnel（第 7 章换的，
+> 这里说的不是 git 分支）。本章时间点后台主体还是 User——照抄仓库代码做验证时，
+> 把主体查询换回 User。token 里的 `prv` 字段（4.1 末尾提到的 `lock_subject` 写入的
+> 模型哈希，值为 `sha1(主体模型类名)`）也跟着主体走：主体模型对不上，签出的 token
+> 就过不了这个哈希校验。
 
 ## 已知局限（记录在案，不修）
 
@@ -318,9 +390,6 @@ php artisan test
 （jwt-auth 的 `logout()` 静默吞掉过期解码异常）。被盗的过期 token 在窗口内无法主动吊销，
 只能等窗口关闭或换 `JWT_SECRET` 全员下线。这是 jwt-auth 的设计局限；
 敏感场景靠缩短 `refresh_ttl` 缓解。
-
-> 进阶小知识（可跳过）：`persistent_claims` 在 jwt-auth **2.8.x** 上不配必丢 guard；
-> **2.9.x** 因内部实现"碰巧"保留。不管哪个版本都该配——契约写在文档里，不赌内部实现。
 
 ---
 
