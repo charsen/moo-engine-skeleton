@@ -176,7 +176,7 @@ tables:
 
 ```bash
 php artisan moo:fresh                 # 解析 yaml 到 storage/scaffold 缓存（改完 yaml 必跑）
-php artisan moo:free admin Food -a    # 生成 Model/Resource/Controller/Request/路由/i18n/ACL/Migration/API 文档
+php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i18n/ACL/迁移/API 文档
 ```
 
 > `moo:free` 末尾会问「是否执行迁移」——选 **yes**。手滑选了 no 也没关系，
