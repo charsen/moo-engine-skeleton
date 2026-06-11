@@ -23,7 +23,8 @@ return [
     |--------------------------------------------------------------------------
     | Authentication Guards
     |--------------------------------------------------------------------------
-    | admin / user 两个 JWT 守卫共用 personnels provider（即 moo-system 的 Personnel）。
+    | 两条 JWT 通道：admin（后台）→ personnels provider（moo-system 的 Personnel，第 7 章接入）；
+    | user（移动端）→ users provider（自建的 App\Models\User，第 3 章建的最简主体，永久使用）。
     | hash=false：密码在 AuthController 里手动 Hash::check 校验，不走守卫的自动校验。
     */
 
@@ -39,10 +40,10 @@ return [
             'hash' => false,
         ],
 
-        // 移动端 API，与 admin 平行
+        // 移动端 API，与 admin 平行；主体是自建 User（不依赖 moo-system）
         'user' => [
             'driver' => 'jwt',
-            'provider' => 'personnels',
+            'provider' => 'users',
             'hash' => false,
         ],
     ],
