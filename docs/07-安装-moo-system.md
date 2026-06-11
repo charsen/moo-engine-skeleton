@@ -189,11 +189,14 @@ moo-system 提供了 `system_operation_logs` 表和写库 Job，采集点由 hos
 
 第 4 章手写的 User 版 AuthTest 完成了历史使命——换成仓库的最终版三件套
 （`tests/TestCase.php` + `AuthTest`（Personnel 版）+ `FoodAclTest`（角色版）+
-`ApiAuthTest`（User 版，不用动），含 phpunit.xml 那行密钥）：
+`ApiAuthTest`（User 版，不用动），含 phpunit.xml 那行密钥）。仓库里另有两个
+守护测试：`JwtAutoRefreshTest`（中间件对过期 token 的静默续签——挂
+`jwt.auth.refresh` 的路由收到过期 token 应 200 并经 `authorization` 响应头下发新
+token）和 `SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关联等 seeder 回归）：
 
 ```bash
 php artisan test
-# Tests: 21 passed
+# Tests: 27 passed
 ```
 
 `FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，
