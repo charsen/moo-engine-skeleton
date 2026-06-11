@@ -166,6 +166,9 @@ RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->use
 `admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`。
 
 验证：随便调一个 admin 接口，响应头出现 `X-RateLimit-Limit: 300` 即生效。
+在 scaffold 调试器的 Response Headers 标签里能同时看到限流头和 5.2 节的 CORS 暴露头：
+
+![调试器响应头：限流 + CORS 暴露](./images/05-debugger-response-headers.png)
 
 ## 5.7 操作日志中间件
 
