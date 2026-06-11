@@ -90,7 +90,12 @@ curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Be
 ```
 
 测试守护：仓库 `tests/Feature/ApiAuthTest.php` 5 个用例（401 / 登录 / 双向隔离 /
-单设备刷新 / 过期 token 刷新只产生一个新 token），主体就是 User，直接抄直接跑：
+单设备刷新 / 过期 token 刷新只产生一个新 token），主体就是 User。
+
+> 📦 它依赖仓库 `tests/TestCase.php` 的辅助方法，而那是第 7 章最终版——本章时间点
+> 抄来后要微调两处（都是"后台主体还是 User"的缘故）：`adminLogin()` 改成第 4 章的
+> email 写法；`makeExpiredToken()` 里 admin 分支的主体/`prv` 也先用 `User`。
+> 第 7 章换最终版时一并还原。改完：
 
 ```bash
 php artisan test --filter=ApiAuthTest

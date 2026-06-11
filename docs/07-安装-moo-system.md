@@ -112,6 +112,20 @@ php artisan vendor:publish --tag=moo-system-config
 'admin' => ['prefix' => 'api/admin', 'name' => 'admin.', 'middleware' => 'moo-system'],
 ```
 
+顺手把 moo-system 的控制器登记进 scaffold（`config/scaffold.php`）——
+ACL key 的命名空间反查、接口文档、调试器联调都依赖这一步，**必须在跑测试之前做**：
+
+```php
+'controller' => [
+    'admin' => [
+        // ...
+        'extra_modules' => [
+            'System' => 'Mooeen\\System\\Http\\Controllers\\Admin',
+        ],
+    ],
+],
+```
+
 迁移（包内 migration 自动加载）+ 6 项自检：
 
 ```bash
@@ -132,7 +146,7 @@ php artisan moo-system check    # 应 6/6 全绿
 ## 7.5 初始数据：角色 → 部门 → 岗位 → 人员
 
 4 个 seeder **完整代码见仓库 `engine/database/seeders/`，抄过来**，
-`DatabaseSeeder` 里跟在 UserSeeder 之后按序调用：
+并把第 3 章精简过的 `DatabaseSeeder` 换成仓库版（UserSeeder 之后按序调用四个）：
 
 | Seeder | 内容 |
 |---|---|
@@ -186,20 +200,7 @@ php artisan test
 
 ## 7.8 在 scaffold 调试器里联调
 
-把 moo-system 的控制器登记进 scaffold（`config/scaffold.php`）：
-
-```php
-'controller' => [
-    'admin' => [
-        // ...
-        'extra_modules' => [
-            'System' => 'Mooeen\\System\\Http\\Controllers\\Admin',
-        ],
-    ],
-],
-```
-
-生成接口文档后刷新调试器：
+7.4 已把控制器登记进 scaffold（extra_modules），现在生成接口文档、刷新调试器：
 
 ```bash
 php artisan moo:api admin System
