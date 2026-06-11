@@ -20,18 +20,20 @@
 
 新建 `app/Api/Controllers/AuthController.php`，与后台版的差异：
 
-**① guard claim 必须显式覆盖。** moo-system 的 `Personnel::getJWTCustomClaims()`
-硬编码 `['guard' => 'admin']` —— 直接 `Auth::guard('user')->login()` 发出来的 token
-还是带 `guard=admin`，过不了 `jwt.guard.auth:user`，所谓隔离就是空话。
-用内联 claims 覆盖（合并顺序：subject claims 先、内联后，后者赢）：
+**① guard claim 要显式声明。** moo-system 的 `Personnel::getJWTCustomClaims()`
+**曾经**硬编码 `['guard' => 'admin']`——那时不覆盖的话移动端 token 也带 `guard=admin`，
+过不了 `jwt.guard.auth:user`。这个根因后来在包里修掉了（`fix/dynamic-guard-claim`：
+跟随 `Auth::getDefaultDriver()`，登录路由经 client 组 `shouldUse('user')` 后自然返回
+`user`）。骨架仍保留内联声明作**冗余保险**（合并顺序：subject claims 先、内联后，后者赢）：
 
 ```php
 $token = Auth::guard('user')->claims(['guard' => 'user'])->login($user);
 ```
 
-> wisdomcity 因历史原因移动端路由也校验 `:admin`（claim 全是 admin，无隔离）；
-> 骨架把隔离做实了 —— 这是少数有意与 wisdomcity 不同的地方。
-> 续签时 guard=user 能保住，靠的还是第 5 章的 `persistent_claims=['guard']`。
+> 为什么保险值得留：守卫隔离失效是**静默**的（登录 200、token 能解析，直到撞上
+> guard 校验才 401），一行冗余换掉一类难排查的故障。续签时 guard=user 能保住，
+> 靠的还是第 5 章的 `persistent_claims=['guard']`。wisdomcity 已同步把 app 路由
+> 从 `:admin` 改为 `:user`（它当年正是被硬编码逼成无隔离的）。
 
 **② refresh 用 `(true, false)` —— 单设备登录。**
 
