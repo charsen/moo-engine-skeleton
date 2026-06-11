@@ -29,7 +29,8 @@
 composer update charsen/moo-system --with-all-dependencies
 ```
 
-> ⚠️ **第 1 个坑**：装完执行任何 artisan 命令会报 `Attribute [iResource] does not exist`。
+> ⚠️ **第 1 个坑**：`composer update` 跑到末尾的 `package:discover` 就会报
+> `Attribute [iResource] does not exist`——**这是预期的**，不是安装失败，往下看。
 > 因为 moo-system 在它的 ServiceProvider `boot()` 阶段就加载 `routes/admin.php` 调用了
 > `Route::iResource`，而宏如果注册在 `AppServiceProvider::boot()` 里就太晚了。
 > **把 `iResource` 宏的注册放到 `AppServiceProvider::register()`**（所有 provider 的
@@ -43,7 +44,19 @@ moo-system 的控制器 `use App\Admin\Controllers\Traits\BaseActionTrait / Uplo
 
 包里带了一份**空壳 stub**（`php artisan vendor:publish --tag=moo-system-stubs`），但它声明的
 `BaseActionTrait` 会和第 2 章 scaffold 已生成的同名 trait **冲突**，而且空壳没有 moo-system
-真正调用的方法。所以本教程**不用空壳**，而是从 `light-language-engine` 移植真实实现：
+真正调用的方法。所以本教程不用空壳，而是用真实实现——
+**5 个成品文件都在本仓库里，直接抄即可**：
+
+```
+engine/app/Admin/Controllers/Traits/BaseActionTrait.php
+engine/app/Admin/Controllers/Traits/UploaderTrait.php
+engine/app/Models/Traits/MediaSynchronous.php
+engine/app/Models/Notification.php
+engine/app/Notifications/SendBlessMessage.php
+```
+
+下表说明每个文件的来历（移植自作者真实项目 light-language-engine，简称 LLE，私有库；
+没有 LLE 不影响，抄上面的成品就行）：
 
 | 契约 | 做法 |
 |---|---|
@@ -84,7 +97,9 @@ php artisan vendor:publish --provider="PHPOpenSourceSaver\JWTAuth\Providers\Lara
 php artisan jwt:secret --force
 ```
 
-改 `config/auth.php`：默认守卫设为 `admin`（JWT），`personnels` provider 指向 moo-system 的
+改 `config/auth.php`。先解释一下**守卫（guard）**：Laravel 里一个 guard 就是一条独立的
+"认证通道"（用什么方式认证、查哪张用户表）。本骨架两条 JWT 通道：`admin` 给后台、
+`user` 给移动端，都查 Personnel 表。默认守卫设为 `admin`，`personnels` provider 指向 moo-system 的
 Personnel（`moo-system check` 会校验这个 FQN）：
 
 ```php
@@ -102,9 +117,13 @@ Personnel（`moo-system check` 会校验这个 FQN）：
 
 ## 3.4 JWT 中间件与路由分组
 
-参考 wisdomcity 写 3 个中间件到 `app/Http/Middleware/`：
-`JWTAssignGuard`（指定守卫）、`JWTGuardAuth`（校验 token 的 guard 声明）、
-`JWTAuthOrRefresh`（强制认证 + 近过期续签）。
+需要 3 个中间件（**完整代码都在本仓库 `engine/app/Http/Middleware/` 下，直接抄**）：
+
+| 文件 | 职责 |
+|---|---|
+| `JWTAssignGuard.php` | 按路由参数指定当前请求用哪个守卫（`Auth::shouldUse`） |
+| `JWTGuardAuth.php` | 校验 token 里的 guard 声明和路由要求一致；没带 token 放行 |
+| `JWTAuthOrRefresh.php` | 强制认证；token 过期但可续签时自动换新 token 放进响应头 |
 
 然后注册别名和**中间件组**。这里有个关键点：
 
@@ -118,6 +137,7 @@ Personnel（`moo-system check` 会校验这个 FQN）：
 
 ```php
 // AppServiceProvider::boot()
+// use Illuminate\Routing\Middleware\SubstituteBindings;（路由模型绑定，Laravel 自带）
 $router = $this->app['router'];
 $router->aliasMiddleware('jwt.assign.guard', JWTAssignGuard::class);
 $router->aliasMiddleware('jwt.guard.auth',   JWTGuardAuth::class);
@@ -133,8 +153,23 @@ $router->middlewareGroup('moo-system', [
 ]);
 ```
 
-`bootstrap/app.php` 的 `using:` 路由闭包把 `routes/admin.php` 挂到 `admin` 组、前缀 `api/admin`；
-并在 `withExceptions()` 里把 `UnauthorizedHttpException → 401`、`ValidationException → {message,errors}`。
+然后改 `bootstrap/app.php`：**把第 2 章写的 `then:` 整段替换**成 `using:`——
+区别是挂载点可以指定中间件组（第 2 章还没有组，现在有了）：
+
+```php
+->withRouting(
+    commands: __DIR__.'/../routes/console.php',
+    health: '/up',
+    using: function (): void {
+        Route::middleware('web')->group(base_path('routes/web.php'));
+        Route::middleware('client')->prefix('app')->name('app.')->group(base_path('routes/api.php'));
+        Route::middleware('admin')->prefix('api/admin')->name('admin.')->group(base_path('routes/admin.php'));
+    },
+)
+```
+
+并在 `withExceptions()` 里把 `UnauthorizedHttpException → 401`、
+`ValidationException → {message,errors}`（完整见仓库 `engine/bootstrap/app.php`）。
 
 让 moo-system 的包路由走 `moo-system` 组——改 `config/moo-system.php`：
 
@@ -166,19 +201,23 @@ php artisan migrate              # 建 system_* 共 10 张表（包内 migration
 php artisan moo-system check     # 6 项 host 集成自检，应全绿
 ```
 
+> 下文的 `migrate --seed` 是「迁移 + 填数据」一步到位的写法；这里已经 migrate 过的话，
+> 后面用 `php artisan db:seed` 单独填数据即可，两条路径等价。
+
 `moo-system check` 全绿示意：
 
 ```
 ✓ Auth provider 配置真实 FQN
 ✓ admin middleware group 含 jwt.auth.refresh
-✓ Composer classmap 不含已删的 App\Models\System\*
+✓ Composer classmap 不含已删的 App\Models\System\*   ← 指老项目迁包前的旧类，新项目天然通过
 ✓ Host 端 5 个必需契约 trait/class 全部存在
 ✓ Route::iResource macro 已注册
 ✓ config:cache 与 source 一致
 🎉  All 6 required checks passed.
 ```
 
-moo-system 包本身不带 seeder，但本骨架在 `engine/database/seeders/` 写了一套，
+moo-system 包本身不带 seeder。本骨架在 `engine/database/seeders/` 写了一套
+（`DatabaseSeeder` + 4 个业务 seeder，**完整代码见仓库，先抄过来再跑**），
 按 **角色 → 部门 → 岗位 → 人员** 顺序建初始数据（含一个可登录的管理员）：
 
 | Seeder | 内容 |

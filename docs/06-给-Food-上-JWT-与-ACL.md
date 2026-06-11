@@ -87,7 +87,9 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 ```php
 $e = Mooeen\System\Models\Personnel::firstOrNew(['mobile' => '13900000000']);
 $e->real_name = '编辑小王'; $e->staff_status = 7; $e->account_status = 7;
-$e->password = 'editor888'; $e->created_account_at = now(); $e->save();
+$e->password = 'editor888';
+$e->created_account_at = now();   // 个人中心展示用的开户时间，非必填
+$e->save();
 $e->roles()->syncWithoutDetaching([Mooeen\System\Models\Role::where('role_name', '编辑员')->first()->id]);
 ```
 
