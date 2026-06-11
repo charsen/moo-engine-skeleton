@@ -54,10 +54,11 @@ curl -s http://127.0.0.1:8088/api/admin/me/info -H "Accept: application/json" -H
 curl -s "http://127.0.0.1:8088/api/admin/departments?page=1&page_limit=10" \
   -H "Accept: application/json" -H "Authorization: Bearer $TOKEN"
 
-# 新建岗位（完整 CRUD 验证）
+# 新建岗位（完整 CRUD 验证）。注意：「后端工程师」第 3 章 seeder 已建过，
+# position_name 有唯一校验，重名会 422——换个 seeder 里没有的名字
 curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
   -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
-  -d '{"position_name":"后端工程师"}'
+  -d '{"position_name":"测试工程师"}'
 # 201 {"data":{"position_status":7,"position_name":"后端工程师","id":"615921207845457920",...}}
 ```
 
