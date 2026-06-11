@@ -63,6 +63,10 @@ Route::group(['middleware' => ['jwt.guard.auth:user', 'jwt.auth.refresh']], func
 });
 ```
 
+写好后在 `/scaffold/routes` 切到「客户端接口」应用，能看到移动端的全部路由：
+
+![客户端接口路由](./images/07-scaffold-routes-app.png)
+
 ## 7.4 真机验证
 
 ```bash
