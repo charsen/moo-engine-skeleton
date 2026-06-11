@@ -45,7 +45,9 @@ class JWTAuthOrRefresh
                     throw new UnauthorizedHttpException('jwt-auth', 'Token not provided');
                 }
 
-                if (! empty($old_token)) {
+                // 同步 moo-system 登录管理记录（第 7 章装包后自动生效；未装包时静默跳过，
+                // 本中间件因此不依赖任何付费包，第 3 章"直接抄"成立）
+                if (! empty($old_token) && class_exists(UpdateLoginTokenJob::class)) {
                     UpdateLoginTokenJob::dispatch($old_token, $token);
                 }
             } catch (JWTException $e) {

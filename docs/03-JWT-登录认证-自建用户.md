@@ -45,12 +45,25 @@ class User extends Authenticatable implements JWTSubject
 > 的最小授权存储，先照抄不用管。配套迁移（给 users 加 `actions` 列）也在仓库：
 > `database/migrations/*_add_actions_to_users_table.php`，抄完跑 `php artisan migrate`。
 
-建第一个用户（`database/seeders/UserSeeder.php`，抄仓库）：
+建第一个用户（`database/seeders/UserSeeder.php`，抄仓库），并把 `DatabaseSeeder`
+的 `run()` 改成只调它（📦 仓库版还列着第 7 章的四个 moo-system seeder，现在还没有那些类，
+照抄会报错——本章先这样写，第 7 章再加回去）：
+
+```php
+public function run(): void
+{
+    $this->call([
+        UserSeeder::class,
+    ]);
+}
+```
 
 ```bash
 php artisan db:seed --class=UserSeeder
 # UserSeeder：admin@example.com / password（is_root 超级权限）
 ```
+
+> 第 4 章测试的 `$seed = true` 跑的就是 `DatabaseSeeder`，所以它必须包含 UserSeeder。
 
 ## 3.3 配置守卫（guard）
 
