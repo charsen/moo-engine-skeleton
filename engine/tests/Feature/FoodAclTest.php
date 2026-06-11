@@ -71,6 +71,23 @@ class FoodAclTest extends TestCase
 
     public function test_zero_action_role_can_still_use_personal_center(): void
     {
+        // 守护（坑 #25）：moo:auth 会整文件重写 config/actions.php，把手动合并进
+        // whitelist 的个人中心 8 个 key 冲掉（它只自动放行「无 @acl」的 action）。
+        // 丢 key = 零授权角色被锁死在门外（坑 #20），所以先断言 8 个 key 都在。
+        $whitelist = config('actions.admin.whitelist');
+        foreach ([
+            '84470713dcb9a7c9', // admin-system-admin-index
+            'f6d488cc41bea74a', // admin-system-admin-edit
+            'b00ef1ce449c970b', // admin-system-admin-update
+            'cbc32275c4bdb06c', // admin-system-admin-password-form
+            '88e610dbb210a3dc', // admin-system-admin-password
+            '1fcbfd9524aebb83', // admin-system-admin-avatar-form
+            'd59a5622ff031201', // admin-system-admin-avatar
+            'e389e65e330e8af2', // admin-system-admin-logins
+        ] as $key) {
+            $this->assertContains($key, $whitelist, "个人中心白名单 key {$key} 丢失——moo:auth 重写 config/actions.php 后未把手动段合并回去（坑 #25）");
+        }
+
         $this->makeEditor();
         $token = $this->adminLogin('13900000000', 'editor888');
 

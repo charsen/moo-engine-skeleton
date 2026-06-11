@@ -20,6 +20,7 @@ tables:
             food_name: { name: 名称, type: varchar, size: '2,128', unique: true }
             food_category: { name: 分类, type: tinyint, default: 1 }
             price: { name: 价格, type: int, default: 0, desc: 单位：分 }
+            stock: { name: 库存, type: int, default: 0 }
             calories: { required: false, name: 热量, type: int, default: 0, desc: 单位：大卡 }
             food_status: { name: 状态, type: tinyint, default: 1 }
             description: { required: false, name: 描述, type: varchar, size: 255 }

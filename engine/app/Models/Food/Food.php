@@ -28,6 +28,7 @@ use Mooeen\Scaffold\Concerns\Optional;
  * @property string $food_name 名称
  * @property int $food_category 分类
  * @property int $price 价格
+ * @property int $stock 库存
  * @property int $calories 热量
  * @property int $food_status 状态
  * @property string $description 描述
@@ -63,6 +64,7 @@ class Food extends Model
     protected $attributes = [
         'food_category' => 1,
         'price' => 0,
+        'stock' => 0,
         'calories' => 0,
         'food_status' => 1,
     ];
@@ -81,7 +83,7 @@ class Food extends Model
      *
      * @var array
      */
-    protected $fillable = ['food_name', 'food_category', 'price', 'calories', 'food_status', 'description'];
+    protected $fillable = ['food_name', 'food_category', 'price', 'stock', 'calories', 'food_status', 'description'];
 
     /**
      * 数组中的属性会被隐藏

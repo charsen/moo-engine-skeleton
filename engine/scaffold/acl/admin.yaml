@@ -1,11 +1,1229 @@
 meta:
     app: admin
     app_name: 后台管理
-    generated_at: '2026-06-05 14:20:13'
+    generated_at: '2026-06-11 14:43:19'
     generated_by: charsen
     stats:
-        module_count: 0
-        controller_count: 0
-        action_count: 0
+        module_count: 3
+        controller_count: 12
+        action_count: 74
+        whitelist_count: 7
+modules:
+    -
+        key: module-6e1ee1805962ce1b
+        name:
+            en: Food
+            zh-CN: 食品管理
+        controller_count: 1
+        action_count: 11
         whitelist_count: 0
-modules: {  }
+        controllers:
+            -
+                key: controller-6acdae7d4ff27b39
+                class: App\Admin\Controllers\Food\FoodController
+                name:
+                    en: 'Management Food'
+                    zh-CN: 食品管理
+                action_count: 11
+                whitelist_count: 0
+                actions:
+                    -
+                        key: e7746966a2caa301
+                        plain_key: admin-food-food-store
+                        action: create
+                        title: 创建表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::store'
+                        keys:
+                            - e7746966a2caa301
+                        plain_keys:
+                            - admin-food-food-store
+                        route_plain_key: admin-food-food-create
+                        acl_transformed: true
+                    -
+                        key: e7746966a2caa301
+                        plain_key: admin-food-food-store
+                        action: store
+                        title: 创建食品
+                        name:
+                            en: 'Create Food'
+                            zh-CN: 创建食品
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::store'
+                    -
+                        key: 4e0ea90176a9a5d4
+                        plain_key: admin-food-food-update
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::update'
+                        keys:
+                            - 4e0ea90176a9a5d4
+                        plain_keys:
+                            - admin-food-food-update
+                        route_plain_key: admin-food-food-edit
+                        acl_transformed: true
+                    -
+                        key: 4e0ea90176a9a5d4
+                        plain_key: admin-food-food-update
+                        action: update
+                        title: 更新食品
+                        name:
+                            en: 'Update Food'
+                            zh-CN: 更新食品
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::update'
+                    -
+                        key: 26f8cc4c634cc762
+                        plain_key: admin-food-food-show
+                        action: show
+                        title: 查看食品
+                        name:
+                            en: 'Show Food'
+                            zh-CN: 查看食品
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::show'
+                    -
+                        key: d84c4f5251f855f0
+                        plain_key: admin-food-food-index
+                        action: index
+                        title: 食品列表
+                        name:
+                            en: 'Food List'
+                            zh-CN: 食品列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::index'
+                    -
+                        key: 2fbd315bd61d3ab8
+                        plain_key: admin-food-food-trashed
+                        action: trashed
+                        title: 食品回收站
+                        name:
+                            en: 'Food Trashed'
+                            zh-CN: 食品回收站
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::trashed'
+                    -
+                        key: 5e41325cb846c3b7
+                        plain_key: admin-food-food-destroy-batch
+                        action: destroyBatch
+                        title: 删除食品
+                        name:
+                            en: 'Destroy Food'
+                            zh-CN: 删除食品
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::destroyBatch'
+                    -
+                        key: 72046d8c7e9dfa85
+                        plain_key: admin-food-food-force-destroy
+                        action: forceDestroy
+                        title: 永久删除食品
+                        name:
+                            en: 'Destroy Forever Food'
+                            zh-CN: 永久删除食品
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::forceDestroy'
+                    -
+                        key: 2fbd315bd61d3ab8
+                        plain_key: admin-food-food-trashed
+                        action: restore
+                        title: 恢复食品
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::trashed'
+                        keys:
+                            - 2fbd315bd61d3ab8
+                        plain_keys:
+                            - admin-food-food-trashed
+                        route_plain_key: admin-food-food-restore
+                        acl_transformed: true
+                    -
+                        key: 4e0ea90176a9a5d4
+                        plain_key: admin-food-food-update
+                        action: toggleStatus
+                        title: '上架/下架切换（权限复用 update，见 $transform_methods）'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'App\Admin\Controllers\Food\FoodController::update'
+                        keys:
+                            - 4e0ea90176a9a5d4
+                        plain_keys:
+                            - admin-food-food-update
+                        route_plain_key: admin-food-food-toggle-status
+                        acl_transformed: true
+    -
+        key: module-3be4816a2540436b
+        name:
+            en: System
+            zh-CN: 系统管理
+        controller_count: 10
+        action_count: 59
+        whitelist_count: 3
+        controllers:
+            -
+                key: controller-dc555af4f0bdfd3c
+                class: Mooeen\System\Http\Controllers\Admin\DepartmentController
+                name:
+                    en: 'Management Department'
+                    zh-CN: 部门管理
+                action_count: 7
+                whitelist_count: 0
+                actions:
+                    -
+                        key: b3ada2315ab43aa3
+                        plain_key: admin-system-department-store
+                        action: create
+                        title: 创建表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::store'
+                        keys:
+                            - b3ada2315ab43aa3
+                        plain_keys:
+                            - admin-system-department-store
+                        route_plain_key: admin-system-department-create
+                        acl_transformed: true
+                    -
+                        key: b3ada2315ab43aa3
+                        plain_key: admin-system-department-store
+                        action: store
+                        title: 创建部门
+                        name:
+                            en: 'Create Department'
+                            zh-CN: 创建部门
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::store'
+                    -
+                        key: 07f5f537472dab96
+                        plain_key: admin-system-department-update
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::update'
+                        keys:
+                            - 07f5f537472dab96
+                        plain_keys:
+                            - admin-system-department-update
+                        route_plain_key: admin-system-department-edit
+                        acl_transformed: true
+                    -
+                        key: 07f5f537472dab96
+                        plain_key: admin-system-department-update
+                        action: update
+                        title: 更新部门
+                        name:
+                            en: 'Update Department'
+                            zh-CN: 更新部门
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::update'
+                    -
+                        key: 268ea0fecc6f1e44
+                        plain_key: admin-system-department-index
+                        action: index
+                        title: 部门列表
+                        name:
+                            en: 'Department List'
+                            zh-CN: 部门列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::index'
+                    -
+                        key: b5b9ad9e015f0fde
+                        plain_key: admin-system-department-destroy-batch
+                        action: destroyBatch
+                        title: 删除部门
+                        name:
+                            en: 'Destroy Department'
+                            zh-CN: 删除部门
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::destroyBatch'
+                    -
+                        key: 07f5f537472dab96
+                        plain_key: admin-system-department-update
+                        action: move
+                        title: 在父级内前后移动
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\DepartmentController::update'
+                        keys:
+                            - 07f5f537472dab96
+                        plain_keys:
+                            - admin-system-department-update
+                        route_plain_key: admin-system-department-move
+                        acl_transformed: true
+            -
+                key: controller-452ba674d17d8f49
+                class: Mooeen\System\Http\Controllers\Admin\NotifyRobotController
+                name:
+                    en: 'Management NotifyRobot'
+                    zh-CN: 通知机器人管理
+                action_count: 7
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: create
+                        title: 创建表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-create
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: store
+                        title: 创建通知机器人
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-store
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-edit
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: update
+                        title: 更新通知机器人
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-update
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: index
+                        title: 通知机器人列表
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-index
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: destroyBatch
+                        title: 删除通知机器人
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-destroy-batch
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: bless
+                        title: 测试通知
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-notify-robot-bless
+                        acl_transformed: true
+            -
+                key: controller-b9c6987c4df140c8
+                class: Mooeen\System\Http\Controllers\Admin\PersonnelController
+                name:
+                    en: 'Management Personnel'
+                    zh-CN: 人员管理
+                action_count: 11
+                whitelist_count: 0
+                actions:
+                    -
+                        key: be99d97e69677bb8
+                        plain_key: admin-system-personnel-store
+                        action: create
+                        title: 创建表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::store'
+                        keys:
+                            - be99d97e69677bb8
+                        plain_keys:
+                            - admin-system-personnel-store
+                        route_plain_key: admin-system-personnel-create
+                        acl_transformed: true
+                    -
+                        key: be99d97e69677bb8
+                        plain_key: admin-system-personnel-store
+                        action: store
+                        title: 创建人员
+                        name:
+                            en: 'Create Personnel'
+                            zh-CN: 创建人员
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::store'
+                    -
+                        key: 80138bd80609db61
+                        plain_key: admin-system-personnel-update
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::update'
+                        keys:
+                            - 80138bd80609db61
+                        plain_keys:
+                            - admin-system-personnel-update
+                        route_plain_key: admin-system-personnel-edit
+                        acl_transformed: true
+                    -
+                        key: 80138bd80609db61
+                        plain_key: admin-system-personnel-update
+                        action: update
+                        title: 更新人员
+                        name:
+                            en: 'Update Personnel'
+                            zh-CN: 更新人员
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::update'
+                    -
+                        key: 5649fe2faeff1d6e
+                        plain_key: admin-system-personnel-show
+                        action: show
+                        title: 查看人员
+                        name:
+                            en: 'Show Personnel'
+                            zh-CN: 查看人员
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::show'
+                    -
+                        key: 367fcecbd5ccd47e
+                        plain_key: admin-system-personnel-index
+                        action: index
+                        title: 人员列表
+                        name:
+                            en: 'Personnel List'
+                            zh-CN: 人员列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::index'
+                    -
+                        key: 0af2ab276b350948
+                        plain_key: admin-system-personnel-trashed
+                        action: trashed
+                        title: 人员回收站
+                        name:
+                            en: 'Personnel Trashed'
+                            zh-CN: 人员回收站
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::trashed'
+                    -
+                        key: fb4ddbb02186c8f5
+                        plain_key: admin-system-personnel-destroy-batch
+                        action: destroyBatch
+                        title: 批量删除人员
+                        name:
+                            en: 'Destroy Personnel'
+                            zh-CN: 删除人员
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::destroyBatch'
+                    -
+                        key: 0af2ab276b350948
+                        plain_key: admin-system-personnel-trashed
+                        action: restore
+                        title: 恢复人员
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::trashed'
+                        keys:
+                            - 0af2ab276b350948
+                        plain_keys:
+                            - admin-system-personnel-trashed
+                        route_plain_key: admin-system-personnel-restore
+                        acl_transformed: true
+                    -
+                        key: 02b45d4094e6a333
+                        plain_key: admin-system-personnel-account
+                        action: account
+                        title: 设置帐号
+                        name:
+                            en: 'Setup Account'
+                            zh-CN: 设置帐号
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
+                    -
+                        key: 02b45d4094e6a333
+                        plain_key: admin-system-personnel-account
+                        action: setup
+                        title: 设置帐号表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
+                        keys:
+                            - 02b45d4094e6a333
+                        plain_keys:
+                            - admin-system-personnel-account
+                        route_plain_key: admin-system-personnel-setup
+                        acl_transformed: true
+            -
+                key: controller-bb701f9106045d51
+                class: Mooeen\System\Http\Controllers\Admin\PositionController
+                name:
+                    en: 'Management Position'
+                    zh-CN: 岗位管理
+                action_count: 8
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 38ebec893018260f
+                        plain_key: admin-system-position-store
+                        action: create
+                        title: 创建表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::store'
+                        keys:
+                            - 38ebec893018260f
+                        plain_keys:
+                            - admin-system-position-store
+                        route_plain_key: admin-system-position-create
+                        acl_transformed: true
+                    -
+                        key: 38ebec893018260f
+                        plain_key: admin-system-position-store
+                        action: store
+                        title: 创建岗位
+                        name:
+                            en: 'Create Position'
+                            zh-CN: 创建岗位
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::store'
+                    -
+                        key: 008bb467fb6436f0
+                        plain_key: admin-system-position-update
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::update'
+                        keys:
+                            - 008bb467fb6436f0
+                        plain_keys:
+                            - admin-system-position-update
+                        route_plain_key: admin-system-position-edit
+                        acl_transformed: true
+                    -
+                        key: 008bb467fb6436f0
+                        plain_key: admin-system-position-update
+                        action: update
+                        title: 更新岗位
+                        name:
+                            en: 'Update Position'
+                            zh-CN: 更新岗位
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::update'
+                    -
+                        key: 28b3c41c6235eea9
+                        plain_key: admin-system-position-index
+                        action: index
+                        title: 岗位列表
+                        name:
+                            en: 'Position List'
+                            zh-CN: 岗位列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::index'
+                    -
+                        key: c3cc14385f0293d8
+                        plain_key: admin-system-position-trashed
+                        action: trashed
+                        title: 岗位回收站
+                        name:
+                            en: 'Position Trashed'
+                            zh-CN: 岗位回收站
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::trashed'
+                    -
+                        key: 56f6db0ccd99c914
+                        plain_key: admin-system-position-destroy-batch
+                        action: destroyBatch
+                        title: 批量删除岗位
+                        name:
+                            en: 'Batch Destroy Position'
+                            zh-CN: 批量删除岗位
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::destroyBatch'
+                    -
+                        key: c3cc14385f0293d8
+                        plain_key: admin-system-position-trashed
+                        action: restore
+                        title: 恢复岗位
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PositionController::trashed'
+                        keys:
+                            - c3cc14385f0293d8
+                        plain_keys:
+                            - admin-system-position-trashed
+                        route_plain_key: admin-system-position-restore
+                        acl_transformed: true
+            -
+                key: controller-2fae3a4efe34b803
+                class: Mooeen\System\Http\Controllers\Admin\RoleController
+                name:
+                    en: 'Management Role'
+                    zh-CN: 角色管理
+                action_count: 5
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 550a8dacdcee12f3
+                        plain_key: admin-system-role-store
+                        action: create
+                        title: 创建表单（关联岗位可选）
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::store'
+                        keys:
+                            - 550a8dacdcee12f3
+                        plain_keys:
+                            - admin-system-role-store
+                        route_plain_key: admin-system-role-create
+                        acl_transformed: true
+                    -
+                        key: 550a8dacdcee12f3
+                        plain_key: admin-system-role-store
+                        action: store
+                        title: 创建角色
+                        name:
+                            en: 'Create Role'
+                            zh-CN: 创建角色
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::store'
+                    -
+                        key: 0bc502f2c475c811
+                        plain_key: admin-system-role-update
+                        action: edit
+                        title: 编辑表单（关联岗位置灰回显，不可改）
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::update'
+                        keys:
+                            - 0bc502f2c475c811
+                        plain_keys:
+                            - admin-system-role-update
+                        route_plain_key: admin-system-role-edit
+                        acl_transformed: true
+                    -
+                        key: 0bc502f2c475c811
+                        plain_key: admin-system-role-update
+                        action: update
+                        title: 更新角色
+                        name:
+                            en: 'Update Role'
+                            zh-CN: 更新角色
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::update'
+                    -
+                        key: aa00cbec75768ec9
+                        plain_key: admin-system-role-destroy-batch
+                        action: destroyBatch
+                        title: 批量删除角色
+                        name:
+                            en: 'Batch Destroy Role'
+                            zh-CN: 批量删除角色
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::destroyBatch'
+            -
+                key: controller-fec08700f2af8413
+                class: Mooeen\System\Http\Controllers\Admin\OperationLogController
+                name:
+                    en: 'Management OperationLog'
+                    zh-CN: 操作日志管理
+                action_count: 2
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 8a244c37457907f6
+                        plain_key: admin-system-operation-log-show
+                        action: show
+                        title: 查看操作日志
+                        name:
+                            en: 'Show OperationLog'
+                            zh-CN: 查看操作日志
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\OperationLogController::show'
+                    -
+                        key: feac3caa733783bd
+                        plain_key: admin-system-operation-log-index
+                        action: index
+                        title: 操作日志列表
+                        name:
+                            en: 'OperationLog List'
+                            zh-CN: 操作日志列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\OperationLogController::index'
+            -
+                key: controller-01335606d5a5d365
+                class: Mooeen\System\Http\Controllers\Admin\LoginManagementController
+                name:
+                    en: 'Management LoginManagement'
+                    zh-CN: 登录管理管理
+                action_count: 2
+                whitelist_count: 1
+                actions:
+                    -
+                        key: 48d3ca3e656e3566
+                        plain_key: admin-system-login-management-index
+                        action: index
+                        title: 登录列表
+                        name:
+                            en: 'Logins List'
+                            zh-CN: 登录列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\LoginManagementController::index'
+                    -
+                        key: '48d3ca3e656e3566 | 84470713dcb9a7c9'
+                        plain_key: 'admin-system-login-management-index | admin-system-admin-index'
+                        action: destroyBatch
+                        title: 删除登录管理
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\LoginManagementController::index'
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 48d3ca3e656e3566
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-login-management-index
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-login-management-destroy-batch
+                        acl_transformed: true
+            -
+                key: controller-891c028ca8f783e8
+                class: Mooeen\System\Http\Controllers\Admin\PersonnelOperationLogController
+                name:
+                    en: 'Management PersonnelOperationLog'
+                    zh-CN: 人员操作日志管理
+                action_count: 1
+                whitelist_count: 1
+                actions:
+                    -
+                        key: acd00c2eda7d9682
+                        plain_key: admin-system-personnel-operation-log-index
+                        action: index
+                        title: 人员操作日志列表
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelOperationLogController::index'
+            -
+                key: controller-ac28ebe832d23721
+                class: Mooeen\System\Http\Controllers\Admin\AdminController
+                name:
+                    en: 'Personal Information'
+                    zh-CN: 个人信息
+                action_count: 8
+                whitelist_count: 0
+                actions:
+                    -
+                        key: d59a5622ff031201
+                        plain_key: admin-system-admin-avatar
+                        action: avatar
+                        title: 更换个人头像
+                        name:
+                            en: 'Update Avatar'
+                            zh-CN: 更新个人头像
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::avatar'
+                    -
+                        key: d59a5622ff031201
+                        plain_key: admin-system-admin-avatar
+                        action: avatarForm
+                        title: 修改个人头像表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::avatar'
+                        keys:
+                            - d59a5622ff031201
+                        plain_keys:
+                            - admin-system-admin-avatar
+                        route_plain_key: admin-system-admin-avatar-form
+                        acl_transformed: true
+                    -
+                        key: b00ef1ce449c970b
+                        plain_key: admin-system-admin-update
+                        action: edit
+                        title: 编辑表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::update'
+                        keys:
+                            - b00ef1ce449c970b
+                        plain_keys:
+                            - admin-system-admin-update
+                        route_plain_key: admin-system-admin-edit
+                        acl_transformed: true
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: index
+                        title: 个人中心
+                        name:
+                            en: 'User Center'
+                            zh-CN: 个人中心
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                    -
+                        key: 84470713dcb9a7c9
+                        plain_key: admin-system-admin-index
+                        action: logins
+                        title: 个人的登录管理列表
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::index'
+                        keys:
+                            - 84470713dcb9a7c9
+                        plain_keys:
+                            - admin-system-admin-index
+                        route_plain_key: admin-system-admin-logins
+                        acl_transformed: true
+                    -
+                        key: 88e610dbb210a3dc
+                        plain_key: admin-system-admin-password
+                        action: password
+                        title: 更新个人密码
+                        name:
+                            en: 'Update Password'
+                            zh-CN: 更新个人密码
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::password'
+                    -
+                        key: 88e610dbb210a3dc
+                        plain_key: admin-system-admin-password
+                        action: passwordForm
+                        title: 修改个人密码表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::password'
+                        keys:
+                            - 88e610dbb210a3dc
+                        plain_keys:
+                            - admin-system-admin-password
+                        route_plain_key: admin-system-admin-password-form
+                        acl_transformed: true
+                    -
+                        key: b00ef1ce449c970b
+                        plain_key: admin-system-admin-update
+                        action: update
+                        title: 更新个人资料
+                        name:
+                            en: 'Update Information'
+                            zh-CN: 更新个人资料
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AdminController::update'
+            -
+                key: controller-6351cb0893e9beeb
+                class: Mooeen\System\Http\Controllers\Admin\AuthorizationController
+                name:
+                    en: 'Management Authorization'
+                    zh-CN: 授权管理
+                action_count: 8
+                whitelist_count: 1
+                actions:
+                    -
+                        key: 260134192d792203
+                        plain_key: admin-system-authorization-edit-authorization
+                        action: editAuthorization
+                        title: 复制角色授权
+                        name:
+                            en: 'Copy Role Authorization'
+                            zh-CN: 复制角色授权
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::editAuthorization'
+                    -
+                        key: 80e08bf5dfe5b440
+                        plain_key: admin-system-authorization-edit-personnel
+                        action: editPersonnel
+                        title: 编辑角色人员
+                        name:
+                            en: 'Add personnel to Role'
+                            zh-CN: 编辑角色人员
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::editPersonnel'
+                    -
+                        key: ec2cd321a60acaee
+                        plain_key: admin-system-authorization-index
+                        action: export
+                        title: 导出角色动作
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::index'
+                        keys:
+                            - ec2cd321a60acaee
+                        plain_keys:
+                            - admin-system-authorization-index
+                        route_plain_key: admin-system-authorization-export
+                        acl_transformed: true
+                    -
+                        key: ec2cd321a60acaee
+                        plain_key: admin-system-authorization-index
+                        action: index
+                        title: 授权管理
+                        name:
+                            en: 'Management Authorization'
+                            zh-CN: 授权管理
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::index'
+                    -
+                        key: 80e08bf5dfe5b440
+                        plain_key: admin-system-authorization-edit-personnel
+                        action: removePersonnel
+                        title: 从角色中移出单个人员
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::editPersonnel'
+                        keys:
+                            - 80e08bf5dfe5b440
+                        plain_keys:
+                            - admin-system-authorization-edit-personnel
+                        route_plain_key: admin-system-authorization-remove-personnel
+                        acl_transformed: true
+                    -
+                        key: 90a2d391c09ff58d
+                        plain_key: admin-system-authorization-update-actions
+                        action: updateActions
+                        title: 更新角色动作
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::updateActions'
+                    -
+                        key: 260134192d792203
+                        plain_key: admin-system-authorization-edit-authorization
+                        action: updateAuthorization
+                        title: 复制角色授权
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::editAuthorization'
+                        keys:
+                            - 260134192d792203
+                        plain_keys:
+                            - admin-system-authorization-edit-authorization
+                        route_plain_key: admin-system-authorization-update-authorization
+                        acl_transformed: true
+                    -
+                        key: 80e08bf5dfe5b440
+                        plain_key: admin-system-authorization-edit-personnel
+                        action: updatePersonnel
+                        title: 更新角色人员
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::editPersonnel'
+                        keys:
+                            - 80e08bf5dfe5b440
+                        plain_keys:
+                            - admin-system-authorization-edit-personnel
+                        route_plain_key: admin-system-authorization-update-personnel
+                        acl_transformed: true
+    -
+        key: module-b3b87f7fadccdce7
+        name:
+            en: ''
+            zh-CN: ''
+        controller_count: 1
+        action_count: 4
+        whitelist_count: 4
+        controllers:
+            -
+                key: controller-95b75dcac0c99d74
+                class: App\Admin\Controllers\AuthController
+                name:
+                    en: ''
+                    zh-CN: ''
+                action_count: 4
+                whitelist_count: 4
+                actions:
+                    -
+                        key: 46c447ee55a627c6
+                        plain_key: admin-auth-authenticate
+                        action: authenticate
+                        title: '登录：校验帐号密码 → 手动签发 JWT。'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\AuthController::authenticate'
+                    -
+                        key: dffe71cfa5a3c405
+                        plain_key: admin-auth-logout
+                        action: logout
+                        title: '退出登录（拉黑当前 token）。'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\AuthController::logout'
+                    -
+                        key: e9532ad1cd13af0a
+                        plain_key: admin-auth-me
+                        action: me
+                        title: 当前登录人信息
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\AuthController::me'
+                    -
+                        key: 42f63e42d2308d4f
+                        plain_key: admin-auth-refresh
+                        action: refresh
+                        title: '主动刷新 token'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\AuthController::refresh'

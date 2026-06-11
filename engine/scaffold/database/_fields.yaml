@@ -16,3 +16,4 @@ table_fields:
     deleted_at: { en: 'Deleted At', 'zh-CN': '删除于' }
     created_at: { en: 'Created At', 'zh-CN': '创建于' }
     updated_at: { en: 'Updated At', 'zh-CN': '更新于' }
+    stock: { en: 'Stock', 'zh-CN': '库存' }
