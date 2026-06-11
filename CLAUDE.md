@@ -9,12 +9,14 @@
 `moo-scaffold` 代码生成器、`moo-system` 系统管理模块（部门 / 岗位 / 人员 / 角色 / 授权）
 以及 JWT 登录认证的可运行后端——并且全部经过真机测试。
 
-它是作者真实项目 `某个内部 Host`、`某内部语言项目（后端）` 的同级 / 骨架版，
-消费同样的私有包（`charsen/moo-scaffold`、`charsen/moo-system`）。
+它是作者多个生产项目的同级 / 骨架版，消费同样的私有包
+（`charsen/moo-scaffold`、`charsen/moo-system`）。
+**注意：本仓库的一切资料（文档/代码注释/提交信息）不得出现作者具体生产项目的名称**——
+统一用「作者生产项目 / 生产实践」指代。
 
 **教学路线（2026-06 重构）**：JWT 用**自建最简 User** 独立教学（第 3~6 章，零付费依赖）；
 moo-system 定位为**进阶/商业包**，放在第 7 章可选接入——后台守卫主体届时从 User 切到
-Personnel，移动端 user 守卫**永久**用自建 User（对齐 某内部语言项目（后端） 的真实模式）。
+Personnel，移动端 user 守卫**永久**用自建 User（与作者生产项目的真实模式一致）。
 
 ### 两条工作原则（来自 README.md，不可妥协）
 
@@ -26,8 +28,8 @@ Personnel，移动端 user 守卫**永久**用自建 User（对齐 某内部语�
 
 ## 仓库结构（重要）
 
-Laravel 应用放在 **`engine/`** 子目录里，而不是仓库根目录——这与本生态里所有项目一致
-（`某个内部 Host/engine`、`某内部语言项目（后端）/engine`、`某个内部业务项目/engine`）。
+Laravel 应用放在 **`engine/`** 子目录里，而不是仓库根目录——这是本生态所有项目
+统一的目录约定。
 仓库根目录只放文档、部署脚本和本文件。
 
 ```
@@ -59,7 +61,7 @@ moo-engine-skeleton/
 ## 私有包接入：开发（path）vs 生产（vcs）
 
 moo-* 系列包**不在 Packagist 上**（私有，托管在 Gitee）。在 `engine/composer.json` 里声明。
-作者的写法（已据 `某个内部 Host/engine/composer.json` 核实）：
+作者的标准写法：
 
 **开发——本地 path 仓库**（源码实时生效，composer 把同级目录 symlink 进来）：
 ```json
@@ -139,7 +141,7 @@ php artisan moo:free admin Food -a   # Model+Resource+Controller+Request+路由+
 ## 业务代码架构（作者的招牌结构）
 
 读 `moo-scaffold/src/Foundation/{Controller,FormRequest,BaseResource,BaseResourceCollection}.php`
-以及 `某个内部 Host/engine/app/Admin/...` 下一个真实实体的「四件套」，能直观看到实践。
+以及本仓库 `engine/app/Admin/...` 下 Food 实体的「四件套」，能直观看到实践。
 
 - **入口即边界；没有 Service/Repository 层。** 逻辑分布在：轻量 **Controller**（编排）、
   **Model**（业务规则靠 `boot()` 守卫 + trait + `ModelFilter`）、**ModelFilter**（query 字符串 → 查询）、
@@ -198,7 +200,7 @@ php artisan moo:free admin Food -a   # Model+Resource+Controller+Request+路由+
 - 维护命令：`php artisan moo-system check`（6 项 host 自检）、`moo-system update`。
 - 生产环境下雪花 ID 需要跨 worker 的共享缓存 → 设 `CACHE_STORE=redis`。
 
-## JWT 认证（仿 `某个内部 Host`）
+## JWT 认证
 
 包：**`php-open-source-saver/jwt-auth` `^2.8`**（`tymon/jwt-auth` 的维护分支，
 命名空间 `PHPOpenSourceSaver\JWTAuth`，自动发现 provider）。
@@ -208,21 +210,21 @@ composer require php-open-source-saver/jwt-auth:^2.8
 php artisan vendor:publish --provider="PHPOpenSourceSaver\JWTAuth\Providers\LaravelServiceProvider"  # config/jwt.php
 php artisan jwt:secret                                                                                # 写入 JWT_SECRET
 ```
-- `config/auth.php`：一个 `api`（或 某个内部 Host 风格的 `admin`）守卫
+- `config/auth.php`：`admin` / `user` 两个 JWT 守卫
   `['driver'=>'jwt','provider'=>...,'hash'=>false]` —— `hash:false` 是因为登录控制器手动校验密码。
-  主体模型实现 `JWTSubject`（`getJWTIdentifier` + `getJWTCustomClaims`；某个内部 Host 返回 `['guard'=>'admin']`）。
+  主体模型实现 `JWTSubject`（`getJWTIdentifier` + `getJWTCustomClaims`，guard 声明动态跟随守卫）。
 - `config/jwt.php` 关键值（默认值已固化进 config，env 只需 `JWT_SECRET`）：`ttl=2880`（2 天）、
   `refresh_ttl=20160`（2 周）、`refresh_iat=true`（滑动续期）、`HS256`、开启黑名单并留
   **90 秒**宽限期（并发请求续签不打架）、`persistent_claims=['guard']`（**必须**——否则续签出的
-  新 token 丢 guard claim，过 `JWTGuardAuth` 时 401，某个内部 Host 踩过的坑）。
+  新 token 丢 guard claim，过 `JWTGuardAuth` 时 401，生产环境踩过的坑）。
 - `config/cors.php` 必须发布并设 `exposed_headers=['Authorization']`、paths 含 `api/*` 与 `app/*`：
   无感续签的新 token 放在 authorization 响应头，跨域下不暴露就读不到。
 - **登录是手动的，不用 `attempt()`：** `Hash::check()` 校验密码（带自定义前置检查），再用
   `Auth::login($user)` 签发。响应：`{"data":{"user":{...},"token":"<jwt>","expires_in":<秒>}}`，
   其中 `expires_in = Auth::factory()->getTTL()*60`。客户端用 `Authorization: Bearer <token>` 回传。
-- 登录路由保持公开；受保护路由用 `auth:api`（简单方案）或 某个内部 Host 那套
-  `['jwt.guard.auth:admin','jwt.auth.refresh']`（多守卫 + 自动续签）。这 3 个自定义中间件原型在
-  `某个内部 Host/engine/app/Http/Middleware/{JWTAssignGuard,JWTGuardAuth,JWTAuthOrRefresh}.php`。
+- 登录路由保持公开；受保护路由用
+  `['jwt.guard.auth:admin','jwt.auth.refresh']`（多守卫 + 自动续签）。这 3 个自定义中间件在
+  本仓库 `engine/app/Http/Middleware/{JWTAssignGuard,JWTGuardAuth,JWTAuthOrRefresh}.php`。
 
 ## 常用命令（在 `engine/` 下执行）
 
@@ -252,8 +254,6 @@ router，于是 `php artisan moo-system check`（走 console 内核）看不到�
 
 ## 参考项目（看它们学真实写法）
 
-- `某个内部 Host/engine/` 和 `某内部语言项目（后端）/engine/` —— 同时用了两个包的完整应用；
-  上述架构（JWT、ACL、实体四件套、`bootstrap/app.php`）的范本实现。
 - `moo-scaffold/docs/guide/01-install.md … 06-acl.md` —— 安装 + 代码生成 + ACL 指南。
 - `moo-system/docs/INTEGRATION.md` 和 `tests/Stubs/Host/HostContractStubs.php` —— host 契约说明。
 - `moo-scaffold-cloud` —— 汇聚运行时异常 / 慢 SQL / todos 的云端平台（可选；客户端用
@@ -276,8 +276,8 @@ router，于是 `php artisan moo-system check`（走 console 内核）看不到�
 5. ✅ ACL 已启用：Gate `acl_authentication` 在 host 的 `AuthServiceProvider`（包只消费
    不定义，**多态**——User/Personnel 通吃）；User 的 `actions` JSON 列是契约最小实现
    （'is_root' 字面量 = 超级权限）；acl key = `substr(md5(明文key), 8, 16)`。
-6. ✅ 移动端 `Api/` 分片：user 守卫主体是自建 User（email 登录，**永久**，对齐
-   某内部语言项目（后端））；admin/user token 双向隔离；移动端 refresh `(true,false)`
+6. ✅ 移动端 `Api/` 分片：user 守卫主体是自建 User（email 登录，**永久**）；
+   admin/user token 双向隔离；移动端 refresh `(true,false)`
    单设备语义（无 90s 宽限）。
 7. ✅ moo-system（进阶/商业包，第 7 章可选）：10 张 `system_*` 表、check 6/6、
    后台守卫主体 User→Personnel（只改 auth.php 一行 + Admin/AuthController 一个文件）、
