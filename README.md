@@ -85,8 +85,9 @@ moo-engine-skeleton/
 | [第 2 章 安装 moo-scaffold](./docs/02-安装-moo-scaffold.md) | 私有包接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 |
 | [第 3 章 安装 moo-system（含 JWT）](./docs/03-安装-moo-system-与-jwt.md) | 系统管理模块、host 契约、JWT 登录、健康检查 |
 | [第 4 章 真机调试 moo-system 接口](./docs/04-真机调试-moo-system-接口.md) | 登录拿 token、鉴权验证、在调试器里联调 |
+| [第 5 章 JWT 加固与生产化](./docs/05-JWT-加固与生产化.md) | 对齐 wisdomcity 生产踩坑：persistent_claims、黑名单宽限、滑动续期、CORS、限流、操作日志、生产 composer、接口测试 |
 
-教程目录页还附了一张**「踩过的坑」速查表**（9 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（14 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
 
