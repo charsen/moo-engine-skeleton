@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', static fn () => 'Hello admin api ~');
 
 // 公开：登录 / 退出
-Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
+Route::post('authenticate', [AuthController::class, 'authenticate'])->middleware('throttle:login')->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
 // 主动刷新：只校验 guard claim，不挂 jwt.auth.refresh —— 否则过期 token 会被中间件和
@@ -29,7 +29,7 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 });
 
 // 业务路由（scaffold 生成插入处）。
-// 第 6 章起整组移入 JWT 强制认证 + ACL（控制器 boot() 里的 checkAuthorization()）；
+// 第 5 章起整组移入 JWT 强制认证 + ACL（控制器 boot() 里的 checkAuthorization()）；
 // 第 2 章无 token 调试的玩法到此为止，调试器里带 Bearer token 即可继续。
 Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], function () {
     // FoodController

@@ -14,6 +14,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
 use PHPOpenSourceSaver\JWTAuth\JWTAuth;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
@@ -27,6 +28,16 @@ class JWTGuardAuth
 
         try {
             $token_guard = $this->auth->parseToken()->getClaim('guard');
+        } catch (TokenExpiredException $e) {
+            // 过期 token 也必须校验 guard claim：getClaim 走完整校验会在 exp 上抛掉，
+            // 若就此放行，「只挂本中间件」的 refresh 端点就能被另一守卫的过期 token 续签
+            // （refresh 本身不区分守卫）。改用底层 provider 裸解码——验签名、不验 exp。
+            try {
+                $claims = $this->auth->manager()->getJWTProvider()->decode((string) $request->bearerToken());
+                $token_guard = $claims['guard'] ?? null;
+            } catch (JWTException $e) {
+                return $next($request);
+            }
         } catch (JWTException $e) {
             // 请求里没有可用 token —— 放行，交给后续中间件决定是否强制认证
             return $next($request);

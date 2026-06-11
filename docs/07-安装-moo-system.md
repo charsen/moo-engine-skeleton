@@ -189,14 +189,15 @@ moo-system 提供了 `system_operation_logs` 表和写库 Job，采集点由 hos
 
 第 4 章手写的 User 版 AuthTest 完成了历史使命——换成仓库的最终版三件套
 （`tests/TestCase.php` + `AuthTest`（Personnel 版）+ `FoodAclTest`（角色版）+
-`ApiAuthTest`（User 版，不用动），含 phpunit.xml 那行密钥）。仓库里另有两个
+`ApiAuthTest`（User 版，不用动），含 phpunit.xml 那行密钥）。仓库里另有三个
 守护测试：`JwtAutoRefreshTest`（中间件对过期 token 的静默续签——挂
 `jwt.auth.refresh` 的路由收到过期 token 应 200 并经 `authorization` 响应头下发新
-token）和 `SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关联等 seeder 回归）：
+token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关联等 seeder 回归）、
+`RegressionTest`（幻影路由、logout 幂等、跨守卫过期续签、筛选字段对齐、登录限流等审查修复的回归）：
 
 ```bash
 php artisan test
-# Tests: 27 passed
+# Tests: 35 passed
 ```
 
 `FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，
@@ -244,7 +245,7 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
 - 后台主体 User → Personnel **只改了两处**（auth.php 一行 + 控制器一个文件），
   中间件 / 路由 / Gate / 移动端零改动——这就是第 3 章骨架设计的价值；
 - 角色制授权接管 ACL（白名单放行个人中心），操作日志落库；
-- 测试三件套最终版 21 个全绿，调试器联调通过。
+- 测试最终版 35 个全绿（三件套 + 守护测试），调试器联调通过。
 
 **主线教程完成。** 你现在拥有：代码生成（moo-scaffold）+ 自建用户 JWT + 动作级 ACL +
 双守卫隔离的移动端 + 完整系统管理（moo-system）。

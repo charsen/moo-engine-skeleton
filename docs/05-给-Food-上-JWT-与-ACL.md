@@ -44,7 +44,8 @@ public function boot(): void
 ```php
 Gate::define('acl_authentication', function ($user, $acl_key) {
     if ($user->isRoot()) return true;                         // ① 天然 root（自增/雪花体系下都不启用）
-    // ② config/actions.php 白名单：登录即可用（本章先留空，第 7 章放行个人中心）
+    // ② config/actions.php 白名单：登录即可用（host 现在还没这个文件也没关系——
+    //    config() 拿不到就视为空白名单；第 7 章才需要建它放行个人中心）
     // ③ getActions() 里有 'is_root' 字面量 = 超级权限
     // ④ 精确匹配 acl key
 });

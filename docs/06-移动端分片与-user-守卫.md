@@ -93,8 +93,9 @@ curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Be
 单设备刷新 / 过期 token 刷新只产生一个新 token），主体就是 User。
 
 > 📦 它依赖仓库 `tests/TestCase.php` 的辅助方法，而那是第 7 章最终版——本章时间点
-> 抄来后要微调两处（都是"后台主体还是 User"的缘故）：`adminLogin()` 改成第 4 章的
-> email 写法；`makeExpiredToken()` 里 admin 分支的主体/`prv` 也先用 `User`。
+> 抄来后要微调三处（都是"后台主体还是 User"的缘故）：`adminLogin()` 改成第 4 章的
+> email 写法；`makeExpiredToken()` 里 admin 分支的主体/`prv` 也先用 `User`；
+> 文件顶部 `use Mooeen\System\Models\Personnel;` 一行删掉（该类第 7 章装包后才存在，留着直接 fatal）。
 > 第 7 章换最终版时一并还原。改完：
 
 ```bash

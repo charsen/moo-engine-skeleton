@@ -26,12 +26,56 @@ class AppServiceProvider extends ServiceProvider
         // iResource 宏：moo-scaffold 生成的控制器路由、moo-system 包路由都依赖它。
         // 放在 register()（早于任何 provider 的 boot()），确保 moo-system 在 boot() 里
         // 加载 routes/admin.php 调用 iResource 时宏已就绪。
-        Route::macro('iResource', function (string $name, string $controller, array $options = []) {
-            Route::get($name.'/trashed', $controller.'@trashed')->name($name.'.trashed');
-            Route::delete($name.'/forever/{id}', $controller.'@forceDestroy')->name($name.'.forceDestroy');
-            Route::delete($name.'/batch', $controller.'@destroyBatch')->name($name.'.destroyBatch');
-            Route::patch($name.'/restore', $controller.'@restore')->name($name.'.restore');
-            Route::resource($name, $controller, $options);
+        //
+        // 必须用反射「按 action 真实存在且 public」逐条注册，而不是无脑 Route::resource：
+        // 这套生态的控制器普遍没有 destroy（统一走 destroyBatch）、部分没有 show/index，
+        // 无条件注册会产出大量「幻影路由」——调用即 Call to undefined method（500），
+        // 还会污染 /scaffold/routes 的 ACL 工具（生产实践的同名宏就是按方法注册的）。
+        Route::macro('iResource', function (string $name, string $controller) {
+            $hasAction = static function (string $action) use ($controller): bool {
+                if (! class_exists($controller)) {
+                    return false;
+                }
+
+                $reflection = new \ReflectionClass($controller);
+
+                return $reflection->hasMethod($action) && $reflection->getMethod($action)->isPublic();
+            };
+
+            if ($hasAction('index')) {
+                Route::get($name, [$controller, 'index'])->name($name.'.index');
+            }
+            if ($hasAction('create')) {
+                Route::get($name.'/create', [$controller, 'create'])->name($name.'.create');
+            }
+            if ($hasAction('store')) {
+                Route::post($name, [$controller, 'store'])->name($name.'.store');
+            }
+            if ($hasAction('trashed')) {
+                // 固定段 /trashed 必须先于 show 的 /{id} 注册，否则会被 /{id} 抢匹配（当成 show('trashed')）
+                Route::get($name.'/trashed', [$controller, 'trashed'])->name($name.'.trashed');
+            }
+            if ($hasAction('show')) {
+                Route::get($name.'/{id}', [$controller, 'show'])->name($name.'.show');
+            }
+            if ($hasAction('edit')) {
+                Route::get($name.'/{id}/edit', [$controller, 'edit'])->name($name.'.edit');
+            }
+            if ($hasAction('update')) {
+                Route::put($name.'/{id}', [$controller, 'update'])->name($name.'.update');
+            }
+            if ($hasAction('destroy')) {
+                Route::delete($name.'/{id}', [$controller, 'destroy'])->name($name.'.destroy');
+            }
+            if ($hasAction('forceDestroy')) {
+                Route::delete($name.'/forever/{id}', [$controller, 'forceDestroy'])->name($name.'.forceDestroy');
+            }
+            if ($hasAction('destroyBatch')) {
+                Route::delete($name.'/batch', [$controller, 'destroyBatch'])->name($name.'.destroyBatch');
+            }
+            if ($hasAction('restore')) {
+                Route::patch($name.'/restore', [$controller, 'restore'])->name($name.'.restore');
+            }
         });
     }
 
@@ -43,13 +87,21 @@ class AppServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app['router'];
 
-        // 接口限流（生产项目实践值：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
+        // 接口限流（生产实践值：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
         // 已登录按用户 ID 计数，未登录按 IP）
         RateLimiter::for('admin', function (Request $request) {
             return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());
         });
         RateLimiter::for('client', function (Request $request) {
             return Limit::perMinute(1000)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // 登录接口专用限流：组限流的 300 次/分钟对 /authenticate 来说防不了爆破。
+        // 按「账号 + IP」计数（拿不到账号字段就按 IP），5 次/分钟——锁账号尝试也锁分布式换号。
+        RateLimiter::for('login', function (Request $request) {
+            $account = (string) ($request->input('account') ?: $request->input('email') ?: '');
+
+            return Limit::perMinute(5)->by(sha1($account.'|'.$request->ip()));
         });
 
         // JWT 中间件别名

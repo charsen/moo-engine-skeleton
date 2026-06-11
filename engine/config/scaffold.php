@@ -30,7 +30,7 @@ return [
      */
     'authorization' => [
         // 是否开启 ACL 鉴权（Gate 'acl_authentication' 由 App\Providers\AuthServiceProvider 定义，
-        // 角色授权流程见 docs 第 6 章；关掉则所有 checkAuthorization() 直接放行）
+        // 启用与 Gate 见 docs 第 5 章，角色授权见第 7 章；关掉则所有 checkAuthorization() 直接放行）
         'check' => true,
         // 是否通过 md5 加密别名 key
         'md5' => true,

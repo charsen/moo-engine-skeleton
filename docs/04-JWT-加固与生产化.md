@@ -162,7 +162,21 @@ RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->use
 
 `admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`。
 
-验证：随便调一个 admin 接口，响应头出现 `X-RateLimit-Limit: 300` 即生效。
+**登录接口要再单独限**：组限流的 300 次/分钟对 `/authenticate` 等于不设防
+（爆破一分钟能试 300 个密码）。按「账号 + IP」5 次/分钟单独限——锁单账号尝试、
+也锁同 IP 换号扫射——两条登录路由挂 `->middleware('throttle:login')`：
+
+```php
+RateLimiter::for('login', function (Request $r) {
+    $account = (string) ($r->input('account') ?: $r->input('email') ?: '');
+
+    return Limit::perMinute(5)->by(sha1($account.'|'.$r->ip()));
+});
+```
+
+验证：同一账号连错 5 次密码，第 6 次返回 **429**（RegressionTest 有守护用例）。
+
+组限流的验证：随便调一个 admin 接口，响应头出现 `X-RateLimit-Limit: 300` 即生效。
 在 scaffold 调试器的 Response Headers 标签里能同时看到限流头和 4.2 节的 CORS 暴露头：
 
 ![调试器响应头：限流 + CORS 暴露](./images/05-debugger-response-headers.png)
@@ -290,6 +304,9 @@ php artisan test
 过期 token 没法用 `auth()->login()` 直接造（签完自检就抛异常），手工签一个
 `exp` 在过去、`iat` 在续期窗口内的即可——完整可运行实现见仓库
 `tests/TestCase.php` 的 `makeExpiredToken()`。
+
+> 第 5~8 项新手手工做不动也没关系——这几条已由仓库的 AuthTest / JwtAutoRefreshTest /
+> RegressionTest 自动守护（`php artisan test`），手工复现属进阶选做。
 
 > 📦 仓库版的 admin 分支主体是 Personnel（第 7 章最终态）。本章时间点后台主体
 > 还是 User——照抄时把主体查询和 `prv`（`sha1(User::class)`）都换成 User，
