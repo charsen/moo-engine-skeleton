@@ -25,8 +25,9 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 });
 
 // 业务路由（scaffold 生成插入处）。
-// 演示阶段未加登录中间件，便于第 2 章直接调试；真实项目可整体移入上面的登录 group。
-Route::group([], function () {
+// 第 6 章起整组移入 JWT 强制认证 + ACL（控制器 boot() 里的 checkAuthorization()）；
+// 第 2 章无 token 调试的玩法到此为止，调试器里带 Bearer token 即可继续。
+Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], function () {
     // FoodController
     Route::iResource('food', FoodController::class);
 
