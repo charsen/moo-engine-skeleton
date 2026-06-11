@@ -172,7 +172,7 @@ RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->use
 - 把 `.env.example` 改成"复制即可用"：预填 MariaDB `moo_skeleton`、8088 端口、
   分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` 占位，
   删掉骨架用不到的 MAIL/AWS 等死键（完整文件见仓库）；
-- 新建 `composer.production.json`：私有包换成版本约束 + Gitee VCS 仓库。
+- 新建 `composer.production.json`：moo-* 包换成版本约束 + VCS 仓库。
   部署时 `cp composer.production.json composer.json && composer install --no-dev`，
   和第 2 章讲的"开发 path / 生产 vcs"双轨制闭环。
   （📦 仓库版里有 moo-system 的行——没装第 7 章的包就先删掉那两处。）

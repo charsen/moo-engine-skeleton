@@ -4,7 +4,7 @@
 配套一份可开源的新手教程：从空目录出发，一步步搭出带**代码生成器**、**系统管理模块**和
 **JWT 登录认证**的可运行后端——并且每一步都经过真机测试。
 
-> 它是作者多个生产项目的同级骨架版，消费同一套私有包。
+> 它是作者多个生产项目的同级骨架版，消费同一套 moo-* 包。
 
 ---
 
@@ -20,15 +20,15 @@
 4. **moo-system 系统管理模块（进阶/商业包，可选）**：部门 / 岗位 / 人员 / 角色 / 授权 /
    登录管理 / 操作日志，最后一章接入——后台主体一键从自建用户切换为 Personnel。
 
-## 📦 配套私有包
+## 📦 配套包
 
-作者另外开发的插件包，存放在本项目的**同级目录**下：
+作者另外开发的插件包，开发期存放在本项目的**同级目录**下：
 
-| 包 | 作用 |
-|---|---|
-| `moo-scaffold` | 基础代码生成脚手架，含可视化数据库设计、接口调试 |
-| `moo-scaffold-cloud` | 云端的异常 / 慢 SQL / todos 管理平台，支持多项目 |
-| `moo-system` | 系统管理业务模块（部门、岗位、人员、角色等）——**进阶/商业包**，教程第 7 章可选接入 |
+| 包 | 定位 | 作用 |
+|---|---|---|
+| `moo-scaffold` | **开源（MIT，规划发布到 Packagist）** | 基础代码生成脚手架，含可视化数据库设计、接口调试 |
+| `moo-system` | **进阶/商业包**（教程第 7 章可选接入） | 系统管理业务模块（部门、岗位、人员、角色等） |
+| `moo-scaffold-cloud` | 配套云服务 | 云端的异常 / 慢 SQL / todos 管理平台，支持多项目 |
 
 ## 🧰 环境要求
 
@@ -67,7 +67,7 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
   "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 3. 配 .env 的数据库（DB_CONNECTION=mysql / DB_DATABASE=moo_skeleton / DB_USERNAME=root / DB_PASSWORD=7777）
-#    再接入私有包（开发用 path、生产用 vcs，详见 docs 第 2、7 章），然后：
+#    再接入 moo-* 包（开发用 path、生产用 vcs，详见 docs 第 2、7 章），然后：
 composer update --with-all-dependencies
 php artisan migrate --seed      # 迁移 + seed（自建用户；装了 moo-system 还有角色/部门树/岗位/人员）
 
@@ -98,7 +98,7 @@ moo-engine-skeleton/
 | 章节 | 内容 |
 |---|---|
 | [第 1 章 安装 Laravel 12](./docs/01-安装-laravel.md) | 建项目、连 MariaDB、建库、真机访问 |
-| [第 2 章 安装 moo-scaffold](./docs/02-安装-moo-scaffold.md) | 私有包接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 |
+| [第 2 章 安装 moo-scaffold](./docs/02-安装-moo-scaffold.md) | 开源代码生成器接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 |
 | [第 3 章 JWT 登录认证（自建用户）](./docs/03-JWT-登录认证-自建用户.md) | 零付费依赖：最简 User 实现 JWTSubject、双守卫、三中间件、登录全链路 |
 | [第 4 章 JWT 加固与生产化](./docs/04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、接口测试 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./docs/05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200（User actions 最小实现） |
@@ -122,7 +122,7 @@ moo-engine-skeleton/
 
 ## 🔗 参考项目
 
-私有包的细节见 `moo-scaffold/docs/guide/` 与 `moo-system/docs/INTEGRATION.md`。
+包的细节见 `moo-scaffold/docs/guide/` 与 `moo-system/docs/INTEGRATION.md`。
 
 ## 🎯 目标
 

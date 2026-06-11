@@ -23,8 +23,8 @@
 | 框架 | Laravel 12（PHP 8.3） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致 |
 | 数据库 | MariaDB 12 / MySQL 8 | 实测均可；骨架库名 `moo_skeleton` |
 | 认证 | php-open-source-saver/jwt-auth ^2.8 | tymon/jwt-auth 的维护分支，composer 直接依赖 |
-| 代码生成 | charsen/moo-scaffold（私有，path/vcs 双模式接入） | 仅开发期生效，不是运行时框架 |
-| 系统管理 | charsen/moo-system（私有商业包，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
+| 代码生成 | charsen/moo-scaffold（**开源 MIT**，path/vcs 双模式接入） | 仅开发期生效，不是运行时框架 |
+| 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
 | 测试 | Pest/PHPUnit，21 个 Feature 测试全绿 | 覆盖双守卫认证、ACL、移动端全链路 |
 
@@ -59,12 +59,12 @@ Laravel 12 标准工程加生态约定的固化。
 
 | 功能点 | 介绍 |
 |---|---|
-| `engine/` 子目录工程布局 | 仓库根只放文档与部署脚本，与生态内全部项目统一，私有包相对路径（`../../moo-scaffold`）因此可复用 |
+| `engine/` 子目录工程布局 | 仓库根只放文档与部署脚本，与生态内全部项目统一，包的相对路径（`../../moo-scaffold`）因此可复用 |
 | `bootstrap/app.php` 横切接线 | Laravel 12 无 Kernel.php，分片中间件挂载、全局异常分发、校验错误 render 重写集中于此 |
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
 | `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、`DELETE /forever/{id}` 永久删除、先于 `/{id}` 注册的 `/trashed` 回收站路由 |
 | 通用 Model Traits | `UsingSnowFlakePrimaryKey`（雪花字符串主键）、`HasOperator`（操作人追踪）、`BaseFilter`（query string → 查询条件） |
-| 私有包双模式接入 | 开发期 path 仓库（同级目录 symlink，源码实时生效）；生产期 `composer.production.json` 切 Gitee VCS + SSH 部署公钥，部署时一行 cp 切换 |
+| moo-* 包双模式接入 | 开发期 path 仓库（同级目录 symlink，源码实时生效）；生产期 `composer.production.json` 切 VCS/Packagist，部署时一行 cp 切换 |
 
 ### 模块 2：代码生成器接入（moo-scaffold）
 
@@ -85,7 +85,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| 自建最简 User 主体 | User 实现 `JWTSubject`，guard claim 动态跟随签发守卫；不依赖任何私有包即可完成认证教学 |
+| 自建最简 User 主体 | User 实现 `JWTSubject`，guard claim 动态跟随签发守卫；不依赖任何付费包即可完成认证教学 |
 | admin / user 双守卫 | 后台与移动端各一个 JWT 守卫；token 内嵌 guard claim，**双向隔离**——后台 token 调移动端接口 401，反之亦然 |
 | 三个自定义 JWT 中间件 | `JWTAssignGuard`（指派守卫不强制认证）、`JWTGuardAuth`（校验 token 的 guard claim）、`JWTAuthOrRefresh`（强制认证 + 近过期无感续签，新 token 经 authorization 响应头下发） |
 | 手动登录（不用 attempt） | `Hash::check()` 校验密码并支持自定义前置检查（账号状态等），`Auth::login()` 签发；响应含 user/token/expires_in |

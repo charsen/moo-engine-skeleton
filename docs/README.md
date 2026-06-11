@@ -25,7 +25,7 @@
 | Node / npm | 26 / 11 | 前端资源构建（可选） |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | 已装 `git-lfs` |
-| moo-scaffold 源码 | dev-master | **必须**已克隆到与本仓库同级的目录（私有库，需作者授权），第 2 章用相对路径引用；moo-system 为第 7 章的**进阶/商业包**（可选） |
+| moo-scaffold 源码 | dev-master | **开源包**（MIT，规划发 Packagist；正式发布前需作者提供源码）克隆到与本仓库同级目录，第 2 章用相对路径引用；moo-system 为第 7 章的**商业包**（可选） |
 
 数据库连接：**用户名 `root` / 密码 `7777`**，本教程用的数据库名是 **`moo_skeleton`**。
 
@@ -33,7 +33,7 @@
 
 Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档和部署脚本。
 这是作者所有项目统一的目录约定，
-私有包的相对路径也因此统一为 `../../moo-scaffold`。
+moo-* 包的相对路径也因此统一为 `../../moo-scaffold`。
 
 ```
 moo-engine-skeleton/
@@ -47,15 +47,15 @@ moo-engine-skeleton/
 | 章节 | 内容 | 定位 |
 |---|---|---|
 | [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问 | 基础 |
-| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 私有包接入（dev=路径 / prod=VCS）、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
+| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器接入（dev=路径 / prod=VCS）、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
 | [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
 | [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
 | [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
 
-> 第 1~6 章不依赖任何付费包；第 7 章的 moo-system 是进阶包（获取方式联系作者），
-> 装与不装，前六章的骨架都是完整可用的。
+> **包定位**：moo-scaffold 开源（MIT）；moo-system 是商业包（获取方式联系作者）。
+> 第 1~6 章不依赖任何付费包，装不装第 7 章，前六章的骨架都是完整可用的。
 
 ## 踩过的坑速查（新手必看）
 
