@@ -1,15 +1,18 @@
 # 第 2 章　安装 moo-scaffold，生成 foods 表的业务代码
 
-目标：把私有包 `charsen/moo-scaffold`（代码生成器 + 可视化调试工具）接入项目，
+目标：把开源包 `charsen/moo-scaffold`（代码生成器 + 可视化调试工具，MIT）接入项目，
 设计一张 `foods` 表，一键生成全套 CRUD 业务代码，并用两种方式真机调试接口。
 
 ---
 
 ## 2.1 接入私有包：开发用 path、生产用 vcs
 
-`moo-scaffold` 没有发布到 Packagist，是放在 Gitee 的私有包。
+`moo-scaffold` 是**开源包**（MIT），规划发布到 Packagist——正式发布后，普通使用一行
+`composer require charsen/moo-scaffold --dev` 即可。本教程用的是**源码模式**（便于跟着
+改包源码、也是作者的开发模式）：
+
 **前置条件**：`moo-scaffold/` 的源码已经克隆在与本仓库**同级**的目录
-（没有的话先找作者要权限克隆，否则下面第一步就会报 "path repository ... does not exist"）。
+（发布前找作者获取，否则下面第一步就会报 "path repository ... does not exist"）。
 
 接入前要先在 `engine/composer.json` 里声明 `repositories`。两种模式按环境选：
 

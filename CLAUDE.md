@@ -9,7 +9,7 @@
 `moo-scaffold` 代码生成器、`moo-system` 系统管理模块（部门 / 岗位 / 人员 / 角色 / 授权）
 以及 JWT 登录认证的可运行后端——并且全部经过真机测试。
 
-它是作者多个生产项目的同级 / 骨架版，消费同样的私有包
+它是作者多个生产项目的同级 / 骨架版，消费同样的 moo-* 包
 （`charsen/moo-scaffold`、`charsen/moo-system`）。
 **注意：本仓库的一切资料（文档/代码注释/提交信息）不得出现作者具体生产项目的名称**——
 统一用「作者生产项目 / 生产实践」指代。
@@ -60,7 +60,10 @@ moo-engine-skeleton/
 
 ## 私有包接入：开发（path）vs 生产（vcs）
 
-moo-* 系列包**不在 Packagist 上**（私有，托管在 Gitee）。在 `engine/composer.json` 里声明。
+**包定位（2026-06 决策）**：`moo-scaffold` 为**开源**（composer.json 已声明 MIT，
+规划发布到公开仓库 / Packagist）；`moo-system` 为**商业包**（声明 proprietary）。
+当前两者均尚托管在 Gitee 私有仓库，接入用本节的 path/vcs 双轨制；
+moo-scaffold 正式发布后，普通使用可简化为一行 `composer require`。
 作者的标准写法：
 
 **开发——本地 path 仓库**（源码实时生效，composer 把同级目录 symlink 进来）：
