@@ -3,7 +3,7 @@
 declare(strict_types=1);
 /*
  * @Author: Charsen
- * @Description: ACL 授权 Gate（host 契约，仿 wisdomcity）
+ * @Description: ACL 授权 Gate（host 契约，移植自作者生产项目）
  *
  * moo-scaffold 的 Foundation\Controller::checkAuthorization() 只负责把
  * 「当前控制器::action」格式化成 acl key 再喂给 Gate —— Gate 本身必须由 host 定义。

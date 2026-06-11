@@ -14,7 +14,7 @@ return [
     | JWTAuthOrRefresh 把续签出的新 token 放在 authorization 响应头里，
     | 跨域场景（H5/webview/前后端分离调试）下浏览器读不到未暴露的响应头，
     | 新 token 直接丢失 → 旧 token 出黑名单宽限窗后 401。
-    | 因此发布本文件，暴露 Authorization 并把 app/* 也纳入（对齐 wisdomcity）。
+    | 因此发布本文件，暴露 Authorization 并把 app/* 也纳入（生产项目同款配置）。
     |
     */
 

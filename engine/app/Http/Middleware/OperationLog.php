@@ -3,7 +3,7 @@
 declare(strict_types=1);
 /*
  * @Author: Charsen
- * @Description: 操作日志中间件（host 侧，仿 wisdomcity 精简版）
+ * @Description: 操作日志中间件（host 侧，生产项目实现的精简版）
  *
  * moo-system 提供 system_operation_logs 表和 AddOperationLogJob，但「什么时候记、
  * 记什么」由 host 决定 —— 本中间件就是这个采集点，挂在 admin / moo-system 组上。
@@ -73,7 +73,7 @@ class OperationLog
             ? mb_substr($response->getContent() ?: '', 0, 60000)
             : '[]';
 
-        // Laravel 12 入口不再定义 LARAVEL_START（wisdomcity 用它是老版本升级遗留），
+        // Laravel 12 入口不再定义 LARAVEL_START（老项目用它是版本升级遗留），
         // 改用 PHP 自带的请求起始时间
         $started_at = (float) $request->server('REQUEST_TIME_FLOAT', microtime(true));
 

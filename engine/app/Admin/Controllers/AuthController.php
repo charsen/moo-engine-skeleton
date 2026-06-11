@@ -3,7 +3,7 @@
 declare(strict_types=1);
 /*
  * @Author: charsen
- * @Description: 后台登录认证（JWT）。参考 wisdomcity 的手动校验 + Auth::login 签发方式。
+ * @Description: 后台登录认证（JWT）。生产项目同款的手动校验 + Auth::login 签发方式。
  */
 
 namespace App\Admin\Controllers;
@@ -107,7 +107,7 @@ class AuthController
         try {
             // forceForever=false：旧 token 进黑名单但享受 90 秒宽限（并发请求不打架）；
             // resetClaims=false：保留自定义 claim —— 配合 persistent_claims=['guard']，
-            // 新 token 才带 guard 声明，否则下次过 JWTGuardAuth 直接 401（对齐 wisdomcity 修复）。
+            // 新 token 才带 guard 声明，否则下次过 JWTGuardAuth 直接 401（生产环境踩过的真坑）。
             $token = Auth::guard('admin')->refresh(false, false);
         } catch (JWTException $e) {
             // 无 token / 伪造 / 超出续期窗口 / 已拉黑 → 重新登录

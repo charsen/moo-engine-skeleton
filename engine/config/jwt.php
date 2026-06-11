@@ -91,7 +91,7 @@ return [
     | false（包默认）：永远从「首次登录」起算。就算天天在用，第 14 天也会
     |   被强制踢出重新登录 —— 后台"不经意 401"的常见来源之一。
     |
-    | true（本骨架，对齐 wisdomcity）：每次续签都把起算点拨到当下，窗口跟着
+    | true（本骨架，生产项目实践值）：每次续签都把起算点拨到当下，窗口跟着
     |   活跃度往后滑。只要不连续闲置超过 14 天，就一直不用重新登录。
     |   代价：token 一旦被盗可被一直续下去，靠「登出即拉黑」兜底，
     |   内部管理系统可接受。
@@ -143,7 +143,7 @@ return [
     | 'guard'：Personnel::getJWTCustomClaims()(moo-system) 注入的守卫标识，
     | JWTGuardAuth 中间件靠它校验。这里必须列上 —— 这是包文档对「续签保留
     | 自定义 claim」的唯一契约。jwt-auth 2.8.x 上不配它，续签出的新 token
-    | 直接丢 guard，下次过校验 401 'Guard Unverified'（wisdomcity 生产踩过）；
+    | 直接丢 guard，下次过校验 401 'Guard Unverified'（生产环境踩过）；
     | 2.9.x 因 decode 时 payload 工厂状态残留而「碰巧」保留 —— 别赌内部实现，
     | 按契约配置。行为有 tests/Feature/AuthTest 的 refresh 用例守护。
     |
@@ -160,7 +160,7 @@ return [
     |
     | true 时往 token 里加 prv 字段（用户模型类名的哈希），防止两个不同
     | 模型恰好同 id 时拿着 A 模型的 token 冒充 B 模型登录。
-    | 本骨架 admin/user 两个 guard 共用 Personnel 模型，留 true 即可。
+    | 本骨架 admin（Personnel）/ user（自建 User）是两个模型，必须开。
     |
     */
 

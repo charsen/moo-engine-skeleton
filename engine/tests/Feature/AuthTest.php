@@ -6,8 +6,8 @@ declare(strict_types=1);
  *
  * 重点是 test_refresh_token_keeps_guard_claim：守护「续签出的新 token 必须
  * 还能过 jwt.guard.auth:admin」这条行为。guard claim 的保留在 jwt-auth 2.8.x
- * 上完全依赖 config/jwt.php 的 persistent_claims=['guard']（wisdomcity 生产
- * 踩过丢失后 401 的坑）；2.9.x 上库内部实现也会保留，但契约仍是 persistent_claims。
+ * 上完全依赖 config/jwt.php 的 persistent_claims=['guard']（生产环境踩过
+ * 丢失后 401 的坑）；2.9.x 上库内部实现也会保留，但契约仍是 persistent_claims。
  */
 
 namespace Tests\Feature;

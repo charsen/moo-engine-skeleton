@@ -32,7 +32,7 @@
 ## 目录结构约定（重要）
 
 Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档和部署脚本。
-这和作者其它项目（`wisdomcity`、`light-language-engine`）保持一致，
+这是作者所有项目统一的目录约定，
 私有包的相对路径也因此统一为 `../../moo-scaffold`。
 
 ```
@@ -70,7 +70,7 @@ moo-engine-skeleton/
 | 7 | `moo-system check` 的中间件组那项总 FAIL | 中间件组要注册到 router（provider boot），否则 console 看不到 | 7 |
 | 8 | 调试器里带了 token 仍 401 | Authorization 值要加 `Bearer ` 前缀 | 7 |
 | 9 | seed 后部门树 `_lft/_rgt` 错乱 | `DatabaseSeeder` 别用 `WithoutModelEvents`，否则静默 nestedset 事件 | 7 |
-| 10 | token 续签后再请求偶发 401 `Guard Unverified` | jwt-auth 2.8.x 续签会丢自定义 claim（wisdomcity 生产踩过），`config/jwt.php` 的 `persistent_claims` 必须列上 `'guard'`（2.9.x 内部实现碰巧保留，但契约是它） | 4 |
+| 10 | token 续签后再请求偶发 401 `Guard Unverified` | jwt-auth 2.8.x 续签会丢自定义 claim（生产环境踩过的真坑），`config/jwt.php` 的 `persistent_claims` 必须列上 `'guard'`（2.9.x 内部实现碰巧保留，但契约是它） | 4 |
 | 11 | 页面并发请求时偶发 401（刚续签完） | 旧 token 续签后立刻进黑名单，同批在途请求被拒；`blacklist_grace_period` 设 90 秒宽限 | 4 |
 | 12 | 前端跨域时拿不到续签的新 token | 新 token 在 `authorization` 响应头里，CORS 默认不暴露；发布 `config/cors.php` 设 `exposed_headers=['Authorization']` | 4 |
 | 13 | 操作日志中间件报 `Undefined constant "LARAVEL_START"` | Laravel 12 入口不再定义它（老项目抄来的代码会炸），改用 `$request->server('REQUEST_TIME_FLOAT')` | 7 |
@@ -79,6 +79,6 @@ moo-engine-skeleton/
 | 16 | 带 token 调接口报 422 误以为 ACL 没生效 | FormRequest 校验先于控制器 boot() 的鉴权，参数不合法先 422；带齐合法参数才能看到 403 | 5 |
 | 17 | user 守卫发的 token 过不了 `jwt.guard.auth:user` | moo-system 旧版 `getJWTCustomClaims()` 硬编码 guard=admin（新版已动态化）；用旧版包给非 admin 守卫签发时要 `claims(['guard'=>...])` 内联覆盖 | 7 |
 | 18 | 过期 token 调 `/refresh` 后冒出两个有效新 token | `/refresh` 路由不能挂 `jwt.auth.refresh`——中间件和控制器各续签一次，响应头那个成孤儿 token；单独挂 `jwt.guard.auth` 即可 | 4 |
-| 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（wisdomcity 的登录前置检查就是这种死代码） | 7 |
+| 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（生产项目里就出过这种静默失效的死代码） | 7 |
 | 20 | 开 ACL 后零授权角色连个人中心都 403 | `config/actions.php` 白名单要放行 moo-system AdminController 的 8 个个人中心动作，否则自己锁死自己 | 7 |
 | 21 | 操作日志表永远 0 条、也无报错 | `.env` 默认 `QUEUE_CONNECTION=database`，Job 堆在 `jobs` 表没人消费；改 `sync`（或起 worker），且改 `.env` 后要连 `php -S` 的 worker 一起杀掉重启 | 7 |

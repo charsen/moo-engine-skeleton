@@ -6,7 +6,7 @@ declare(strict_types=1);
  * @Description: 上传工具（host 契约：moo-system 的 Personnel/Admin 控制器依赖它）
  *
  * 骨架版：只实现 moo-system 实际调用到的方法（getUploadImageControl / saveUploadFile），
- * 不引入 light-language-engine 里特有的 UploaderController / Job / Attachment 依赖。
+ * 不引入完整版上传体系特有的 UploaderController / Job / Attachment 依赖。
  * 真正接入对象存储/七牛时，按业务替换 saveUploadFile 的实现即可。
  */
 

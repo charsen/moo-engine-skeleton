@@ -5,7 +5,7 @@ declare(strict_types=1);
  * @Author: Charsen
  * @Description: 基础模型操作 Trait（host 契约：moo-system 与 scaffold 生成的控制器都依赖它）
  *
- * 移植自 light-language-engine，提供 destroyBatchAction / restoreAction / forceDestroyAction
+ * 移植自作者生产项目，提供 destroyBatchAction / restoreAction / forceDestroyAction
  * 以及 moo-system 的 Department 树需要的 getNodeAncestors 等方法。
  */
 

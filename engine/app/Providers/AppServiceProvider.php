@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app['router'];
 
-        // 接口限流（对齐 wisdomcity：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
+        // 接口限流（生产项目实践值：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
         // 已登录按用户 ID 计数，未登录按 IP）
         RateLimiter::for('admin', function (Request $request) {
             return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());

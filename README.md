@@ -4,8 +4,7 @@
 配套一份可开源的新手教程：从空目录出发，一步步搭出带**代码生成器**、**系统管理模块**和
 **JWT 登录认证**的可运行后端——并且每一步都经过真机测试。
 
-> 它是作者真实项目 `wisdomcity`、`light-language-engine` 的同级骨架版，
-> 消费同一套私有包。
+> 它是作者多个生产项目的同级骨架版，消费同一套私有包。
 
 ---
 
@@ -81,7 +80,7 @@ PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-rel
 
 ## 📂 目录结构
 
-Laravel 应用放在 **`engine/`**（与 `wisdomcity`、`light-language-engine` 一致），
+Laravel 应用放在 **`engine/`**（与作者其它项目的目录约定一致），
 仓库根目录只放文档。
 
 ```
@@ -123,7 +122,6 @@ moo-engine-skeleton/
 
 ## 🔗 参考项目
 
-搭建过程遇到不确定的地方，可参考 `wisdomcity`、`light-language-engine` 的真实实现；
 私有包的细节见 `moo-scaffold/docs/guide/` 与 `moo-system/docs/INTEGRATION.md`。
 
 ## 🎯 目标

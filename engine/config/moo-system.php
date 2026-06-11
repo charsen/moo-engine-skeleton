@@ -21,7 +21,7 @@ return [
      * 包 routes/admin.php 内只写 'notify-robots' 形式的相对路径，
      * ServiceProvider boot() 时按这里的值给路由统一加 prefix / name / middleware。
      *
-     * 默认值对齐 wisdomcity / light-language-engine 的 bootstrap/app.php，
+     * 默认值与作者生产项目的 bootstrap/app.php 一致，
      * host 如果用了非标 prefix（多租户 / 多版本），覆盖这里就行。
      */
     'admin' => [
