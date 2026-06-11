@@ -13,6 +13,8 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mooeen\System\Models\Enums\AccountStatus;
+use Mooeen\System\Models\Personnel;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -22,25 +24,16 @@ class AuthTest extends TestCase
     /** 跑 DatabaseSeeder：角色 → 部门 → 岗位 → 人员（手机 13800000000 / 密码 admin888） */
     protected $seed = true;
 
-    private function login(): array
+    public function test_authenticate_with_valid_credentials_returns_token(): void
     {
         $response = $this->postJson('api/admin/authenticate', [
             'account' => '13800000000',
             'password' => 'admin888',
-        ]);
+        ])->assertOk();
 
-        $response->assertOk();
-
-        return $response->json('data');
-    }
-
-    public function test_authenticate_with_valid_credentials_returns_token(): void
-    {
-        $data = $this->login();
-
-        $this->assertNotEmpty($data['token']);
-        $this->assertSame(config('jwt.ttl') * 60, $data['expires_in']);
-        $this->assertSame('管理员', $data['user']['real_name']);
+        $this->assertNotEmpty($response->json('data.token'));
+        $this->assertSame(config('jwt.ttl') * 60, $response->json('data.expires_in'));
+        $this->assertSame('管理员', $response->json('data.user.real_name'));
     }
 
     public function test_authenticate_with_wrong_password_returns_422(): void
@@ -51,6 +44,17 @@ class AuthTest extends TestCase
         ])->assertStatus(422)->assertJsonStructure(['message', 'errors']);
     }
 
+    public function test_disabled_account_cannot_login(): void
+    {
+        Personnel::where('mobile', '13800000000')
+            ->update(['account_status' => AccountStatus::FORBIDDEN->value]);
+
+        $this->postJson('api/admin/authenticate', [
+            'account' => '13800000000',
+            'password' => 'admin888',
+        ])->assertStatus(422);
+    }
+
     public function test_me_without_token_returns_401(): void
     {
         $this->getJson('api/admin/me/info')->assertStatus(401);
@@ -58,7 +62,7 @@ class AuthTest extends TestCase
 
     public function test_me_with_token_returns_user(): void
     {
-        $token = $this->login()['token'];
+        $token = $this->adminLogin();
 
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$token}"])
             ->assertOk()
@@ -67,12 +71,8 @@ class AuthTest extends TestCase
 
     public function test_refresh_token_keeps_guard_claim(): void
     {
-        $token = $this->login()['token'];
-
-        // 坑：payload 工厂（tymon.jwt.payload.factory）是单例，同一测试进程里
-        // 登录留下的 guard claim 会残留给 refresh，掩盖 persistent_claims 配置缺失。
-        // 真实世界 login 和 refresh 是两个进程，这里清空工厂来模拟。
-        $this->app->make('tymon.jwt.payload.factory')->emptyClaims();
+        $token = $this->adminLogin();
+        $this->freshJwtProcess();
 
         // 主动刷新拿到新 token
         $new_token = $this->postJson('api/admin/refresh', [], ['Authorization' => "Bearer {$token}"])
@@ -80,19 +80,40 @@ class AuthTest extends TestCase
             ->json('data.token');
 
         $this->assertNotSame($token, $new_token);
+        $this->freshJwtProcess();
 
-        // 再次模拟新进程，用新 token 过 jwt.guard.auth:admin ——
-        // 新 token 丢了 guard claim 的话这里就是 401
-        $this->app->make('tymon.jwt.payload.factory')->emptyClaims();
-
+        // 用新 token 过 jwt.guard.auth:admin —— 新 token 丢了 guard claim 的话这里就是 401
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$new_token}"])
             ->assertOk()
             ->assertJsonPath('data.user.mobile', '13800000000');
     }
 
+    public function test_refresh_with_expired_token_yields_single_token(): void
+    {
+        $expired = $this->makeExpiredToken();
+
+        // 过期但在续期窗口内 → refresh 成功；
+        // 路由不挂 jwt.auth.refresh，响应头不得再出现第二个 token（孤儿 token 回归测试）
+        $response = $this->postJson('api/admin/refresh', [], ['Authorization' => "Bearer {$expired}"])
+            ->assertOk();
+        $response->assertHeaderMissing('authorization');
+
+        $new_token = $response->json('data.token');
+        $this->freshJwtProcess();
+
+        $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$new_token}"])
+            ->assertOk();
+    }
+
+    public function test_refresh_with_garbage_token_returns_401(): void
+    {
+        $this->postJson('api/admin/refresh', [], ['Authorization' => 'Bearer not-a-jwt'])
+            ->assertStatus(401);
+    }
+
     public function test_logout_blacklists_token(): void
     {
-        $token = $this->login()['token'];
+        $token = $this->adminLogin();
 
         $this->postJson('api/admin/logout', [], ['Authorization' => "Bearer {$token}"])
             ->assertOk();
