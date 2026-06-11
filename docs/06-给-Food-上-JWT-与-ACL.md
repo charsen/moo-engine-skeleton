@@ -35,6 +35,12 @@ public function boot(): void
 `config/actions.php` 白名单 → 角色动作（**`is_root` 字面量 = 超级权限**）→ 精确匹配 key。
 记得在 `bootstrap/providers.php` 登记。
 
+> **白名单不能是空的**（复审时发现，第 20 条）：开关一开，moo-system 的**个人中心**
+> （`AdminController` 的 index/update/password/avatar/logins 等 8 个动作）也开始鉴权——
+> 零授权角色（比如刚建的「编辑员」）登录后连查看本人信息、改密码都 403，把自己锁死
+> 在门外。`config/actions.php` 的 whitelist 必须放行这 8 个 key（已带注释写好），
+> 有 `FoodAclTest::test_zero_action_role_can_still_use_personal_center` 守护。
+
 **② 打开开关**（`config/scaffold.php`）：
 
 ```php

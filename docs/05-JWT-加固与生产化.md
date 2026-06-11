@@ -174,3 +174,28 @@ curl -s -D - http://127.0.0.1:8088/api/admin/me/info -H "Authorization: Bearer <
 # HTTP/1.1 200 OK
 # authorization: eyJ0eXAiOiJKV1QiLCJhbGciO...   ← 无感续签的新 token
 ```
+
+## 5.12 复审补强（多 agent 代码评审的产出）
+
+第 5~7 章落地后，对全部改动做了一轮多角度代码评审 + 真机回归，修了四处、记一处已知局限：
+
+1. **登录缺账号状态前置检查**：原来只 `Hash::check`，被禁用/锁定的人员照样能登录拿新
+   token。两个登录入口都补了 `account_status` 检查。**注意裸 int 枚举的比较**：本生态
+   约定枚举不进 `$casts`，`account_status` 是裸 int，必须写
+   `=== AccountStatus::FORBIDDEN->value`；写 `=== AccountStatus::FORBIDDEN`（enum 实例）
+   永远为 false，检查静默失效——wisdomcity 的登录前置检查正是这种写法，**是死代码**（第 19 条坑）。
+2. **`/refresh` 不能挂 `jwt.auth.refresh`**：过期 token 会被中间件、控制器各续签一次，
+   派生两个有效 token（孤儿 token）。已改为单独挂 `jwt.guard.auth` + 控制器 catch
+   JWTException 转 401，并补 `UpdateLoginTokenJob` 同步登录记录（第 18 条坑，
+   wisdomcity 同样中招）。有过期 token 回归测试守护。
+3. **`show_black_list_exception` 显式写回 config**：名字像日志开关，实际是黑名单的
+   执行开关之一（false 时已拉黑 token 照常通过 decode）。包代码级默认是 0，全靠包内
+   默认 config 回填才为 true——不赌 merge 行为，显式写 `true`。
+4. **操作日志 response 内容截断**：`response_content` 是 text 列（64KB），APP_DEBUG 下
+   一个 5xx 带全量 trace 轻松超限导致 insert 失败。派发前 `mb_substr(..., 0, 60000)`。
+
+**已知局限（不修，记录在案）**：对「已过期但仍在续期窗口内」的 token 调 `logout`
+会返回 200 但**没有真正拉黑**——jwt-auth 的 `JWTGuard::logout()` 静默吞掉解码异常，
+而过期 token 的 decode 必抛。也就是说被盗的过期 token 在续期窗口内无法被用户主动吊销，
+只能等窗口关闭或换 `JWT_SECRET` 全员下线。这是 jwt-auth 的设计局限（wisdomcity 同样
+存在），生产敏感场景可在 moo-system 登录管理里把对应记录置为失效 + 缩短 refresh_ttl 缓解。

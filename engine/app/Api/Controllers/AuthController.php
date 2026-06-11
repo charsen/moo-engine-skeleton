@@ -22,7 +22,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Mooeen\System\Jobs\UpdateLoginTokenJob;
+use Mooeen\System\Models\Enums\AccountStatus;
 use Mooeen\System\Models\Personnel;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class AuthController
 {
@@ -42,6 +46,14 @@ class AuthController
 
         if ($user === null || ! Hash::check($params['password'], (string) $user->password)) {
             throw ValidationException::withMessages(['account' => ['帐号或密码错误。']]);
+        }
+
+        // 账号状态前置检查（裸 int 比较用 ->value，详见 Admin/AuthController 同处注释）
+        if ($user->account_status === AccountStatus::FORBIDDEN->value) {
+            throw ValidationException::withMessages(['account' => ['帐号已被禁止登录。']]);
+        }
+        if ($user->account_status === AccountStatus::LOCKED->value) {
+            throw ValidationException::withMessages(['account' => ['帐号已被锁定，请联系管理员。']]);
         }
 
         // 显式把 guard claim 覆盖成 user（见类注释第 1 点）
@@ -79,12 +91,24 @@ class AuthController
 
     /**
      * 主动刷新 token（移动端单设备：旧 token 永久作废）
+     *
+     * 与后台一样**故意不挂** jwt.auth.refresh（见 routes/api.php）：否则过期 token 会被
+     * 中间件先续签一次、这里再续签一次，凭一个旧 token 派生出两个有效新 token，
+     * 「单设备」承诺被孤儿 token 打破。
      */
-    public function refresh(): JsonResponse
+    public function refresh(Request $request): JsonResponse
     {
-        // forceForever=true：旧 token 直接 addForever 进黑名单，没有 90 秒宽限 —— 单设备登录语义；
-        // resetClaims=false：保留 guard claim（persistent_claims 契约，见 config/jwt.php）
-        $token = Auth::guard('user')->refresh(true, false);
+        try {
+            // forceForever=true：旧 token 直接 addForever 进黑名单，没有 90 秒宽限 —— 单设备登录语义；
+            // resetClaims=false：保留 guard claim（persistent_claims 契约，见 config/jwt.php）
+            $token = Auth::guard('user')->refresh(true, false);
+        } catch (JWTException $e) {
+            throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
+        }
+
+        if (! empty($request->bearerToken())) {
+            UpdateLoginTokenJob::dispatch($request->bearerToken(), $token);
+        }
 
         return response()->json([
             'data' => [
