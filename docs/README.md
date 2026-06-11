@@ -23,7 +23,7 @@
 | PHP | 8.3.31 | Laravel 12 要求 `^8.2` |
 | Composer | 2.9.5 | PHP 包管理器 |
 | Node / npm | 26 / 11 | 前端资源构建（可选） |
-| MariaDB | 12.2.2（兼容 MySQL） | 数据库；本机 `127.0.0.1:3306` |
+| MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | 已装 `git-lfs` |
 | moo-scaffold / moo-system 源码 | dev-master | **必须**已克隆到与本仓库同级的目录（私有库，需作者授权），第 2 章用相对路径引用 |
 
@@ -80,3 +80,4 @@ moo-engine-skeleton/
 | 18 | 过期 token 调 `/refresh` 后冒出两个有效新 token | `/refresh` 路由不能挂 `jwt.auth.refresh`——中间件和控制器各续签一次，响应头那个成孤儿 token；单独挂 `jwt.guard.auth` 即可 | 5 |
 | 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（wisdomcity 的登录前置检查就是这种死代码） | 5 |
 | 20 | 开 ACL 后零授权角色连个人中心都 403 | `config/actions.php` 白名单要放行 moo-system AdminController 的 8 个个人中心动作，否则自己锁死自己 | 6 |
+| 21 | 操作日志表永远 0 条、也无报错 | `.env` 默认 `QUEUE_CONNECTION=database`，Job 堆在 `jobs` 表没人消费；改 `sync`（或起 worker），且改 `.env` 后要连 `php -S` 的 worker 一起杀掉重启 | 5 |
