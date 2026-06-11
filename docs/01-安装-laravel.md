@@ -49,9 +49,11 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
   "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-## 1.4 配置 .env 连接 MariaDB
+## 1.4 配置 .env 连接数据库
 
-Laravel 12 默认用 SQLite，需要改成 MySQL（MariaDB 兼容 `mysql` 驱动）。
+Laravel 12 默认用 SQLite，改成连本机数据库。注意一个容易疑惑的点：
+**本机装的是 MariaDB，但 `DB_CONNECTION` 写的是 `mysql`**——MariaDB 与 MySQL
+协议完全兼容，用 `mysql` 驱动连 MariaDB 是惯例写法（本机若装的是 MySQL 8 则更不用改）。
 编辑 `engine/.env`：
 
 ```dotenv
