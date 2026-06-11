@@ -92,7 +92,7 @@ moo-engine-skeleton/
 | [第 6 章 给 Food 上 JWT 与 ACL](./docs/06-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200 |
 | [第 7 章 移动端分片与 user 守卫](./docs/07-移动端分片与-user-守卫.md) | 守卫隔离、单设备 refresh |
 
-教程目录页还附了一张**「踩过的坑」速查表**（20 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（21 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
 
