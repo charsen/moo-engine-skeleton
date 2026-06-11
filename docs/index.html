@@ -122,6 +122,7 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 0 8px 8px 0; color: var(--ink-2); font-size: .92em;
 }
 .md blockquote.warn { background: var(--warn-bg); border-left-color: var(--warn-line); }
+.md blockquote.note { background: #eef4fb; border-left-color: #4a90d9; }
 .md blockquote p { margin: .3em 0; }
 .md table { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: .88em; }
 .md th, .md td { border: 1px solid var(--line); padding: 7px 11px; text-align: left; vertical-align: top; }
@@ -200,7 +201,7 @@ const CHAPTERS = [
   { id: 'ch6',    file: '06-移动端分片与-user-守卫.md',   title: '第 6 章 移动端与 user 守卫', sub: '双向隔离 · 单设备刷新' },
   { id: 'ch7',    file: '07-安装-moo-system.md',          title: '第 7 章 安装 moo-system', sub: '进阶包 · 主体切换 · 角色授权' },
 ];
-const LS_KEY = 'moo-skeleton-tutorial-v1';
+const LS_KEY = 'moo-skeleton-tutorial-v2';   // 2026-06 章节重排后步序全变，升版重置旧进度
 
 /* ================= 状态 ================= */
 const state = {
@@ -263,8 +264,10 @@ function renderMd(md) {
       const buf = [];
       while (i < lines.length && /^> ?/.test(lines[i])) { buf.push(lines[i].replace(/^> ?/, '')); i++; }
       const inner = renderMd(buf.join('\n'));
-      const warn = /⚠|坑 #|必须|勿删|注意/.test(buf.join('')) ? ' warn' : '';
-      out.push(`<blockquote class="md${warn}">${inner}</blockquote>`);
+      const text = buf.join('');
+      // 三类引用块：📦=最终态/版本提示（蓝），⚠/坑=警告（黄），其它=普通说明（绿）
+      const cls = text.trimStart().startsWith('📦') ? ' note' : (/⚠|坑 #/.test(text) ? ' warn' : '');
+      out.push(`<blockquote class="md${cls}">${inner}</blockquote>`);
       continue;
     }
     if (/^\|/.test(line) && /^\|? *:?-+/.test(lines[i + 1] || '')) {   // 表格

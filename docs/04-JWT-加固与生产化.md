@@ -153,6 +153,9 @@ $exceptions->throttle(fn (Throwable $e) => Limit::perMinute(1000));
 `AppServiceProvider::boot()` 里先定义，再挂进中间件组：
 
 ```php
+// use Illuminate\Cache\RateLimiting\Limit;
+// use Illuminate\Http\Request;
+// use Illuminate\Support\Facades\RateLimiter;
 RateLimiter::for('admin', fn (Request $r) => Limit::perMinute(300)->by($r->user()?->id ?: $r->ip()));
 RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
 ```
@@ -287,6 +290,10 @@ php artisan test
 过期 token 没法用 `auth()->login()` 直接造（签完自检就抛异常），手工签一个
 `exp` 在过去、`iat` 在续期窗口内的即可——完整可运行实现见仓库
 `tests/TestCase.php` 的 `makeExpiredToken()`。
+
+> 📦 仓库版的 admin 分支主体是 Personnel（第 7 章最终态）。本章时间点后台主体
+> 还是 User——照抄时把主体查询和 `prv`（`sha1(User::class)`）都换成 User，
+> 否则签出的 token 过不了 `lock_subject` 的模型哈希校验。
 
 ## 已知局限（记录在案，不修）
 
