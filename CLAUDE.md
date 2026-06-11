@@ -257,7 +257,7 @@ router，于是 `php artisan moo-system check`（走 console 内核）看不到�
 ## 搭建进度（来自 README.md）—— 已完成
 
 README 的 5 步全部搭好并真机验证；从 0 开始的过程写在 `docs/`
-（`docs/README.md` 是目录，含一张 14 条「踩过的坑」速查表）：
+（`docs/README.md` 是目录，含一张 17 条「踩过的坑」速查表）：
 
 1. ✅ Laravel 12 装在 `engine/`，MariaDB `moo_skeleton`（`root`/`7777`）。
 2. ✅ `moo-scaffold` 走 path 仓库；生成 `foods` 表；用 curl + `/scaffold` 调试器测接口。
@@ -267,9 +267,15 @@ README 的 5 步全部搭好并真机验证；从 0 开始的过程写在 `docs/
 6. ✅ JWT 加固与生产化（docs 第 5 章，对齐 某个内部 Host 2026-06 审计）：persistent_claims /
    90s 黑名单宽限 / 滑动续期 / TTL 固化 2880 / cors.php 暴露 authorization / 限流
    （admin 300/min）/ OperationLog 中间件 / composer.production.json /
-   `tests/Feature/AuthTest`（8 测试全绿）—— 全部真机验证。
+   `tests/Feature/AuthTest`—— 全部真机验证。
+7. ✅ ACL 已启用（docs 第 6 章）：Gate `acl_authentication` 在 host 的
+   `App\Providers\AuthServiceProvider`（包只消费不定义）；`scaffold.authorization.check=true`；
+   food 路由已入 JWT 组；「系统管理员」角色授 `is_root` 字面量 = 超级权限
+   （雪花主键下没有 id=1 的天然 root）。acl key = `substr(md5(明文key), 8, 16)`。
+8. ✅ 移动端 `Api/` 分片已启用（docs 第 7 章）：user 守卫登录在 `app/Api/Controllers/AuthController`，
+   登录时必须 `claims(['guard'=>'user'])` 内联覆盖（moo-system 的 getJWTCustomClaims 硬编码 admin）；
+   admin/user token 双向隔离；移动端 refresh 用 `(true,false)` 单设备语义（无 90s 宽限）。
 
 第一个管理员人员由 `PersonnelSeeder` 生成：手机 `13800000000` / 密码 `admin888`
-（`php artisan migrate --seed`）。Scaffold 开发 UI 账号：
-`charsen` / `skeleton2026`。`foods` 演示路由故意保持公开（不加 JWT），让第 2 章的调试器演练
-无需 token 即可进行。
+（`php artisan migrate --seed`）。Scaffold 开发 UI 账号：`charsen` / `skeleton2026`。
+全量测试 16 个（AuthTest / FoodAclTest / ApiAuthTest + 示例），`php artisan test` 全绿。
