@@ -12,6 +12,7 @@
         "godruoyi/php-snowflake": "^3.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "php-open-source-saver/jwt-auth": "^2.8",
         "tucker-eric/eloquentfilter": "^3.0"
     },
     "repositories": {
