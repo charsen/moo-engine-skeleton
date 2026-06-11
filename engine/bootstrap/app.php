@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Mooeen\Scaffold\Exceptions\BaseException;
+use Mooeen\Scaffold\Support\ExceptionDispatcher;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -34,12 +36,23 @@ return Application::configure(basePath: dirname(__DIR__))
         // `php artisan moo-system check` 才能正确校验。详见该 provider 的注释。
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // 这些异常属于预期控制流，不上报
-        $exceptions->dontReport([
+        // 这些异常属于预期控制流，不上报；同一异常只报一次
+        $exceptions->dontReportDuplicates()->dontReport([
             JWTException::class,
             NotFoundHttpException::class,
             BaseException::class,
         ]);
+
+        // 接入 moo-scaffold 的运行时异常采集（落盘 storage/scaffold/runtimes，
+        // 可在 /scaffold 开发 UI 查看；配 moo-scaffold-cloud 后可推云端）
+        $exceptions->reportable(function (Throwable $e): void {
+            app(ExceptionDispatcher::class)->dispatch($e);
+        });
+
+        // 上报节流：阈值放宽到 1000 条/分钟，避免高频 5xx 时关键日志被吞
+        $exceptions->throttle(function (Throwable $e) {
+            return Limit::perMinute(1000);
+        });
 
         // 接口请求统一走 JSON 异常响应
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
