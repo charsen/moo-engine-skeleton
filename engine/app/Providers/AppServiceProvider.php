@@ -7,8 +7,12 @@ namespace App\Providers;
 use App\Http\Middleware\JWTAssignGuard;
 use App\Http\Middleware\JWTAuthOrRefresh;
 use App\Http\Middleware\JWTGuardAuth;
+use App\Http\Middleware\OperationLog;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,6 +43,15 @@ class AppServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app['router'];
 
+        // 接口限流（对齐 wisdomcity：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
+        // 已登录按用户 ID 计数，未登录按 IP）
+        RateLimiter::for('admin', function (Request $request) {
+            return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());
+        });
+        RateLimiter::for('client', function (Request $request) {
+            return Limit::perMinute(1000)->by($request->user()?->id ?: $request->ip());
+        });
+
         // JWT 中间件别名
         $router->aliasMiddleware('jwt.assign.guard', JWTAssignGuard::class);
         $router->aliasMiddleware('jwt.guard.auth', JWTGuardAuth::class);
@@ -52,12 +65,15 @@ class AppServiceProvider extends ServiceProvider
         // host 后台组：只指定 admin 守卫，不强制认证（放行公开登录路由 + 演示 food 接口）
         $router->middlewareGroup('admin', [
             'jwt.assign.guard:admin',
+            'throttle:admin',
             SubstituteBindings::class,
+            OperationLog::class,
         ]);
 
         // host 客户端（移动端）组：指定 user 守卫
         $router->middlewareGroup('client', [
             'jwt.assign.guard:user',
+            'throttle:client',
             SubstituteBindings::class,
         ]);
 
@@ -67,7 +83,9 @@ class AppServiceProvider extends ServiceProvider
             'jwt.assign.guard:admin',
             'jwt.guard.auth:admin',
             'jwt.auth.refresh',
+            'throttle:admin',
             SubstituteBindings::class,
+            OperationLog::class,
         ]);
     }
 }
