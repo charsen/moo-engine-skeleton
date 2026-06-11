@@ -24,8 +24,10 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/authenticate \
 
 ```json
 {"data":{"user":{"id":"615920788075319296","real_name":"管理员","login_times":1},
- "token":"eyJ0eXAiOiJKV1Qi...","expires_in":172800}}
+ "token":"eyJ0eXAiOiJKV1Qi...","expires_in":3600}}
 ```
+
+> `expires_in` 此时是包默认的 60 分钟（3600 秒）。第 5 章会把它固化成 2 天（172800）。
 
 把 token 存起来后续用：
 

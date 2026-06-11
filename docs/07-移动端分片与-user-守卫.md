@@ -125,4 +125,4 @@ php artisan test --filter=ApiAuthTest
 - 5 个测试守护，curl 真机验证通过。
 
 至此 README 的全部目标完成：代码生成、系统管理、JWT、ACL、双守卫——
-都有教程、有测试、真机验证过。踩坑速查表（20 条）见 [docs/README.md](./README.md)。
+都有教程、有测试、真机验证过。踩坑速查表（21 条）见 [docs/README.md](./README.md)。

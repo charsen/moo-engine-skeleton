@@ -188,7 +188,7 @@ app/Models/Food/{Food.php, Filters/FoodFilter.php, Traits/FoodTrait.php, Enums/{
 app/Models/Traits/{UsingSnowFlakePrimaryKey.php, HasOperator.php}   # 雪花 ID 等约定 trait（自动生成）
 app/Admin/Controllers/Food/{FoodController.php, Traits/FoodTrait.php}
 app/Admin/Requests/Food/Food/{Index,Store,Update,Create,Edit,DestroyBatch}Request.php
-app/Admin/Resources/Food/FoodResource.php
+# 没有单独的 FoodResource —— 控制器直接用包里的 BaseResource，这是这套架构的常态
 database/migrations/*_create_foods_table.php
 ```
 
