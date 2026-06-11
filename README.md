@@ -94,6 +94,10 @@ moo-engine-skeleton/
 
 > 推荐用**网页引导器**跟做（分步模式 + 进度记忆 + 代码一键复制，零依赖单文件）：
 > `cd docs && php -S 127.0.0.1:9999`，浏览器打开 http://127.0.0.1:9999
+>
+> 仓库公开后可一键上线为网页版：Gitee 仓库 →「服务」→「Gitee Pages」→
+> 部署目录选 `docs/` → 访问 `https://<你>.gitee.io/moo-engine-skeleton/`
+> （引导器全部用相对路径，子路径部署开箱即用）。
 
 | 章节 | 内容 |
 |---|---|
@@ -104,8 +108,9 @@ moo-engine-skeleton/
 | [第 5 章 给 Food 上 JWT 与 ACL](./docs/05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200（User actions 最小实现） |
 | [第 6 章 移动端分片与 user 守卫](./docs/06-移动端分片与-user-守卫.md) | 守卫隔离、单设备 refresh |
 | [第 7 章 安装 moo-system（进阶）](./docs/07-安装-moo-system.md) | 完整系统管理：host 契约、主体切换 User→Personnel、角色授权、操作日志、调试器联调 |
+| [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | composer 双轨部署、Redis、nginx、supervisor、清缓存坑 |
 
-教程目录页还附了一张**「踩过的坑」速查表**（21 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（22 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
 
