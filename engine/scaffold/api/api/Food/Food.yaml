@@ -1,0 +1,36 @@
+###
+# Food Api
+#
+# @author charsen
+# @date 2026-06-11 15:16:21
+##
+controller:
+    code: 
+    class: 'Food'
+    name: '食品'
+    desc: []
+actions:
+    index_get:
+        name: '食品列表'
+        desc: []
+        prototype: ''
+        request: [GET, app/food]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-11 15:16:21'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    show_get:
+        name: '查看食品'
+        desc: []
+        prototype: ''
+        request: [GET, app/food/{id}]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-06-11 15:16:21'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

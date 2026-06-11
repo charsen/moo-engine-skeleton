@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use App\Api\Controllers\AuthController;
+use App\Api\Controllers\Food\FoodController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn () => 'Hello app api ~');
@@ -27,6 +28,9 @@ Route::post('refresh', [AuthController::class, 'refresh'])
 // 需要登录（user 守卫）
 Route::group(['middleware' => ['jwt.guard.auth:user', 'jwt.auth.refresh']], function () {
     Route::get('me/info', [AuthController::class, 'me'])->name('me.info');
+
+    // FoodController（只读：控制器只有 index/show，iResource 按方法注册，写路由自然不存在）
+    Route::iResource('food', FoodController::class);
 
     // :insert_code_here:do_not_delete
 });

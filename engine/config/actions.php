@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-// ⚠️ 本文件是「再生成区」：`php artisan moo:auth admin` 会整文件重写（坑 #25），
-// 注释与下方手动合并段全部会被抹掉。重跑 moo:auth 后必须把「手动合并」段的
+// ⚠️ 本文件是「再生成区」：`php artisan moo:auth <app>` 会整文件重写（坑 #25），
+// 注释与下方手动合并段全部会被抹掉（即使只跑 `moo:auth api`，也会把整个文件重新序列化，
+// 只是 admin 段的 key 不动）。重跑 moo:auth admin 后必须把「手动合并」段的
 // 8 个个人中心 key 合并回 whitelist —— FoodAclTest 里有守护断言，丢了测试会红。
 return [
     'admin' => [
@@ -90,5 +91,18 @@ return [
                 ],
             ],
         ],
+    ],
+    // api（移动端）分片：控制器不在 boot() 里调 checkAuthorization()，运行时不做 ACL，
+    // 这里的 whitelist 只是 moo:auth 的派生记录（全部 action 的 docblock 都不带 @acl）。
+    'api' => [
+        'whitelist' => [
+            '6a19c3c8b5b66e31', // api-food-food-show    查看食品
+            '2a2aead9884b5911', // api-food-food-index   食品列表
+            'e4865da90e394b8a', // api-auth-authenticate 登录
+            '68e7fa259ca5686a', // api-auth-logout       退出登录
+            '3b58fbd3d524ec58', // api-auth-me           当前登录人信息
+            '75fd9edea3519fa8', // api-auth-refresh      主动刷新 token
+        ],
+        'actions' => [],
     ],
 ];

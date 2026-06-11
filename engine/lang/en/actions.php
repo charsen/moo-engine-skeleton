@@ -91,4 +91,11 @@ return [
         '02b45d4094e6a333' => 'Setup Account',
         '02b45d4094e6a333-desc' => '',
     ],
+    'api' => [
+        'app-api' => 'Api',
+        'module-83396895a2d651e6' => 'Food',
+        'module-cb338ddfe04f8fb7' => '',
+        'controller-dad91e9b834bf12b' => 'Management Food',
+        'controller-b512cf541a72e4ad' => '',
+    ],
 ];

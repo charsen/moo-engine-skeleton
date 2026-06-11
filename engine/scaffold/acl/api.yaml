@@ -1,0 +1,119 @@
+meta:
+    app: api
+    app_name: 客户端接口
+    generated_at: '2026-06-11 15:16:21'
+    generated_by: charsen
+    stats:
+        module_count: 2
+        controller_count: 2
+        action_count: 6
+        whitelist_count: 6
+modules:
+    -
+        key: module-83396895a2d651e6
+        name:
+            en: Food
+            zh-CN: 食品管理
+        controller_count: 1
+        action_count: 2
+        whitelist_count: 2
+        controllers:
+            -
+                key: controller-dad91e9b834bf12b
+                class: App\Api\Controllers\Food\FoodController
+                name:
+                    en: 'Management Food'
+                    zh-CN: 食品
+                action_count: 2
+                whitelist_count: 2
+                actions:
+                    -
+                        key: 6a19c3c8b5b66e31
+                        plain_key: api-food-food-show
+                        action: show
+                        title: 查看食品
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\Food\FoodController::show'
+                    -
+                        key: 2a2aead9884b5911
+                        plain_key: api-food-food-index
+                        action: index
+                        title: 食品列表
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\Food\FoodController::index'
+    -
+        key: module-cb338ddfe04f8fb7
+        name:
+            en: ''
+            zh-CN: ''
+        controller_count: 1
+        action_count: 4
+        whitelist_count: 4
+        controllers:
+            -
+                key: controller-b512cf541a72e4ad
+                class: App\Api\Controllers\AuthController
+                name:
+                    en: ''
+                    zh-CN: ''
+                action_count: 4
+                whitelist_count: 4
+                actions:
+                    -
+                        key: e4865da90e394b8a
+                        plain_key: api-auth-authenticate
+                        action: authenticate
+                        title: '登录：校验邮箱密码 → 签发 user 守卫的 JWT。'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\AuthController::authenticate'
+                    -
+                        key: 68e7fa259ca5686a
+                        plain_key: api-auth-logout
+                        action: logout
+                        title: '退出登录（永久拉黑当前 token）。'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\AuthController::logout'
+                    -
+                        key: 3b58fbd3d524ec58
+                        plain_key: api-auth-me
+                        action: me
+                        title: 当前登录人信息
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\AuthController::me'
+                    -
+                        key: 75fd9edea3519fa8
+                        plain_key: api-auth-refresh
+                        action: refresh
+                        title: '主动刷新 token（移动端单设备：旧 token 永久作废）'
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Api\Controllers\AuthController::refresh'
