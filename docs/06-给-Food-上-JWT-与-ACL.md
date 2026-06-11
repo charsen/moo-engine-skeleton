@@ -21,7 +21,10 @@ public function boot(): void
 
 1. 把「当前控制器::方法」算成一个 **acl key**：先得到明文（如 `admin-food-food-index`），
    再取 `substr(md5(明文), 8, 16)`（如 `d84c4f5251f855f0`）。
-   每个接口的明文/密文 key 都能在 `/scaffold/routes` 页面直接看到；
+   每个接口的明文/密文 key 都能在 `/scaffold/routes` 页面直接看到：
+
+   ![接口路由页的 ACL key 列表](./images/06-scaffold-routes-acl.png)
+
 2. 拿这个 key 去问 Laravel 的 Gate `acl_authentication`——**这个 Gate 包里不定义，
    必须 host 自己写**（下一节就写它）。
 
