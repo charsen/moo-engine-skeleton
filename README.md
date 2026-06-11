@@ -42,7 +42,21 @@
 
 ## 🚀 快速开始
 
-> 完整、带截图的从 0 教程见 [`docs/`](./docs/README.md)；这里是精简版。
+**方式 A：直接用本仓库**（最终态，含全部七章成果）：
+
+```bash
+cd engine
+composer install                                   # 含同级目录的 moo-* path 包
+cp .env.example .env && php artisan key:generate   # .env 已预填 MariaDB root/7777 + moo_skeleton
+php artisan jwt:secret --force
+php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force
+php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
+php artisan moo:account:add charsen --password=skeleton2026 --role=admin   # scaffold 调试台账号
+PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
+php artisan test                                    # 21 passed
+```
+
+**方式 B：从 0 跟教程搭**（推荐新手，带截图的完整教程见 [`docs/`](./docs/README.md)）：
 
 ```bash
 # 1. 安装 Laravel 12 到 engine/ 子目录

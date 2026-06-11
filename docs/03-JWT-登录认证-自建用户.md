@@ -135,8 +135,10 @@ $router->middlewareGroup('moo-system', [
 ```php
 ->withRouting(
     commands: __DIR__.'/../routes/console.php',
-    health: '/up',
     using: function (): void {
+        // 健康检查（用了 using: 后框架的 health: 参数不生效，手动补一条）
+        Route::get('up', static fn () => response('OK'));
+
         Route::middleware('web')->group(base_path('routes/web.php'));
         Route::middleware('client')->prefix('app')->name('app.')->group(base_path('routes/api.php'));
         Route::middleware('admin')->prefix('api/admin')->name('admin.')->group(base_path('routes/admin.php'));
