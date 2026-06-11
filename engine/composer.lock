@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cddd11f7feb43747acc24d794660be01",
+    "content-hash": "ab28edf6819d31b2ce7e96b42f86d789",
     "packages": [
         {
             "name": "brick/math",
@@ -190,7 +190,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../moo-scaffold",
-                "reference": "ac67cb97a5ddc8471a818d28c366779e01a674c4"
+                "reference": "1a789b03dd9983c457282637cd8e6fea0b99e260"
             },
             "require": {
                 "brick/varexporter": "^0.7.0",
@@ -270,7 +270,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../moo-system",
-                "reference": "57c55d4e84a7ade866bf0a2a6ffaccd52f785600"
+                "reference": "ac1a98ac0a00c00ba986d94f8b1f54951ad0b0de"
             },
             "require": {
                 "charsen/moo-scaffold": "^3.0",
@@ -10035,5 +10035,5 @@
         "php": "^8.2"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }
