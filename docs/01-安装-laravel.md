@@ -39,7 +39,7 @@ composer create-project "laravel/laravel:^12.0" engine --no-interaction
 ```bash
 cd engine
 php artisan --version
-# Laravel Framework 12.61.1
+# Laravel Framework 12.61.1   ← 小版本号以实际安装为准（^12.0 内都没问题）
 ```
 
 ## 1.3 创建数据库

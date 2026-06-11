@@ -171,7 +171,13 @@ $router->middlewareGroup('moo-system', [
 并在 `withExceptions()` 里把 `UnauthorizedHttpException → 401`、
 `ValidationException → {message,errors}`（完整见仓库 `engine/bootstrap/app.php`）。
 
-让 moo-system 的包路由走 `moo-system` 组——改 `config/moo-system.php`：
+让 moo-system 的包路由走 `moo-system` 组。先把包配置发布出来（新项目里还没有这个文件）：
+
+```bash
+php artisan vendor:publish --tag=moo-system-config
+```
+
+再改 `config/moo-system.php`：
 
 ```php
 'admin' => ['prefix' => 'api/admin', 'name' => 'admin.', 'middleware' => 'moo-system'],
