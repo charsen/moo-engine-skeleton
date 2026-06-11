@@ -8,7 +8,7 @@
 ## 2.1 接入私有包：开发用 path、生产用 vcs
 
 `moo-scaffold` 没有发布到 Packagist，是放在 Gitee 的私有包。
-**前置条件**：`moo-scaffold/`、`moo-system/` 两个包的源码已经克隆在与本仓库**同级**的目录
+**前置条件**：`moo-scaffold/` 的源码已经克隆在与本仓库**同级**的目录
 （没有的话先找作者要权限克隆，否则下面第一步就会报 "path repository ... does not exist"）。
 
 接入前要先在 `engine/composer.json` 里声明 `repositories`。两种模式按环境选：
@@ -20,8 +20,7 @@
     "charsen/moo-scaffold": "dev-master as 3.999.0"
 },
 "repositories": {
-    "scaffold": { "type": "path", "url": "../../moo-scaffold" },
-    "system":   { "type": "path", "url": "../../moo-system" }
+    "scaffold": { "type": "path", "url": "../../moo-scaffold" }
 },
 "minimum-stability": "stable",
 "prefer-stable": true
@@ -30,12 +29,9 @@
 > 为什么是 `../../moo-scaffold`？因为 Laravel 应用在 `moo-engine-skeleton/engine/` 下，
 > 而 `moo-scaffold/` 与 `moo-engine-skeleton/` 同级，从 `engine/` 往上两级正好到 `wwwroot/`。
 >
-> 为什么现在就声明 `system` 仓库？第 3 章才装 moo-system，但 composer **不会**读
-> 依赖包自带的 repositories 声明——host 必须把两个私有仓库都列出来，干脆一次写好。
->
 > 为什么是 `dev-master as 3.999.0`？path/dev 分支没有版本号，用 `as 3.999.0`
 > 把 dev 分支「假装」成一个很高的稳定版本号，这样 `minimum-stability: stable` 不会拒绝它，
-> `moo-system` 里 `"charsen/moo-scaffold": "^3.0"` 这种约束也能满足。
+> 其它包对它的 `"charsen/moo-scaffold": "^3.0"` 这类版本约束也能满足。
 
 **生产环境（vcs 私有仓库，锁 tag）** —— 部署时换成：
 
@@ -84,7 +80,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn () => 'Hello admin api ~');
 
-// 第 6 章会给这个 group 加上 JWT + ACL 中间件，标记行不能删
+// 第 5 章会给这个 group 加上 JWT + ACL 中间件，标记行不能删
 Route::group([], function () {
     // :insert_code_here:do_not_delete
 });
@@ -117,7 +113,7 @@ Route::get('/', static fn () => 'Hello app api ~');
 生成的后台控制器路由用了 `Route::iResource(...)` 宏，先注册在
 `app/Providers/AppServiceProvider.php` 的 `boot()` 里（比 `Route::resource`
 多了回收站 / 永久删除 / 批量删除 / 恢复四条路由）。
-**预告**：第 3 章装 moo-system 时它会报错，要挪到 `register()`——那是个值得亲手踩的坑，
+**预告**：第 7 章装 moo-system 时它会报错，要挪到 `register()`——那是个值得亲手踩的坑，
 这里先照写：
 ```php
 Route::macro('iResource', function (string $name, string $controller, array $options = []) {
@@ -227,8 +223,8 @@ mysql -uroot -p7777 -h127.0.0.1 moo_skeleton -e "DESCRIBE foods;"
 
 ## 2.7 真机调试接口（两种方式）
 
-> **来自第 6 章的更新**：food 路由后来上了 JWT + ACL（见第 6 章），本节的无 token 玩法
-> 只在「刚做完本章、还没做第 6 章」的状态下成立。已做完第 6 章的话，先按第 4 章登录
+> **来自第 5 章的更新**：food 路由后来上了 JWT + ACL（见第 5 章），本节的无 token 玩法
+> 只在「刚做完本章、还没做第 5 章」的状态下成立。已做完第 5 章的话，先按第 3 章登录
 > 拿 token，下面的 curl 加上 `-H "Authorization: Bearer $TOKEN"` 即可，其余照旧。
 
 开打之前确认服务起着，而且必须是**多 worker** 方式（坑 4，调试器代理会和单线程死锁）：
@@ -278,4 +274,4 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；
 - 接口用 curl 和内置调试器两种方式真机验证通过（HTTP 200）。
 
-下一章：安装 **moo-system**，把部门 / 岗位 / 人员 / 角色等系统管理模块接进来。
+下一章：**不依赖任何付费包**，用自建的最简用户把 JWT 登录认证跑通。

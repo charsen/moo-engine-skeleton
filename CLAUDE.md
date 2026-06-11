@@ -12,6 +12,10 @@
 它是作者真实项目 `某个内部 Host`、`某内部语言项目（后端）` 的同级 / 骨架版，
 消费同样的私有包（`charsen/moo-scaffold`、`charsen/moo-system`）。
 
+**教学路线（2026-06 重构）**：JWT 用**自建最简 User** 独立教学（第 3~6 章，零付费依赖）；
+moo-system 定位为**进阶/商业包**，放在第 7 章可选接入——后台守卫主体届时从 User 切到
+Personnel，移动端 user 守卫**永久**用自建 User（对齐 某内部语言项目（后端） 的真实模式）。
+
 ### 两条工作原则（来自 README.md，不可妥协）
 
 1. **每一步都写进教程。** 工作过程要沉淀成 `docs/` 下一套从 0 开始、可开源的新手教程，
@@ -187,7 +191,8 @@ php artisan moo:free admin Food -a   # Model+Resource+Controller+Request+路由+
 - **包本身不带 seeder**，但本骨架在 `engine/database/seeders/` 提供了一套：`RoleSeeder` /
   `DepartmentSeeder`（嵌套集树）/ `PositionSeeder` / `PersonnelSeeder`，由 `DatabaseSeeder`
   按 角色→部门→岗位→人员 顺序调用。`php artisan migrate --seed` 即可得到含可登录管理员的初始数据。
-  注意 `DatabaseSeeder` **不能用** `WithoutModelEvents`——会静默 nestedset 的事件、把部门树 `_lft/_rgt` 建坏。
+  `DatabaseSeeder` 顺序：UserSeeder（自建用户 admin@example.com / password）→ 角色 → 部门 →
+  岗位 → 人员。注意**不能用** `WithoutModelEvents`——会静默 nestedset 的事件、把部门树 `_lft/_rgt` 建坏。
 - 通过 `config/scaffold.php` → `controller.admin.extra_modules` =
   `['System' => 'Mooeen\System\Http\Controllers\Admin']` 把它的控制器登记进 scaffold 的 ACL/路由工具。
 - 维护命令：`php artisan moo-system check`（6 项 host 自检）、`moo-system update`。
@@ -254,28 +259,34 @@ router，于是 `php artisan moo-system check`（走 console 内核）看不到�
 - `moo-scaffold-cloud` —— 汇聚运行时异常 / 慢 SQL / todos 的云端平台（可选；客户端用
   `moo:cloud:push` 推送）。跑通骨架不需要它。
 
-## 搭建进度（来自 README.md）—— 已完成
+## 搭建进度 —— 已完成（2026-06 教学路线重构后）
 
-README 的 5 步全部搭好并真机验证；从 0 开始的过程写在 `docs/`
-（`docs/README.md` 是目录，含一张 21 条「踩过的坑」速查表）：
+全部七章搭好并真机验证；从 0 开始的过程写在 `docs/`
+（`docs/README.md` 是目录，含一张 21 条「踩过的坑」速查表；`docs/index.html`
+是零依赖的网页引导器：`cd docs && php -S 127.0.0.1:9999`）：
 
 1. ✅ Laravel 12 装在 `engine/`，MariaDB `moo_skeleton`（`root`/`7777`）。
 2. ✅ `moo-scaffold` 走 path 仓库；生成 `foods` 表；用 curl + `/scaffold` 调试器测接口。
-3. ✅ `moo-system` 走 path 仓库；迁移出 10 张 `system_*` 表；`moo-system check` 6/6 通过。
-4. ✅ moo-system 的接口在 scaffold 调试器里（带 `Bearer` JWT）联调通过。
-5. ✅ JWT（php-open-source-saver）登录/me/refresh/logout；无 token 401、有 token 200。
-6. ✅ JWT 加固与生产化（docs 第 5 章，对齐 某个内部 Host 2026-06 审计）：persistent_claims /
-   90s 黑名单宽限 / 滑动续期 / TTL 固化 2880 / cors.php 暴露 authorization / 限流
-   （admin 300/min）/ OperationLog 中间件 / composer.production.json /
-   `tests/Feature/AuthTest`—— 全部真机验证。
-7. ✅ ACL 已启用（docs 第 6 章）：Gate `acl_authentication` 在 host 的
-   `App\Providers\AuthServiceProvider`（包只消费不定义）；`scaffold.authorization.check=true`；
-   food 路由已入 JWT 组；「系统管理员」角色授 `is_root` 字面量 = 超级权限
-   （雪花主键下没有 id=1 的天然 root）。acl key = `substr(md5(明文key), 8, 16)`。
-8. ✅ 移动端 `Api/` 分片已启用（docs 第 7 章）：user 守卫登录在 `app/Api/Controllers/AuthController`，
-   登录时必须 `claims(['guard'=>'user'])` 内联覆盖（moo-system 的 getJWTCustomClaims 硬编码 admin）；
-   admin/user token 双向隔离；移动端 refresh 用 `(true,false)` 单设备语义（无 90s 宽限）。
+3. ✅ JWT 登录认证（自建最简 User，零付费依赖）：User 实现 JWTSubject（guard claim
+   动态跟随守卫）、admin/user/moo-system 三个中间件组、登录/me/refresh/logout 全链路。
+   jwt-auth 是 composer **直接依赖**（不靠 moo-system 传递）。
+4. ✅ JWT 加固与生产化：persistent_claims / 90s 黑名单宽限 / 滑动续期 / TTL 固化 2880 /
+   cors.php 暴露 authorization / 限流（admin 300/min）/ refresh 防孤儿 token /
+   composer.production.json。
+5. ✅ ACL 已启用：Gate `acl_authentication` 在 host 的 `AuthServiceProvider`（包只消费
+   不定义，**多态**——User/Personnel 通吃）；User 的 `actions` JSON 列是契约最小实现
+   （'is_root' 字面量 = 超级权限）；acl key = `substr(md5(明文key), 8, 16)`。
+6. ✅ 移动端 `Api/` 分片：user 守卫主体是自建 User（email 登录，**永久**，对齐
+   某内部语言项目（后端））；admin/user token 双向隔离；移动端 refresh `(true,false)`
+   单设备语义（无 90s 宽限）。
+7. ✅ moo-system（进阶/商业包，第 7 章可选）：10 张 `system_*` 表、check 6/6、
+   后台守卫主体 User→Personnel（只改 auth.php 一行 + Admin/AuthController 一个文件）、
+   角色制授权接管 ACL（个人中心白名单 8 keys）、OperationLog 中间件、调试器联调。
 
-第一个管理员人员由 `PersonnelSeeder` 生成：手机 `13800000000` / 密码 `admin888`
-（`php artisan migrate --seed`）。Scaffold 开发 UI 账号：`charsen` / `skeleton2026`。
-全量测试 16 个（AuthTest / FoodAclTest / ApiAuthTest + 示例），`php artisan test` 全绿。
+默认账号：自建用户 `admin@example.com` / `password`（UserSeeder，第 3~6 章后台 +
+永久移动端）；Personnel 管理员 `13800000000` / `admin888`（第 7 章起的后台）；
+Scaffold 开发 UI `charsen` / `skeleton2026`。
+全量测试 21 个（AuthTest=Personnel 版 / FoodAclTest=角色版 / ApiAuthTest=User 版 + 示例），
+`php artisan test` 全绿。**注意仓库代码是第 7 章完成后的最终态**：教程第 3~5 章的
+中间态代码（User 版 Admin/AuthController、users 双守卫 auth.php、User 版 AuthTest）
+以完整代码形式内联在对应章节文档里。
