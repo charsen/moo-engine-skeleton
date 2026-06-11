@@ -74,9 +74,11 @@ APP_TOKEN=$(curl -s -X POST $BASE/app/authenticate \
   -d '{"account":"13800000000","password":"admin888"}' \
   | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
 
-# ② 解码 payload 看 guard（取 token 第二段 base64）
-echo $APP_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null
-# ... "guard":"user" ...
+# ② 解码 payload 看 guard。JWT 用的是 base64url（- _ 替代 + /，且不带 padding），
+#    先转回标准 base64 再补 = 号，否则可能解出半截：
+P=$(echo $APP_TOKEN | cut -d. -f2 | tr '_-' '/+'); P="$P$(printf '=%.0s' $(seq $(( (4 - ${#P} % 4) % 4 ))))"
+echo $P | base64 -d
+# {"iss":...,"guard":"user",...}
 
 # ③ 各回各家 200
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"   # 200
