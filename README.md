@@ -11,15 +11,15 @@
 
 ## ✨ 这套骨架包含什么
 
-从零搭到一个「带基础系统管理模块 + JWT」的 Laravel 12 后端，覆盖：
+从零搭到一个带 JWT 认证与动作级授权的 Laravel 12 后端，覆盖：
 
 1. **Laravel 12** 应用（放在 `engine/` 子目录），连接本机 MariaDB。
 2. **moo-scaffold** 代码生成器：用一份 YAML 设计数据表 → 一键生成 Model / Request /
-   Controller / Resource / 路由 / 迁移，并有内置的「数据库设计器 + 接口调试器」。
-3. **moo-system** 系统管理模块：部门 / 岗位 / 人员 / 角色 / 授权 / 通知机器人 /
-   登录管理 / 操作日志，开箱即用。
-4. **JWT 登录认证**（仿 wisdomcity）：登录签发、守卫校验、近过期自动续签。
-5. 在 moo-scaffold 的调试器里带 token 联调 moo-system 的接口。
+   Controller / 路由 / 迁移，并有内置的「数据库设计器 + 接口调试器」。
+3. **JWT 登录认证（自建最简用户，零付费依赖）**：登录签发、守卫校验、近过期自动续签、
+   生产级加固、动作级 ACL 授权、移动端双守卫隔离。
+4. **moo-system 系统管理模块（进阶/商业包，可选）**：部门 / 岗位 / 人员 / 角色 / 授权 /
+   登录管理 / 操作日志，最后一章接入——后台主体一键从自建用户切换为 Personnel。
 
 ## 📦 配套私有包
 
@@ -29,7 +29,7 @@
 |---|---|
 | `moo-scaffold` | 基础代码生成脚手架，含可视化数据库设计、接口调试 |
 | `moo-scaffold-cloud` | 云端的异常 / 慢 SQL / todos 管理平台，支持多项目 |
-| `moo-system` | 系统管理业务模块（部门、岗位、人员、角色等） |
+| `moo-system` | 系统管理业务模块（部门、岗位、人员、角色等）——**进阶/商业包**，教程第 7 章可选接入 |
 
 ## 🧰 环境要求
 
@@ -54,9 +54,9 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
   "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 # 3. 配 .env 的数据库（DB_CONNECTION=mysql / DB_DATABASE=moo_skeleton / DB_USERNAME=root / DB_PASSWORD=7777）
-#    再接入私有包（开发用 path、生产用 vcs，详见 docs 第 2、3 章），然后：
+#    再接入私有包（开发用 path、生产用 vcs，详见 docs 第 2、7 章），然后：
 composer update --with-all-dependencies
-php artisan migrate --seed      # 迁移 + seed（角色 / 部门树 / 岗位 / 可登录管理员）
+php artisan migrate --seed      # 迁移 + seed（自建用户；装了 moo-system 还有角色/部门树/岗位/人员）
 
 # 4. 启动（用多 worker，否则 scaffold 调试器代理会和单线程服务死锁）
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
@@ -86,11 +86,11 @@ moo-engine-skeleton/
 |---|---|
 | [第 1 章 安装 Laravel 12](./docs/01-安装-laravel.md) | 建项目、连 MariaDB、建库、真机访问 |
 | [第 2 章 安装 moo-scaffold](./docs/02-安装-moo-scaffold.md) | 私有包接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 |
-| [第 3 章 安装 moo-system（含 JWT）](./docs/03-安装-moo-system-与-jwt.md) | 系统管理模块、host 契约、JWT 登录、健康检查 |
-| [第 4 章 真机调试 moo-system 接口](./docs/04-真机调试-moo-system-接口.md) | 登录拿 token、鉴权验证、在调试器里联调 |
-| [第 5 章 JWT 加固与生产化](./docs/05-JWT-加固与生产化.md) | 对齐 wisdomcity 生产踩坑：persistent_claims、黑名单宽限、滑动续期、CORS、限流、操作日志、生产 composer、接口测试 |
-| [第 6 章 给 Food 上 JWT 与 ACL](./docs/06-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200 |
-| [第 7 章 移动端分片与 user 守卫](./docs/07-移动端分片与-user-守卫.md) | 守卫隔离、单设备 refresh |
+| [第 3 章 JWT 登录认证（自建用户）](./docs/03-JWT-登录认证-自建用户.md) | 零付费依赖：最简 User 实现 JWTSubject、双守卫、三中间件、登录全链路 |
+| [第 4 章 JWT 加固与生产化](./docs/04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、接口测试 |
+| [第 5 章 给 Food 上 JWT 与 ACL](./docs/05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200（User actions 最小实现） |
+| [第 6 章 移动端分片与 user 守卫](./docs/06-移动端分片与-user-守卫.md) | 守卫隔离、单设备 refresh |
+| [第 7 章 安装 moo-system（进阶）](./docs/07-安装-moo-system.md) | 完整系统管理：host 契约、主体切换 User→Personnel、角色授权、操作日志、调试器联调 |
 
 教程目录页还附了一张**「踩过的坑」速查表**（21 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
@@ -98,7 +98,8 @@ moo-engine-skeleton/
 
 | 用途 | 账号 | 密码 | 创建方式 |
 |---|---|---|---|
-| 后台管理员（Personnel） | `13800000000` | `admin888` | `migrate --seed`（PersonnelSeeder） |
+| 自建用户（第 3~6 章后台 + 永久的移动端） | `admin@example.com` | `password` | `migrate --seed`（UserSeeder） |
+| 后台管理员（Personnel，第 7 章起） | `13800000000` | `admin888` | `migrate --seed`（PersonnelSeeder） |
 | scaffold 调试台 | `charsen` | `skeleton2026` | `php artisan moo:account:add` |
 
 ## 🧭 设计原则
@@ -113,4 +114,5 @@ moo-engine-skeleton/
 
 ## 🎯 目标
 
-给新手一套可用的教程，从 0 开始，搭到一个带基础系统管理模块的 Laravel 12 骨架。
+给新手一套可用的教程，从 0 开始、零付费依赖地搭出带 JWT + ACL 的 Laravel 12 骨架；
+进阶者再用 moo-system 一键升级成完整系统管理后端。
