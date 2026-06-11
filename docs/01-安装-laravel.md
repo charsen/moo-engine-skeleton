@@ -22,8 +22,8 @@ mysql --version   # MariaDB 12.x 客户端
 mysql -uroot -p7777 -h127.0.0.1 -e "SELECT VERSION();"
 ```
 
-> 注意：作者 README 里写的是「密码 777」，**实际密码是 `7777`**（四个 7），
-> 可在 `moo-scaffold-cloud/.env` 里核对。
+> `root / 7777` 是**本教程的示例凭据**——换成你自己的数据库账号密码即可，
+> 后续所有命令里的 `-p7777` 同步替换。
 
 ## 1.2 创建 Laravel 12 项目到 engine/
 

@@ -1,0 +1,47 @@
+# CI：跑 engine/ 的全量测试（sqlite 内存库，无需外部服务）。
+#
+# 生效条件：
+# 1. 本仓库镜像/迁移到 GitHub 后自动启用；
+# 2. moo-* 包的获取：moo-scaffold 发布到 Packagist 前、以及商业包 moo-system，
+#    都走 composer.production.json 的 VCS 仓库——需要在仓库 Secrets 配一把
+#    只读部署私钥 MOO_PACKAGES_DEPLOY_KEY（对应公钥加到 Gitee 包仓库的部署公钥）。
+#    moo-scaffold 上 Packagist 后可去掉 ssh-agent 步骤并简化 require。
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, bcmath
+          coverage: none
+
+      - name: 私有包 SSH 凭据（moo-* 走 VCS 时需要）
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MOO_PACKAGES_DEPLOY_KEY }}
+
+      - name: 安装依赖（生产轨 composer，path 仓库在 CI 不可用）
+        run: |
+          cp composer.production.json composer.json
+          composer install --no-interaction --prefer-dist --no-progress
+
+      - name: 准备应用
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: 测试（21 个，sqlite :memory:）
+        run: php artisan test

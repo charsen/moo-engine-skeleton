@@ -27,7 +27,7 @@
 | Git | 任意较新版本 | 已装 `git-lfs` |
 | moo-scaffold 源码 | dev-master | **开源包**（MIT，规划发 Packagist；正式发布前需作者提供源码）克隆到与本仓库同级目录，第 2 章用相对路径引用；moo-system 为第 7 章的**商业包**（可选） |
 
-数据库连接：**用户名 `root` / 密码 `7777`**，本教程用的数据库名是 **`moo_skeleton`**。
+数据库连接：教程统一用示例凭据 **`root` / `7777`**（换成你自己的，命令里同步替换），库名 **`moo_skeleton`**。
 
 ## 目录结构约定（重要）
 
@@ -53,6 +53,7 @@ moo-engine-skeleton/
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
 | [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
+| [第 8 章 部署上线](./08-部署上线.md) | composer 双轨部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
 
 > **包定位**：moo-scaffold 开源（MIT）；moo-system 是商业包（获取方式联系作者）。
 > 第 1~6 章不依赖任何付费包，装不装第 7 章，前六章的骨架都是完整可用的。
@@ -82,3 +83,4 @@ moo-engine-skeleton/
 | 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（生产项目里就出过这种静默失效的死代码） | 7 |
 | 20 | 开 ACL 后零授权角色连个人中心都 403 | `config/actions.php` 白名单要放行 moo-system AdminController 的 8 个个人中心动作，否则自己锁死自己 | 7 |
 | 21 | 操作日志表永远 0 条、也无报错 | `.env` 默认 `QUEUE_CONNECTION=database`，Job 堆在 `jobs` 表没人消费；改 `sync`（或起 worker），且改 `.env` 后要连 `php -S` 的 worker 一起杀掉重启 | 7 |
+| 22 | 部署清缓存后，已登出的 token 又能用了 | `cache:clear`/`optimize:clear` 会清空 Redis 里的 JWT 黑名单，已作废 token 全部"复活"；部署脚本只用 `optimize`，必要时换 `JWT_SECRET` 强制全员重登 | 8 |
