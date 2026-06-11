@@ -67,7 +67,7 @@ moo-engine-skeleton/
 | 14 | Feature 测试里 refresh 永远"测不出"丢 claim | 同进程下 payload 工厂单例残留登录时的 claim；测试里 `emptyClaims()` 模拟真实跨进程 | 5 |
 | 15 | 开了 ACL 后管理员自己也 403 | 雪花主键下没有 id=1 的天然 root；给「系统管理员」角色授 `is_root` 字面量兜底（RoleSeeder 已带） | 6 |
 | 16 | 带 token 调接口报 422 误以为 ACL 没生效 | FormRequest 校验先于控制器 boot() 的鉴权，参数不合法先 422；带齐合法参数才能看到 403 | 6 |
-| 17 | user 守卫发的 token 过不了 `jwt.guard.auth:user` | moo-system 的 `getJWTCustomClaims()` 硬编码 guard=admin，登录时要 `claims(['guard'=>'user'])` 内联覆盖 | 7 |
+| 17 | user 守卫发的 token 过不了 `jwt.guard.auth:user` | moo-system 旧版 `getJWTCustomClaims()` 硬编码 guard=admin（已在包 `fix/dynamic-guard-claim` 动态化）；骨架登录时仍 `claims(['guard'=>'user'])` 内联声明作冗余保险 | 7 |
 | 18 | 过期 token 调 `/refresh` 后冒出两个有效新 token | `/refresh` 路由不能挂 `jwt.auth.refresh`——中间件和控制器各续签一次，响应头那个成孤儿 token；单独挂 `jwt.guard.auth` 即可 | 5 |
 | 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（wisdomcity 的登录前置检查就是这种死代码） | 5 |
 | 20 | 开 ACL 后零授权角色连个人中心都 403 | `config/actions.php` 白名单要放行 moo-system AdminController 的 8 个个人中心动作，否则自己锁死自己 | 6 |

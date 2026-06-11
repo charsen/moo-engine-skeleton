@@ -6,10 +6,11 @@ declare(strict_types=1);
  * @Description: 移动端登录认证（JWT，user 守卫）。
  *
  * 与后台（Admin/AuthController）的三个差异：
- * 1. guard 用 'user'，并用 claims(['guard' => 'user']) 显式覆盖 ——
- *    moo-system 的 Personnel::getJWTCustomClaims() 硬编码 'admin'，不覆盖的话
- *    移动端 token 也带 guard=admin，过不了 jwt.guard.auth:user，守卫隔离就是空话
- *    （wisdomcity 因历史原因 app 路由也校验 admin，骨架把隔离做实）；
+ * 1. guard 用 'user'，并用 claims(['guard' => 'user']) 显式声明 ——
+ *    moo-system 的 getJWTCustomClaims() 已动态化（跟随 Auth::getDefaultDriver()，
+ *    fix/dynamic-guard-claim），本组路由经 client 组 shouldUse('user') 后包侧即返回
+ *    'user'，这里的内联声明是冗余保险：不依赖包的合并节奏，包回退到旧版（硬编码
+ *    'admin'）时守卫隔离也不会静默失效；
  * 2. refresh 用 (true, false)：forceForever —— 移动端单设备登录，旧 token 永久作废，
  *    不享受 90 秒黑名单宽限；
  * 3. 真实项目移动端主体通常是会员表（Member），这里复用 Personnel 仅作演示。
