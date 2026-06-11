@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>moo-engine-skeleton 手把手教程</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐮</text></svg>">
+<style>
+:root {
+  --bg: #f7f8fa; --panel: #ffffff; --ink: #2c3e50; --ink-2: #5f6b7a; --ink-3: #93a1b0;
+  --brand: #16a085; --brand-2: #0e7a66; --line: #e6eaee;
+  --code-bg: #2d3440; --code-ink: #e8edf3; --warn-bg: #fff8e8; --warn-line: #e8b339;
+  --ok: #27ae60; --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.75; height: 100vh; overflow: hidden;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* ===== 布局 ===== */
+#app { display: flex; height: 100vh; }
+#sidebar {
+  width: 264px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+#main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+#topbar {
+  height: 52px; flex: none; background: var(--panel); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px; padding: 0 20px;
+}
+#content-wrap { flex: 1; display: flex; min-height: 0; }
+#steps-nav {
+  width: 218px; flex: none; border-right: 1px solid var(--line); background: #fbfcfd;
+  overflow-y: auto; padding: 12px 0; display: none;
+}
+#content { flex: 1; overflow-y: auto; padding: 28px 44px 80px; scroll-behavior: smooth; }
+#content > .inner { max-width: 860px; margin: 0 auto; }
+#stepbar {
+  flex: none; display: none; align-items: center; gap: 12px; padding: 10px 20px;
+  background: var(--panel); border-top: 1px solid var(--line);
+}
+
+/* ===== 侧栏 ===== */
+.side-head { padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
+.side-head h1 { font-size: 1.02rem; letter-spacing: .5px; }
+.side-head h1 span { color: var(--brand); }
+.side-head p { font-size: .78rem; color: var(--ink-3); margin-top: 2px; }
+#total-progress { margin-top: 10px; }
+#total-progress .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+#total-progress .bar i { display: block; height: 100%; background: var(--brand); border-radius: 3px; transition: width .3s; }
+#total-progress .txt { font-size: .72rem; color: var(--ink-3); margin-top: 4px; }
+#chapter-list { padding: 10px; flex: 1; }
+.chap {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 9px 10px; border: 0; background: none; border-radius: 8px; color: var(--ink-2);
+  font-size: .88rem; line-height: 1.35;
+}
+.chap:hover { background: #eef4f2; }
+.chap.active { background: var(--brand); color: #fff; }
+.chap.active .chap-sub { color: rgba(255,255,255,.75); }
+.chap .num {
+  flex: none; width: 24px; height: 24px; border-radius: 50%; background: #eceff3;
+  color: var(--ink-2); font-size: .72rem; display: flex; align-items: center; justify-content: center; font-weight: 600;
+}
+.chap.active .num { background: rgba(255,255,255,.25); color: #fff; }
+.chap.done .num { background: var(--ok); color: #fff; }
+.chap-main { min-width: 0; }
+.chap-title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chap-sub { display: block; font-size: .7rem; color: var(--ink-3); }
+.side-foot { padding: 12px 18px; border-top: 1px solid var(--line); font-size: .72rem; color: var(--ink-3); }
+.side-foot a { color: var(--brand); text-decoration: none; }
+
+/* ===== 顶栏 ===== */
+#topbar .crumb { font-size: .92rem; font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mode-switch { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.mode-switch button { border: 0; background: var(--panel); padding: 6px 14px; font-size: .8rem; color: var(--ink-2); }
+.mode-switch button.on { background: var(--brand); color: #fff; }
+
+/* ===== 分步侧栏 ===== */
+.step-item {
+  display: flex; gap: 8px; align-items: flex-start; width: 100%; text-align: left; border: 0;
+  background: none; padding: 8px 14px; font-size: .8rem; color: var(--ink-2); line-height: 1.4;
+}
+.step-item:hover { background: #eef4f2; }
+.step-item.cur { background: #e2f3ee; color: var(--brand-2); font-weight: 600; }
+.step-item .dot {
+  flex: none; width: 17px; height: 17px; margin-top: 2px; border-radius: 50%;
+  border: 2px solid #c8d2db; font-size: .62rem; display: flex; align-items: center; justify-content: center; color: transparent;
+}
+.step-item.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+/* ===== 底部步骤条 ===== */
+#stepbar .progress { flex: 1; display: flex; align-items: center; gap: 10px; }
+#stepbar .progress .bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+#stepbar .progress .bar i { display: block; height: 100%; background: var(--brand); transition: width .3s; }
+#stepbar .progress .txt { font-size: .78rem; color: var(--ink-3); white-space: nowrap; }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); padding: 8px 18px; border-radius: 8px;
+  font-size: .85rem; color: var(--ink-2);
+}
+.btn:hover { border-color: var(--brand); color: var(--brand); }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover { background: var(--brand-2); }
+
+/* ===== Markdown 渲染 ===== */
+.md h1 { font-size: 1.5rem; margin: .4em 0 .8em; line-height: 1.4; }
+.md h2 { font-size: 1.22rem; margin: 1.8em 0 .7em; padding-bottom: .35em; border-bottom: 1px solid var(--line); }
+.md h3 { font-size: 1.05rem; margin: 1.5em 0 .5em; }
+.md p { margin: .7em 0; }
+.md a { color: var(--brand); }
+.md strong { color: #1a2733; }
+.md hr { border: 0; border-top: 1px dashed #cfd8e0; margin: 2em 0; }
+.md ul, .md ol { padding-left: 1.6em; margin: .7em 0; }
+.md li { margin: .3em 0; }
+.md img { max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 2px 10px rgba(0,0,0,.06); margin: .6em 0; }
+.md blockquote {
+  margin: 1em 0; padding: .7em 1em; background: #f0f6f4; border-left: 4px solid var(--brand);
+  border-radius: 0 8px 8px 0; color: var(--ink-2); font-size: .92em;
+}
+.md blockquote.warn { background: var(--warn-bg); border-left-color: var(--warn-line); }
+.md blockquote p { margin: .3em 0; }
+.md table { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: .88em; }
+.md th, .md td { border: 1px solid var(--line); padding: 7px 11px; text-align: left; vertical-align: top; }
+.md th { background: #f2f5f8; white-space: nowrap; }
+.md tr:nth-child(even) td { background: #fafbfc; }
+.md code { background: #edf1f5; color: #c0392b; padding: .12em .4em; border-radius: 4px; font-size: .88em; font-family: "SF Mono", Menlo, Consolas, monospace; }
+.md .codeblock { position: relative; margin: 1em 0; }
+.md pre {
+  background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius);
+  padding: 14px 16px; overflow-x: auto; font-size: .84rem; line-height: 1.6;
+}
+.md pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+.md .codeblock .lang { position: absolute; right: 56px; top: 8px; font-size: .68rem; color: #8b96a5; }
+.md .copy-btn {
+  position: absolute; right: 10px; top: 7px; border: 1px solid #4a5568; background: #3a4250;
+  color: #cbd5e0; font-size: .7rem; padding: 3px 9px; border-radius: 6px;
+}
+.md .copy-btn:hover { background: #4a5568; }
+.md .copy-btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+
+/* ===== 提示页 ===== */
+.notice { max-width: 640px; margin: 80px auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 36px; }
+.notice h2 { margin-bottom: .6em; font-size: 1.2rem; }
+.notice pre { background: var(--code-bg); color: var(--code-ink); padding: 12px 16px; border-radius: 8px; margin: .8em 0; font-size: .85rem; overflow-x: auto; }
+.step-done-tip { display: flex; align-items: center; gap: 8px; margin-top: 2.2em; padding: 12px 16px; background: #eafaf1; border: 1px solid #bfe8d2; border-radius: var(--radius); font-size: .88rem; color: #1e8449; }
+
+@media (max-width: 900px) {
+  #sidebar { width: 210px; }
+  #steps-nav { display: none !important; }
+  #content { padding: 20px 18px 80px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-head">
+      <h1>moo-engine-<span>skeleton</span></h1>
+      <p>从 0 开始的手把手搭建教程</p>
+      <div id="total-progress"><div class="bar"><i style="width:0%"></i></div><div class="txt">总进度 0%</div></div>
+    </div>
+    <nav id="chapter-list"></nav>
+    <div class="side-foot">进度保存在浏览器本地。<br><a href="javascript:;" id="reset-progress">清空全部进度</a></div>
+  </aside>
+  <div id="main">
+    <header id="topbar">
+      <div class="crumb" id="crumb">加载中…</div>
+      <div class="mode-switch" id="mode-switch" style="display:none">
+        <button id="mode-read">通读</button>
+        <button id="mode-step">分步</button>
+      </div>
+    </header>
+    <div id="content-wrap">
+      <nav id="steps-nav"></nav>
+      <div id="content"><div class="inner" id="inner"></div></div>
+    </div>
+    <footer id="stepbar">
+      <button class="btn" id="btn-prev">← 上一步</button>
+      <div class="progress"><div class="bar"><i id="step-bar" style="width:0%"></i></div><span class="txt" id="step-txt"></span></div>
+      <button class="btn" id="btn-done">✓ 标记完成</button>
+      <button class="btn primary" id="btn-next">下一步 →</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= 配置 ================= */
+const CHAPTERS = [
+  { id: 'readme', file: 'README.md',                    title: '教程总览与踩坑速查', sub: '环境要求 · 20 条坑速查表', steppable: false },
+  { id: 'ch1',    file: '01-安装-laravel.md',            title: '第 1 章 安装 Laravel 12', sub: '建项目 · 连库 · 真机访问' },
+  { id: 'ch2',    file: '02-安装-moo-scaffold.md',       title: '第 2 章 安装 moo-scaffold', sub: '私有包 · 生成 foods · 调试器' },
+  { id: 'ch3',    file: '03-安装-moo-system-与-jwt.md',  title: '第 3 章 moo-system 与 JWT', sub: '系统模块 · host 契约 · 登录' },
+  { id: 'ch4',    file: '04-真机调试-moo-system-接口.md', title: '第 4 章 真机调试接口', sub: '拿 token · 调试器联调' },
+  { id: 'ch5',    file: '05-JWT-加固与生产化.md',         title: '第 5 章 JWT 加固与生产化', sub: '5 处加固 · 限流 · 测试' },
+  { id: 'ch6',    file: '06-给-Food-上-JWT-与-ACL.md',   title: '第 6 章 Food 上 JWT 与 ACL', sub: '动作级授权 401→403→200' },
+  { id: 'ch7',    file: '07-移动端分片与-user-守卫.md',   title: '第 7 章 移动端与 user 守卫', sub: '双向隔离 · 单设备刷新' },
+];
+const LS_KEY = 'moo-skeleton-tutorial-v1';
+
+/* ================= 状态 ================= */
+const state = {
+  cur: null,            // 当前章 id
+  mode: 'read',         // read | step
+  stepIdx: 0,
+  cache: {},            // id -> { md, steps:[{title, md}] }
+  progress: load(),     // { [chapterId]: { doneSteps: [idx...], mode, stepIdx } }
+};
+function load() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } }
+function save() { localStorage.setItem(LS_KEY, JSON.stringify(state.progress)); }
+function prog(id) { return state.progress[id] || (state.progress[id] = { doneSteps: [], mode: 'read', stepIdx: 0 }); }
+
+/* ================= Markdown 渲染（覆盖本教程用到的语法子集） ================= */
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function inline(s) {
+  // 先把 `code` 摘出来做占位，避免内部再被加粗/链接污染
+  const codes = [];
+  s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return `\x00${codes.length - 1}\x00`; });
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" loading="lazy">');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, t, u) =>
+      `<a href="${u}"${/^https?:/.test(u) ? ' target="_blank" rel="noopener"' : ''}>${t}</a>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\x00(\d+)\x00/g, (_, i) => `<code>${codes[+i]}</code>`);
+  return s;
+}
+
+function renderMd(md) {
+  const lines = md.split('\n');
+  const out = [];
+  let i = 0;
+  const flushPara = buf => { if (buf.length) { out.push(`<p>${inline(buf.join(' '))}</p>`); buf.length = 0; } };
+  let para = [];
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (/^```/.test(line)) {                                  // 代码块
+      flushPara(para);
+      const lang = line.slice(3).trim();
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++;
+      out.push(`<div class="codeblock">${lang ? `<span class="lang">${lang}</span>` : ''}` +
+        `<button class="copy-btn" type="button">复制</button>` +
+        `<pre><code>${escapeHtml(buf.join('\n'))}</code></pre></div>`);
+      continue;
+    }
+    if (/^#{1,4} /.test(line)) {                              // 标题
+      flushPara(para);
+      const level = line.match(/^#+/)[0].length;
+      out.push(`<h${level}>${inline(escapeHtml(line.replace(/^#+ /, '')))}</h${level}>`);
+      i++; continue;
+    }
+    if (/^---+\s*$/.test(line)) { flushPara(para); out.push('<hr>'); i++; continue; }
+    if (/^> ?/.test(line)) {                                  // 引用（多行合并）
+      flushPara(para);
+      const buf = [];
+      while (i < lines.length && /^> ?/.test(lines[i])) { buf.push(lines[i].replace(/^> ?/, '')); i++; }
+      const inner = renderMd(buf.join('\n'));
+      const warn = /⚠|坑 #|必须|勿删|注意/.test(buf.join('')) ? ' warn' : '';
+      out.push(`<blockquote class="md${warn}">${inner}</blockquote>`);
+      continue;
+    }
+    if (/^\|/.test(line) && /^\|? *:?-+/.test(lines[i + 1] || '')) {   // 表格
+      flushPara(para);
+      const cells = r => r.replace(/^\||\|$/g, '').split('|').map(c => inline(escapeHtml(c.trim())));
+      const head = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /^\|/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+      out.push('<table><thead><tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>' +
+        rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+      continue;
+    }
+    if (/^(\d+\.|[-*]) /.test(line)) {                        // 列表（支持续行缩进）
+      flushPara(para);
+      const ordered = /^\d+\. /.test(line);
+      const items = [];
+      while (i < lines.length && (/^(\d+\.|[-*]) /.test(lines[i]) || /^ {2,}\S/.test(lines[i]))) {
+        if (/^(\d+\.|[-*]) /.test(lines[i])) items.push(lines[i].replace(/^(\d+\.|[-*]) /, ''));
+        else items[items.length - 1] += ' ' + lines[i].trim();
+        i++;
+      }
+      const tag = ordered ? 'ol' : 'ul';
+      out.push(`<${tag}>` + items.map(t => `<li>${inline(escapeHtml(t))}</li>`).join('') + `</${tag}>`);
+      continue;
+    }
+    if (line.trim() === '') { flushPara(para); i++; continue; }
+    para.push(escapeHtml(line.trim()));                       // 普通段落（相邻行合并）
+    i++;
+  }
+  flushPara(para);
+  return out.join('\n');
+}
+
+/* ================= 分步切分：按 "## " 切，前言算第 0 步 ================= */
+function splitSteps(md) {
+  const lines = md.split('\n');
+  const steps = [];
+  let cur = { title: '本章目标', buf: [] };
+  let inCode = false;
+  for (const line of lines) {
+    if (/^```/.test(line)) inCode = !inCode;
+    if (!inCode && /^## /.test(line)) {
+      if (cur.buf.join('').trim()) steps.push({ title: cur.title, md: cur.buf.join('\n') });
+      cur = { title: line.replace(/^## /, ''), buf: [line] };
+    } else cur.buf.push(line);
+  }
+  if (cur.buf.join('').trim()) steps.push({ title: cur.title, md: cur.buf.join('\n') });
+  return steps;
+}
+
+/* ================= 取章节内容 ================= */
+async function fetchChapter(ch) {
+  if (state.cache[ch.id]) return state.cache[ch.id];
+  const res = await fetch('./' + encodeURI(ch.file));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const md = await res.text();
+  return (state.cache[ch.id] = { md, steps: splitSteps(md) });
+}
+
+/* ================= 渲染 ================= */
+const $ = sel => document.querySelector(sel);
+
+function renderSidebar() {
+  $('#chapter-list').innerHTML = CHAPTERS.map((ch, idx) => {
+    const p = state.progress[ch.id];
+    const total = state.cache[ch.id]?.steps.length;
+    const done = p && total && ch.steppable !== false && p.doneSteps.length >= total;
+    return `<button class="chap${ch.id === state.cur ? ' active' : ''}${done ? ' done' : ''}" data-id="${ch.id}">
+      <span class="num">${done ? '✓' : (idx === 0 ? '☰' : idx)}</span>
+      <span class="chap-main"><span class="chap-title">${ch.title}</span><span class="chap-sub">${ch.sub}</span></span>
+    </button>`;
+  }).join('');
+  // 总进度：7 个正式章节的完成步数 / 总步数
+  let done = 0, total = 0;
+  for (const ch of CHAPTERS) {
+    if (ch.steppable === false) continue;
+    const steps = state.cache[ch.id]?.steps;
+    if (!steps) continue;
+    total += steps.length;
+    done += (state.progress[ch.id]?.doneSteps || []).filter(x => x < steps.length).length;
+  }
+  const pct = total ? Math.round(done / total * 100) : 0;
+  $('#total-progress .bar i').style.width = pct + '%';
+  $('#total-progress .txt').textContent = total ? `总进度 ${pct}%（${done}/${total} 步）` : '总进度计算中…';
+}
+
+function renderStepsNav(ch, steps) {
+  const p = prog(ch.id);
+  $('#steps-nav').innerHTML = steps.map((s, idx) =>
+    `<button class="step-item${idx === state.stepIdx ? ' cur' : ''}${p.doneSteps.includes(idx) ? ' done' : ''}" data-idx="${idx}">
+      <span class="dot">✓</span><span>${inline(escapeHtml(s.title))}</span>
+    </button>`).join('');
+}
+
+function bindCopyButtons() {
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const code = btn.parentElement.querySelector('code').textContent;
+      try { await navigator.clipboard.writeText(code); }
+      catch { const ta = document.createElement('textarea'); ta.value = code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); }
+      btn.textContent = '已复制'; btn.classList.add('ok');
+      setTimeout(() => { btn.textContent = '复制'; btn.classList.remove('ok'); }, 1500);
+    };
+  });
+}
+
+async function show(chapterId, opts = {}) {
+  const ch = CHAPTERS.find(c => c.id === chapterId);
+  state.cur = chapterId;
+  $('#crumb').textContent = ch.title;
+  $('#inner').innerHTML = '<p style="color:var(--ink-3)">加载中…</p>';
+
+  let data;
+  try { data = await fetchChapter(ch); }
+  catch (e) { return showFetchError(e); }
+
+  const p = prog(ch.id);
+  state.mode = ch.steppable === false ? 'read' : (opts.mode || p.mode || 'read');
+  state.stepIdx = Math.min(opts.stepIdx ?? p.stepIdx ?? 0, data.steps.length - 1);
+  p.mode = state.mode; p.stepIdx = state.stepIdx; save();
+
+  $('#mode-switch').style.display = ch.steppable === false ? 'none' : 'flex';
+  $('#mode-read').classList.toggle('on', state.mode === 'read');
+  $('#mode-step').classList.toggle('on', state.mode === 'step');
+
+  const stepMode = state.mode === 'step';
+  $('#steps-nav').style.display = stepMode ? 'block' : 'none';
+  $('#stepbar').style.display = stepMode ? 'flex' : 'none';
+
+  if (stepMode) {
+    const step = data.steps[state.stepIdx];
+    const doneThis = p.doneSteps.includes(state.stepIdx);
+    $('#inner').innerHTML = `<div class="md">${renderMd(step.md)}</div>` +
+      (doneThis ? `<div class="step-done-tip">✓ 这一步你已标记完成。可随时回看，或继续下一步。</div>` : '');
+    renderStepsNav(ch, data.steps);
+    $('#btn-prev').disabled = state.stepIdx === 0;
+    $('#btn-next').textContent = state.stepIdx === data.steps.length - 1 ? '本章完成 ✓' : '下一步 →';
+    $('#btn-done').textContent = doneThis ? '✓ 已完成' : '✓ 标记完成';
+    $('#step-bar').style.width = Math.round((state.stepIdx + 1) / data.steps.length * 100) + '%';
+    $('#step-txt').textContent = `第 ${state.stepIdx + 1} / ${data.steps.length} 步`;
+  } else {
+    $('#inner').innerHTML = `<div class="md">${renderMd(data.md)}</div>`;
+  }
+  $('#content').scrollTop = 0;
+  bindCopyButtons();
+  renderSidebar();
+}
+
+function showFetchError(e) {
+  const isFile = location.protocol === 'file:';
+  $('#inner').innerHTML = `<div class="notice">
+    <h2>${isFile ? '请用本地服务打开本页' : '教程文件加载失败'}</h2>
+    ${isFile
+      ? `<p>浏览器不允许 <code>file://</code> 页面读取本地 md 文件。在 <strong>docs/ 目录</strong>下随便起一个静态服务即可：</p>
+         <pre>cd docs
+php -S 127.0.0.1:9999        # 或 python3 -m http.server 9999</pre>
+         <p>然后访问 <a href="http://127.0.0.1:9999">http://127.0.0.1:9999</a>。</p>`
+      : `<p>请确认本页和 01~07 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
+  </div>`;
+}
+
+/* ================= 交互 ================= */
+// 站内 .md 链接（README 的章节表等）转为应用内跳转
+$('#content').addEventListener('click', e => {
+  const a = e.target.closest('a');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  if (/^https?:|^javascript:/.test(href)) return;
+  const file = decodeURIComponent(href.replace(/^\.\//, '').split('#')[0]);
+  const ch = CHAPTERS.find(c => c.file === file);
+  if (ch) { e.preventDefault(); show(ch.id); }
+});
+
+$('#chapter-list').addEventListener('click', e => {
+  const btn = e.target.closest('.chap'); if (btn) show(btn.dataset.id);
+});
+$('#steps-nav').addEventListener('click', e => {
+  const btn = e.target.closest('.step-item'); if (btn) show(state.cur, { mode: 'step', stepIdx: +btn.dataset.idx });
+});
+$('#mode-read').onclick = () => show(state.cur, { mode: 'read' });
+$('#mode-step').onclick = () => show(state.cur, { mode: 'step' });
+$('#btn-prev').onclick = () => show(state.cur, { mode: 'step', stepIdx: state.stepIdx - 1 });
+$('#btn-done').onclick = () => {
+  const p = prog(state.cur);
+  const idx = p.doneSteps.indexOf(state.stepIdx);
+  idx >= 0 ? p.doneSteps.splice(idx, 1) : p.doneSteps.push(state.stepIdx);
+  save(); show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
+};
+$('#btn-next').onclick = () => {
+  const p = prog(state.cur);
+  if (!p.doneSteps.includes(state.stepIdx)) { p.doneSteps.push(state.stepIdx); save(); }
+  const steps = state.cache[state.cur].steps;
+  if (state.stepIdx < steps.length - 1) show(state.cur, { mode: 'step', stepIdx: state.stepIdx + 1 });
+  else {                                                   // 本章最后一步 → 跳下一章
+    const i = CHAPTERS.findIndex(c => c.id === state.cur);
+    if (i < CHAPTERS.length - 1) show(CHAPTERS[i + 1].id, { mode: 'step', stepIdx: 0 });
+    else show(state.cur, { mode: 'read' });
+  }
+};
+document.addEventListener('keydown', e => {
+  if (state.mode !== 'step' || /input|textarea/i.test(e.target.tagName)) return;
+  if (e.key === 'ArrowLeft' && state.stepIdx > 0) $('#btn-prev').click();
+  if (e.key === 'ArrowRight') $('#btn-next').click();
+});
+$('#reset-progress').onclick = () => {
+  if (confirm('确定清空所有章节的完成进度？')) { state.progress = {}; save(); show(state.cur); }
+};
+
+/* ================= 启动：预取全部章节以计算总进度，再进入上次位置 ================= */
+(async () => {
+  try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { return showFetchError(e); }
+  // 从有进度的最后一章继续，否则从总览开始
+  let entry = 'readme';
+  for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;
+  show(entry);
+})();
+</script>
+</body>
+</html>
