@@ -22,7 +22,7 @@ trait FoodTrait
      */
     private function getListFields(string $action = 'index'): array
     {
-        $fields = ['id', 'food_name', 'food_category', 'price', 'calories', 'food_status', 'description', 'created_at'];
+        $fields = ['id', 'food_name', 'food_category', 'price', 'stock', 'calories', 'food_status', 'description', 'created_at'];
 
         if ($action === 'index') {
             $append = ['updated_at'];
@@ -42,6 +42,7 @@ trait FoodTrait
             'food_name',
             'food_category_txt',
             'price',
+            'stock',
             'calories',
             'food_status_txt',
             'description',

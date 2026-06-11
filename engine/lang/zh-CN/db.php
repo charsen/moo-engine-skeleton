@@ -11,4 +11,5 @@ return [
     'deleted_at' => '删除于',
     'created_at' => '创建于',
     'updated_at' => '更新于',
+    'stock' => '库存',
 ];

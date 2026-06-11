@@ -9,7 +9,7 @@
 
 | 仓库 | 状态 | 备注 |
 |---|---|---|
-| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后有少量提交 | 八章教程 + 网页引导器 + CI workflow，35 测试全绿 |
+| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后有少量提交 | 九章教程 + 网页引导器 + CI workflow，36 测试全绿 |
 | moo-scaffold | tag 至 `3.8.x`，LICENSE(MIT) 已补 | **已定开源**，待发布 Packagist |
 | moo-system | tag 至 `1.6.12` | **商业包**（proprietary）；1.6.12 含 guard claim 动态化 |
 
@@ -49,7 +49,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed       # admin@example.com/password + 13800000000/admin888
 php artisan moo:account:add charsen --password=skeleton2026 --role=admin
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                 # ✅ 应 35 passed —— 环境一切正常的硬指标
+php artisan test                 # ✅ 应 36 passed —— 环境一切正常的硬指标
 ```
 
 **不随 git 走、需重建的**：`engine/.env`、`vendor/`、`scaffold/accounts.yaml`、

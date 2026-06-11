@@ -26,6 +26,7 @@ tables:
             food_name: { name: 名称, type: varchar, size: '2,128', unique: true }
             food_category: { name: 分类, type: tinyint, default: 1 }
             price: { name: 价格, type: int, default: 0, desc: '单位：分' }
+            stock: { name: 库存, type: int, default: 0 }
             calories: { required: false, name: 热量, type: int, default: 0, desc: '单位：大卡' }
             food_status: { name: 状态, type: tinyint, default: 1 }
             description: { required: false, name: 描述, type: varchar, size: 255 }
@@ -34,10 +35,10 @@ tables:
             updated_at: { }
         enums:
             food_category:
-                fruit: [1, fruit, 水果]
-                vegetable: [2, vegetable, 蔬菜]
-                meat: [3, meat, 肉类]
-                staple: [4, staple, 主食]
+                fruit: [1, Fruit, 水果]
+                vegetable: [2, Vegetable, 蔬菜]
+                meat: [3, Meat, 肉类]
+                staple: [4, Staple, 主食]
             food_status:
-                on_shelf: [1, on shelf, 上架]
-                off_shelf: [2, off shelf, 下架]
+                on_shelf: [1, On Shelf, 上架]
+                off_shelf: [2, Off Shelf, 下架]

@@ -35,5 +35,7 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
     // FoodController
     Route::iResource('food', FoodController::class);
 
+    Route::post('food/{id}/toggle-status', [FoodController::class, 'toggleStatus']);
+
     // :insert_code_here:do_not_delete
 });

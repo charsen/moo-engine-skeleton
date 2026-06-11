@@ -20,6 +20,7 @@ use App\Admin\Requests\Food\Food\EditRequest;
 use App\Admin\Requests\Food\Food\IndexRequest;
 use App\Admin\Requests\Food\Food\StoreRequest;
 use App\Admin\Requests\Food\Food\UpdateRequest;
+use App\Models\Food\Enums\FoodStatus;
 use App\Models\Food\Food;
 use Mooeen\Scaffold\Foundation\BaseResource;
 use Mooeen\Scaffold\Foundation\BaseResourceCollection;
@@ -42,6 +43,14 @@ class FoodController extends Controller
     use FoodTrait;
 
     protected Food $model;
+
+    /**
+     * 权限复用映射：toggleStatus 不单独注册 ACL 动作，
+     * 鉴权时映射到 update 的权限（同 restore => trashed 的默认映射）
+     */
+    protected array $transform_methods = [
+        'toggleStatus' => 'update',
+    ];
 
     public function __construct(Food $model)
     {
@@ -139,11 +148,11 @@ class FoodController extends Controller
      */
     public function show(int|string $id): BaseResource
     {
-        $fields = ['id', 'food_name', 'food_category', 'price', 'calories', 'food_status', 'description', 'deleted_at', 'created_at', 'updated_at'];
+        $fields = ['id', 'food_name', 'food_category', 'price', 'stock', 'calories', 'food_status', 'description', 'deleted_at', 'created_at', 'updated_at'];
         $result = $this->model->select($fields)->withTrashed()->findOrFail($id);
         $result->append(['options']);
 
-        $columns = ['id', 'food_name', 'food_category', 'price', 'calories', 'food_status', 'description', 'deleted_at', 'created_at', 'updated_at'];
+        $columns = ['id', 'food_name', 'food_category', 'price', 'stock', 'calories', 'food_status', 'description', 'deleted_at', 'created_at', 'updated_at'];
 
         return BaseResource::make($result)->additional(['columns' => ColumnsCollection::make($columns)]);
     }
@@ -195,5 +204,19 @@ class FoodController extends Controller
             ->additional([
                 'form_widgets' => $this->getFormWidgets(new UpdateRequest, 'edit'),
             ]);
+    }
+
+    /**
+     * 上架/下架切换（权限复用 update，见 $transform_methods）
+     */
+    public function toggleStatus(int|string $id): BaseResource
+    {
+        $result = $this->model->findOrFail($id);
+        $result->food_status = $result->food_status === FoodStatus::ON_SHELF->value
+            ? FoodStatus::OFF_SHELF->value
+            : FoodStatus::ON_SHELF->value;
+        $result->save();
+
+        return BaseResource::make($result);
     }
 }

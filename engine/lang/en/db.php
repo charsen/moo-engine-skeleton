@@ -11,4 +11,5 @@ return [
     'deleted_at' => 'Deleted At',
     'created_at' => 'Created At',
     'updated_at' => 'Updated At',
+    'stock' => 'Stock',
 ];
