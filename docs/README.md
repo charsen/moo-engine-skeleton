@@ -42,6 +42,8 @@ moo-engine-skeleton/
 | [第 3 章 安装 moo-system（含 JWT）](./03-安装-moo-system-与-jwt.md) | 系统管理模块接入、host 契约、JWT 登录、`moo-system check`、迁移 | 步骤 3 + 5 |
 | [第 4 章 真机调试 moo-system 接口](./04-真机调试-moo-system-接口.md) | 登录拿 token、鉴权验证、在 scaffold 调试器里带 token 联调 | 步骤 4 |
 | [第 5 章 JWT 加固与生产化](./05-JWT-加固与生产化.md) | 对齐 wisdomcity 生产踩坑：persistent_claims、黑名单宽限、滑动续期、CORS、限流、操作日志、生产 composer、第一批接口测试 | 加固 |
+| [第 6 章 给 Food 上 JWT 与 ACL](./06-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200、is_root 超级权限、acl key 机制 | 加固 |
+| [第 7 章 移动端分片与 user 守卫](./07-移动端分片与-user-守卫.md) | 启用 Api/ 分片：guard claim 覆盖、双向守卫隔离、单设备 refresh 语义 | 加固 |
 
 > moo-system 的接口依赖 JWT 登录，所以 README 的第 3、5 步在第 3 章合并完成。
 
@@ -63,3 +65,6 @@ moo-engine-skeleton/
 | 12 | 前端跨域时拿不到续签的新 token | 新 token 在 `authorization` 响应头里，CORS 默认不暴露；发布 `config/cors.php` 设 `exposed_headers=['Authorization']` | 5 |
 | 13 | 操作日志中间件报 `Undefined constant "LARAVEL_START"` | Laravel 12 入口不再定义它（老项目抄来的代码会炸），改用 `$request->server('REQUEST_TIME_FLOAT')` | 5 |
 | 14 | Feature 测试里 refresh 永远"测不出"丢 claim | 同进程下 payload 工厂单例残留登录时的 claim；测试里 `emptyClaims()` 模拟真实跨进程 | 5 |
+| 15 | 开了 ACL 后管理员自己也 403 | 雪花主键下没有 id=1 的天然 root；给「系统管理员」角色授 `is_root` 字面量兜底（RoleSeeder 已带） | 6 |
+| 16 | 带 token 调接口报 422 误以为 ACL 没生效 | FormRequest 校验先于控制器 boot() 的鉴权，参数不合法先 422；带齐合法参数才能看到 403 | 6 |
+| 17 | user 守卫发的 token 过不了 `jwt.guard.auth:user` | moo-system 的 `getJWTCustomClaims()` 硬编码 guard=admin，登录时要 `claims(['guard'=>'user'])` 内联覆盖 | 7 |
