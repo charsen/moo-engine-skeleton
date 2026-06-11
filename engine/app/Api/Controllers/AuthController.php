@@ -3,68 +3,63 @@
 declare(strict_types=1);
 /*
  * @Author: charsen
- * @Description: 移动端登录认证（JWT，user 守卫）。
+ * @Description: 移动端登录认证（JWT，user 守卫，主体是自建的 App\Models\User）。
  *
  * 与后台（Admin/AuthController）的三个差异：
- * 1. guard 用 'user'，并用 claims(['guard' => 'user']) 显式声明 ——
- *    moo-system 的 getJWTCustomClaims() 已动态化（跟随 Auth::getDefaultDriver()，
- *    fix/dynamic-guard-claim），本组路由经 client 组 shouldUse('user') 后包侧即返回
- *    'user'，这里的内联声明是冗余保险：不依赖包的合并节奏，包回退到旧版（硬编码
- *    'admin'）时守卫隔离也不会静默失效；
+ * 1. 主体是自建 User（email 登录）——不依赖 moo-system；guard claim 由
+ *    User::getJWTCustomClaims() 动态注入（client 组已 shouldUse('user')），
+ *    无需任何内联覆盖；
  * 2. refresh 用 (true, false)：forceForever —— 移动端单设备登录，旧 token 永久作废，
  *    不享受 90 秒黑名单宽限；
- * 3. 真实项目移动端主体通常是会员表（Member），这里复用 Personnel 仅作演示。
+ * 3. 登录前置检查用 email_verified_at（自建表的最简状态位）；后台 Personnel
+ *    （第 7 章）对应的是 account_status 枚举。
  */
 
 namespace App\Api\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Mooeen\System\Jobs\UpdateLoginTokenJob;
-use Mooeen\System\Models\Enums\AccountStatus;
-use Mooeen\System\Models\Personnel;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class AuthController
 {
     /**
-     * 登录：校验帐号密码 → 签发 user 守卫的 JWT。
+     * 登录：校验邮箱密码 → 签发 user 守卫的 JWT。
      *
      * @throws ValidationException
      */
     public function authenticate(Request $request): JsonResponse
     {
         $params = $request->validate([
-            'account' => ['required', 'string'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        $user = Personnel::where('mobile', $params['account'])->first();
+        $user = User::where('email', $params['email'])->first();
 
         if ($user === null || ! Hash::check($params['password'], (string) $user->password)) {
-            throw ValidationException::withMessages(['account' => ['帐号或密码错误。']]);
+            throw ValidationException::withMessages(['email' => ['帐号或密码错误。']]);
         }
 
-        // 账号状态前置检查（裸 int 比较用 ->value，详见 Admin/AuthController 同处注释）
-        if ($user->account_status === AccountStatus::FORBIDDEN->value) {
-            throw ValidationException::withMessages(['account' => ['帐号已被禁止登录。']]);
-        }
-        if ($user->account_status === AccountStatus::LOCKED->value) {
-            throw ValidationException::withMessages(['account' => ['帐号已被锁定，请联系管理员。']]);
+        // 最简状态检查：未验证邮箱不允许登录（自建表的"激活"语义）
+        if ($user->email_verified_at === null) {
+            throw ValidationException::withMessages(['email' => ['帐号尚未激活（邮箱未验证）。']]);
         }
 
-        // 显式把 guard claim 覆盖成 user（见类注释第 1 点）
-        $token = Auth::guard('user')->claims(['guard' => 'user'])->login($user);
+        // guard claim 由 User::getJWTCustomClaims() 动态注入（client 组已 shouldUse('user')）
+        $token = Auth::guard('user')->login($user);
 
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => (string) $user->id,
-                    'real_name' => $user->real_name,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
                 ],
                 'token' => $token,
                 'expires_in' => Auth::guard('user')->factory()->getTTL() * 60,
@@ -82,9 +77,9 @@ class AuthController
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => (string) $user->id,
-                    'real_name' => $user->real_name,
-                    'mobile' => $user->mobile,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
                 ],
             ],
         ]);
@@ -105,10 +100,6 @@ class AuthController
             $token = Auth::guard('user')->refresh(true, false);
         } catch (JWTException $e) {
             throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
-        }
-
-        if (! empty($request->bearerToken())) {
-            UpdateLoginTokenJob::dispatch($request->bearerToken(), $token);
         }
 
         return response()->json([

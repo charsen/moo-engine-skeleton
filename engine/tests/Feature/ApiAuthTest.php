@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 /*
- * 移动端（user 守卫）登录链路 + 守卫隔离测试（docs 第 7 章）。
+ * 移动端（user 守卫）登录链路 + 守卫隔离测试（docs 第 6 章）。
+ * 主体是自建 App\Models\User（email 登录，不依赖 moo-system）。
  *
  * 两条主线：
  * 1. 守卫隔离：admin token 调移动端接口 401，user token 调后台接口 401
@@ -33,7 +34,7 @@ class ApiAuthTest extends TestCase
 
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$token}"])
             ->assertOk()
-            ->assertJsonPath('data.user.mobile', '13800000000');
+            ->assertJsonPath('data.user.email', 'admin@example.com');
     }
 
     public function test_guard_isolation_between_admin_and_user_tokens(): void
@@ -46,13 +47,16 @@ class ApiAuthTest extends TestCase
         // admin token（guard=admin）调移动端接口 → 401 Guard Unverified
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$admin_token}"])
             ->assertStatus(401);
+        $this->freshJwtProcess();
 
         // user token（guard=user）调后台接口 → 401
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$app_token}"])
             ->assertStatus(401);
+        $this->freshJwtProcess();
 
-        // 各回各家正常
+        // 各回各家正常（admin/user 两守卫 provider 不同，每个请求间都要模拟新进程）
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$app_token}"])->assertOk();
+        $this->freshJwtProcess();
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$admin_token}"])->assertOk();
     }
 
