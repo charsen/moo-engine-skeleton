@@ -372,7 +372,9 @@ function bindCopyButtons() {
   });
 }
 
+let renderEpoch = 0;
 async function show(chapterId, opts = {}) {
+  const epoch = ++renderEpoch;            // 连点保护：只允许最后一次调用落地渲染
   const ch = CHAPTERS.find(c => c.id === chapterId);
   state.cur = chapterId;
   $('#crumb').textContent = ch.title;
@@ -381,6 +383,7 @@ async function show(chapterId, opts = {}) {
   let data;
   try { data = await fetchChapter(ch); }
   catch (e) { return showFetchError(e); }
+  if (epoch !== renderEpoch) return;      // 已有更新的渲染请求，本次作废
 
   const p = prog(ch.id);
   state.mode = ch.steppable === false ? 'read' : (opts.mode || p.mode || 'read');
@@ -447,7 +450,10 @@ $('#steps-nav').addEventListener('click', e => {
 });
 $('#mode-read').onclick = () => show(state.cur, { mode: 'read' });
 $('#mode-step').onclick = () => show(state.cur, { mode: 'step' });
-$('#btn-prev').onclick = () => show(state.cur, { mode: 'step', stepIdx: state.stepIdx - 1 });
+$('#btn-prev').onclick = () => {
+  state.stepIdx = Math.max(0, state.stepIdx - 1);
+  show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
+};
 $('#btn-done').onclick = () => {
   const p = prog(state.cur);
   const idx = p.doneSteps.indexOf(state.stepIdx);
@@ -458,8 +464,10 @@ $('#btn-next').onclick = () => {
   const p = prog(state.cur);
   if (!p.doneSteps.includes(state.stepIdx)) { p.doneSteps.push(state.stepIdx); save(); }
   const steps = state.cache[state.cur].steps;
-  if (state.stepIdx < steps.length - 1) show(state.cur, { mode: 'step', stepIdx: state.stepIdx + 1 });
-  else {                                                   // 本章最后一步 → 跳下一章
+  if (state.stepIdx < steps.length - 1) {
+    state.stepIdx += 1;                                    // 同步推进，连点不丢步
+    show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
+  } else {                                                 // 本章最后一步 → 跳下一章
     const i = CHAPTERS.findIndex(c => c.id === state.cur);
     if (i < CHAPTERS.length - 1) show(CHAPTERS[i + 1].id, { mode: 'step', stepIdx: 0 });
     else show(state.cur, { mode: 'read' });
