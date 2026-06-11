@@ -5,7 +5,8 @@ declare(strict_types=1);
  * ACL 鉴权链路守护测试（docs 第 6 章）。
  *
  * 完整闭环：无 token 401 → 有 token 无权限 403 → 角色授权后 200。
- * 顺带守住「系统管理员角色的 is_root 字面量 = 超级权限」这条 Gate 约定。
+ * 顺带守住「系统管理员角色的 is_root 字面量 = 超级权限」和
+ * 「个人中心白名单：零授权角色也能自助」这两条 Gate 约定。
  */
 
 namespace Tests\Feature;
@@ -23,20 +24,12 @@ class FoodAclTest extends TestCase
 
     protected $seed = true;
 
-    /** food.index 的 ACL key：aclPlainKey 生成明文 key，再按 scaffold.authorization.md5 取 md5 中段 */
+    /** food.index 的 ACL key：明文 key 是否做 md5 取中段，跟随 scaffold.authorization.md5 开关 */
     private function foodIndexAclKey(): string
     {
         $plain = Controller::aclPlainKey(FoodController::class.'::index');
 
-        return substr(md5($plain), 8, 16);
-    }
-
-    private function tokenFor(string $mobile, string $password = 'admin888'): string
-    {
-        return $this->postJson('api/admin/authenticate', [
-            'account' => $mobile,
-            'password' => $password,
-        ])->assertOk()->json('data.token');
+        return config('scaffold.authorization.md5') ? substr(md5($plain), 8, 16) : $plain;
     }
 
     /** 造一个挂「编辑员」角色（无任何授权动作）的人员 */
@@ -61,7 +54,7 @@ class FoodAclTest extends TestCase
 
     public function test_admin_role_with_is_root_passes_acl(): void
     {
-        $token = $this->tokenFor('13800000000');
+        $token = $this->adminLogin();
 
         $this->getJson('api/admin/food?page=1&page_limit=10', ['Authorization' => "Bearer {$token}"])
             ->assertOk();
@@ -70,16 +63,27 @@ class FoodAclTest extends TestCase
     public function test_role_without_action_gets_403(): void
     {
         $this->makeEditor();
-        $token = $this->tokenFor('13900000000', 'editor888');
+        $token = $this->adminLogin('13900000000', 'editor888');
 
         $this->getJson('api/admin/food?page=1&page_limit=10', ['Authorization' => "Bearer {$token}"])
             ->assertStatus(403);
     }
 
+    public function test_zero_action_role_can_still_use_personal_center(): void
+    {
+        $this->makeEditor();
+        $token = $this->adminLogin('13900000000', 'editor888');
+
+        // 个人中心（moo-system AdminController::index）在 config/actions.php 白名单里，
+        // 零授权角色也能查看本人信息 —— 白名单缺了这组 key，这里就是 403（自锁门外）
+        $this->getJson('api/admin/me', ['Authorization' => "Bearer {$token}"])
+            ->assertOk();
+    }
+
     public function test_granting_action_to_role_turns_403_into_200(): void
     {
         $this->makeEditor();
-        $token = $this->tokenFor('13900000000', 'editor888');
+        $token = $this->adminLogin('13900000000', 'editor888');
 
         // 授权前 403
         $this->getJson('api/admin/food?page=1&page_limit=10', ['Authorization' => "Bearer {$token}"])
