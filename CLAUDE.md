@@ -43,6 +43,9 @@ moo-engine-skeleton/
 ## 环境
 
 - **PHP** 8.3 · **Composer** 2.9 · **Node** 26 / npm 11 —— 均满足 Laravel 12（`php ^8.2`）。
+  **注意（2026-06 实况）**：本机默认 `php` 指向 brew 的 **php@8.2**，但 `composer.lock`
+  按 8.3 解析（jwt-auth 2.9.2 要求 `^8.3`）——本项目命令一律用
+  `export PATH=/opt/homebrew/opt/php@8.3/bin:$PATH` 之后再跑，否则 `composer install` 直接报版本冲突。
 - **数据库**：本机 Homebrew 装的 **MariaDB 12**，监听 `127.0.0.1:3306`。
   可用账号是 **`root` / `7777`**（README 里的“777”是笔误，已据 `moo-scaffold-cloud/.env` 核实）。
   骨架使用的数据库是 **`moo_skeleton`**。
@@ -203,8 +206,12 @@ php artisan jwt:secret                                                          
 - `config/auth.php`：一个 `api`（或 某个内部 Host 风格的 `admin`）守卫
   `['driver'=>'jwt','provider'=>...,'hash'=>false]` —— `hash:false` 是因为登录控制器手动校验密码。
   主体模型实现 `JWTSubject`（`getJWTIdentifier` + `getJWTCustomClaims`；某个内部 Host 返回 `['guard'=>'admin']`）。
-- `config/jwt.php` 关键值：`JWT_TTL=2880`（2 天）、`JWT_REFRESH_TTL=20160`（2 周）、
-  `HS256`、开启黑名单并留 10 秒宽限期。
+- `config/jwt.php` 关键值（默认值已固化进 config，env 只需 `JWT_SECRET`）：`ttl=2880`（2 天）、
+  `refresh_ttl=20160`（2 周）、`refresh_iat=true`（滑动续期）、`HS256`、开启黑名单并留
+  **90 秒**宽限期（并发请求续签不打架）、`persistent_claims=['guard']`（**必须**——否则续签出的
+  新 token 丢 guard claim，过 `JWTGuardAuth` 时 401，某个内部 Host 踩过的坑）。
+- `config/cors.php` 必须发布并设 `exposed_headers=['Authorization']`、paths 含 `api/*` 与 `app/*`：
+  无感续签的新 token 放在 authorization 响应头，跨域下不暴露就读不到。
 - **登录是手动的，不用 `attempt()`：** `Hash::check()` 校验密码（带自定义前置检查），再用
   `Auth::login($user)` 签发。响应：`{"data":{"user":{...},"token":"<jwt>","expires_in":<秒>}}`，
   其中 `expires_in = Auth::factory()->getTTL()*60`。客户端用 `Authorization: Bearer <token>` 回传。
@@ -250,13 +257,17 @@ router，于是 `php artisan moo-system check`（走 console 内核）看不到�
 ## 搭建进度（来自 README.md）—— 已完成
 
 README 的 5 步全部搭好并真机验证；从 0 开始的过程写在 `docs/`
-（`docs/README.md` 是目录，含一张 8 条「踩过的坑」速查表）：
+（`docs/README.md` 是目录，含一张 14 条「踩过的坑」速查表）：
 
 1. ✅ Laravel 12 装在 `engine/`，MariaDB `moo_skeleton`（`root`/`7777`）。
 2. ✅ `moo-scaffold` 走 path 仓库；生成 `foods` 表；用 curl + `/scaffold` 调试器测接口。
 3. ✅ `moo-system` 走 path 仓库；迁移出 10 张 `system_*` 表；`moo-system check` 6/6 通过。
 4. ✅ moo-system 的接口在 scaffold 调试器里（带 `Bearer` JWT）联调通过。
 5. ✅ JWT（php-open-source-saver）登录/me/refresh/logout；无 token 401、有 token 200。
+6. ✅ JWT 加固与生产化（docs 第 5 章，对齐 某个内部 Host 2026-06 审计）：persistent_claims /
+   90s 黑名单宽限 / 滑动续期 / TTL 固化 2880 / cors.php 暴露 authorization / 限流
+   （admin 300/min）/ OperationLog 中间件 / composer.production.json /
+   `tests/Feature/AuthTest`（8 测试全绿）—— 全部真机验证。
 
 第一个管理员人员由 `PersonnelSeeder` 生成：手机 `13800000000` / 密码 `admin888`
 （`php artisan migrate --seed`）。Scaffold 开发 UI 账号：
