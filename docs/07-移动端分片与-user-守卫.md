@@ -1,52 +1,50 @@
-# 第 7 章　移动端分片与 user 守卫（守卫隔离 + 单设备登录）
+# 第 7 章　移动端分片与 user 守卫
 
-目标：启用一直空着的 `app/Api/` 分片（移动端，路由前缀 `app`），用 **user 守卫**发 token，
-做到两件事：① 后台 token 和移动端 token **互相不通用**（守卫隔离）；
-② 移动端 refresh 是**单设备语义**（旧 token 立即作废，没有 90 秒宽限）。
+目标：启用一直空着的 `app/Api/` 分片（移动端，路由前缀 `app`），用 **user 守卫**登录，
+做到两件事：① 后台 token 和移动端 token **互不通用**（双向隔离）；
+② 移动端刷新是**单设备语义**（旧 token 立即作废，没有 90 秒宽限）。
 
 ---
 
-## 7.1 已有的地基
+## 7.1 地基早就铺好了
 
-第 3 章接线时其实都铺好了，本章只是把它们用起来：
+第 3 章接线时这些已经就位，本章只是用起来：
 
-- `config/auth.php`：`user` 守卫（jwt + personnels provider）早已定义；
-- `client` 中间件组（`AppServiceProvider::boot()`）：`jwt.assign.guard:user` + 限流，
-  挂在 `app` 前缀上（`bootstrap/app.php`）；
-- `JWTGuardAuth` 中间件天生支持参数化：`jwt.guard.auth:user` 就是校验
-  token 的 guard claim 必须是 `user`。
+- `config/auth.php`：`user` 守卫（jwt + personnels）；
+- `client` 中间件组：`jwt.assign.guard:user` + 限流，挂在 `app` 前缀上；
+- `jwt.guard.auth:user`：校验 token 里的 guard 声明必须是 `user`。
 
-## 7.2 移动端 AuthController 的三个关键差异
+> 真实项目的移动端主体通常是独立的会员表（Member）。骨架复用 Personnel 只为演示，
+> 什么时候该拆出去见 7.5。
 
-新建 `app/Api/Controllers/AuthController.php`，与后台版的差异：
+## 7.2 写移动端登录控制器
 
-**① guard claim 要显式声明。** moo-system 的 `Personnel::getJWTCustomClaims()`
-**曾经**硬编码 `['guard' => 'admin']`——那时不覆盖的话移动端 token 也带 `guard=admin`，
-过不了 `jwt.guard.auth:user`。这个根因后来在包里修掉了（`fix/dynamic-guard-claim`：
-跟随 `Auth::getDefaultDriver()`，登录路由经 client 组 `shouldUse('user')` 后自然返回
-`user`）。骨架仍保留内联声明作**冗余保险**（合并顺序：subject claims 先、内联后，后者赢）：
+新建 `app/Api/Controllers/AuthController.php`（完整文件见仓库），结构和后台版一样
+（手动查用户 → `Hash::check` → 账号状态检查 → 签发），**三处不同**：
+
+**① 签发时显式声明 guard：**
 
 ```php
 $token = Auth::guard('user')->claims(['guard' => 'user'])->login($user);
 ```
 
-> 为什么保险值得留：守卫隔离失效是**静默**的（登录 200、token 能解析，直到撞上
-> guard 校验才 401），一行冗余换掉一类难排查的故障。续签时 guard=user 能保住，
-> 靠的还是第 5 章的 `persistent_claims=['guard']`。wisdomcity 已同步把 app 路由
-> 从 `:admin` 改为 `:user`（它当年正是被硬编码逼成无隔离的）。
+> moo-system 的 `getJWTCustomClaims()` 旧版硬编码 `guard=admin`（坑 #17），那时不覆盖
+> 的话移动端 token 过不了 `:user` 校验。包里已修成动态跟随当前守卫，这行内联声明
+> 现在是**冗余保险**——故意留着：守卫隔离失效是静默的（登录 200，撞上校验才 401），
+> 一行冗余换掉一类难排查的故障。
 
-**② refresh 用 `(true, false)` —— 单设备登录。**
+**② 刷新用单设备语义：**
 
 ```php
 $token = Auth::guard('user')->refresh(true, false);
-// forceForever=true：旧 token 直接 addForever 进黑名单，没有 90 秒宽限
-// 后台是 (false, false)：旧 token 有宽限 —— 多标签页并发不打架
+// forceForever=true：旧 token 立即永久作废，没有 90 秒宽限 —— 新设备登录顶掉旧设备
 ```
 
-一句话记忆：**后台怕并发打架要宽限；移动端要"新设备登录顶掉旧设备"，不能宽限。**
+一句话记忆：**后台怕并发打架要宽限（false）；移动端要单设备，不能宽限（true）。**
 
-**③ 主体模型**：真实项目移动端通常是独立的会员表（Member 实现 `JWTSubject`），
-骨架复用 Personnel 仅为演示，免去再造一张表。
+**③ 登出同样走永久拉黑：** `Auth::guard('user')->logout(true);`
+
+refresh 的 try/catch + `UpdateLoginTokenJob` 写法与第 5 章的后台版完全相同。
 
 ## 7.3 路由（`routes/api.php`）
 
@@ -54,7 +52,7 @@ $token = Auth::guard('user')->refresh(true, false);
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-// refresh 只挂 guard 校验，不挂 jwt.auth.refresh（原因见下）
+// 主动刷新：单独挂 guard 校验，不进 jwt.auth.refresh（孤儿 token 问题，同第 5.4 节）
 Route::post('refresh', [AuthController::class, 'refresh'])
     ->middleware('jwt.guard.auth:user')->name('refresh');
 
@@ -65,32 +63,60 @@ Route::group(['middleware' => ['jwt.guard.auth:user', 'jwt.auth.refresh']], func
 });
 ```
 
-> **为什么 refresh 不能挂 jwt.auth.refresh**（复审时发现的坑，第 18 条）：该中间件会对
-> 过期 token 先自动续签一次（新 token 放响应头），控制器再续签第二次（放响应体）——
-> 一个旧 token 派生出**两个**有效新 token，响应头那个永远不会被作废（孤儿 token），
-> 「单设备」承诺被打破。refresh 本身就接受过期 token（续期窗口内），单独挂
-> `jwt.guard.auth` 即可，控制器里 catch JWTException 转 401。
-
 ## 7.4 真机验证
 
 ```bash
-# 登录（注意前缀是 app，不是 api/admin）
-APP_TOKEN=$(curl -s -X POST http://127.0.0.1:8088/app/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"account":"13800000000","password":"admin888"}' | ...提取 token...)
+BASE=http://127.0.0.1:8088
 
-# 解码 payload                         → "guard": "user"   ✓
-# user token 调 app/me/info            → 200               ✓
-# admin token 调 app/me/info           → 401（隔离）        ✓
-# user token 调 api/admin/me/info      → 401（反向隔离）     ✓
-# app/refresh 拿新 token → 新 token 200；旧 token 立即 401（单设备，无宽限）✓
+# ① 移动端登录（注意前缀是 app，不是 api/admin）
+APP_TOKEN=$(curl -s -X POST $BASE/app/authenticate \
+  -H "Content-Type: application/json" \
+  -d '{"account":"13800000000","password":"admin888"}' \
+  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+
+# ② 解码 payload 看 guard（取 token 第二段 base64）
+echo $APP_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null
+# ... "guard":"user" ...
+
+# ③ 各回各家 200
+curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"   # 200
+
+# ④ 双向隔离 401（ADMIN_TOKEN 按第 4 章登录后台拿）
+curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $ADMIN_TOKEN"        # 401
+curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
+
+# ⑤ 单设备刷新：拿新 token 后，旧 token 立刻 401（无宽限）
+NEW=$(curl -s -X POST $BASE/app/refresh -H "Authorization: Bearer $APP_TOKEN" \
+  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $NEW"          # 200
+curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
 ```
 
-守护测试：`tests/Feature/ApiAuthTest.php`（4 用例：401 / 登录 / 双向隔离 / 单设备 refresh）。
+测试守护：`tests/Feature/ApiAuthTest.php` 5 个用例（401 / 登录 / 双向隔离 /
+单设备刷新 / 过期 token 刷新只产生一个新 token）。
 
-## 7.5 何时该把 Personnel 换成真会员表
+```bash
+php artisan test --filter=ApiAuthTest
+# Tests: 5 passed
+```
 
-出现以下任一信号就该建独立的 `Member` 模型：注册开放给外部用户、移动端字段
-与员工表开始分叉（昵称/头像/第三方 openid）、或要做手机验证码登录。
-迁移路径：建表 → 实现 `JWTSubject`（`getJWTCustomClaims` 返回 `['guard' => 'user']`，
-顺便就不用内联覆盖了）→ `config/auth.php` 给 `user` 守卫换 provider —— 路由和中间件一行不用动。
+## 7.5 什么时候把 Personnel 换成真会员表
+
+出现任一信号就该建独立的 `Member` 模型：注册开放给外部用户、移动端字段和员工表
+开始分叉（昵称 / 第三方 openid）、要做验证码登录。迁移路径：
+
+1. 建表 + 模型实现 `JWTSubject`（`getJWTCustomClaims` 返回 `['guard' => 'user']`）；
+2. `config/auth.php` 给 `user` 守卫换 provider。
+
+路由和中间件一行都不用动。
+
+---
+
+## 本章产出
+
+- `Api/` 分片启用：登录 / me / 刷新 / 登出四件套（user 守卫）；
+- admin ↔ user token 双向隔离，移动端单设备刷新语义；
+- 5 个测试守护，curl 真机验证通过。
+
+至此 README 的全部目标完成：代码生成、系统管理、JWT、ACL、双守卫——
+都有教程、有测试、真机验证过。踩坑速查表（20 条）见 [docs/README.md](./README.md)。

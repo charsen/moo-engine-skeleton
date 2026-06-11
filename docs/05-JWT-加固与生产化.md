@@ -1,20 +1,20 @@
-# 第 5 章　JWT 加固与生产化（对齐 wisdomcity）
+# 第 5 章　JWT 加固与生产化
 
-背景：wisdomcity（本骨架的上游参考项目）在 2026 年 6 月做了一轮「JWT 401 审计」，
-修掉了几个**生产环境真实踩到**的坑（偶发 401、并发请求打架、跨域丢续签 token）。
-本章把这批修复回灌进骨架，并顺手补齐生产形态：env 收敛、生产 composer、限流、
-操作日志、第一批接口测试。每一项都在 8088 真机服务上验证过。
+目标：第 3 章的 JWT 是"能跑"的最小版。这一章把它加固到"能上生产"：
+改好 2 个配置文件、给登录和刷新补上安全细节、加上限流和操作日志、
+准备好生产用的 composer 文件，最后写第一批接口测试守住这一切。
+
+> 本章的每一处改动，都对应 wisdomcity（上游真实项目）在生产里踩过的坑。
+> 跟着做就好，每一步只需要知道"改什么 + 为什么"各一句话。
 
 ---
 
-## 5.1 续签必须保住 guard claim（`persistent_claims`）
+## 5.1 加固 `config/jwt.php`（5 处）
 
-骨架的多守卫体系里，token 带一个自定义声明 `guard`（`Personnel::getJWTCustomClaims()`
-注入），`JWTGuardAuth` 中间件靠它校验「这个 token 是发给哪个守卫的」。
-**坑在续签**：换发新 token 时自定义 claim 不一定会带过去，丢了 guard 的新 token
-下次过校验直接 401 `Guard Unverified` —— wisdomcity 生产环境的偶发 401 真因。
+打开 `engine/config/jwt.php`，逐处核对（完整文件见仓库，注释已全部中文化）：
 
-修法（`config/jwt.php`）：
+**① 续签时保留 guard 声明** —— 不配它，换发的新 token 会丢掉 `guard`，
+下次请求过 `JWTGuardAuth` 直接 401（坑 #10，生产偶发 401 的真因）：
 
 ```php
 'persistent_claims' => [
@@ -22,70 +22,120 @@
 ],
 ```
 
-**一个值得记下来的版本差异**（翻 vendor 源码核实过）：
-
-- jwt-auth **2.8.x**（wisdomcity 在用）：不配 `persistent_claims`，续签**必丢** guard；
-- jwt-auth **2.9.x**（骨架在用）：`Manager::refresh()` 先 `decode` 旧 token，旧 payload
-  会残留在 payload 工厂单例里，`make(false)` 不清空 —— guard「碰巧」存活。
-
-结论：2.9.x 上不配也能跑，但那是赌库的内部实现；`persistent_claims` 才是包文档
-承诺的契约，**必须配**。配套行为测试见 5.10。
-
-## 5.2 黑名单宽限期：并发请求不打架
-
-页面同时发好几个请求，第一个触发续签后旧 token 立刻进黑名单 ——
-没有宽限期的话，同批在途的其余请求全部 401。`config/jwt.php`：
+**② 黑名单宽限期 90 秒** —— 页面并发请求时，第一个触发续签后旧 token 立刻进黑名单，
+没有宽限期同批在途请求会全部 401（坑 #11）：
 
 ```php
-'blacklist_grace_period' => 90,   // 旧 token 进黑名单后 90 秒内仍放行
+'blacklist_grace_period' => 90,
 ```
 
-注意 `logout` 不受宽限期影响：`Auth::guard('admin')->logout(true)` 走 `forceForever`
-永久拉黑，登出后立刻 401（真机验证过，见 5.11）。
-
-## 5.3 滑动续期（`refresh_iat`）
-
-包默认续期窗口（14 天）永远从「首次登录」起算 —— 天天在用也会在第 14 天被踢，
-是后台「不经意 401」的另一个来源。改成滑动：
+**③ 滑动续期** —— 包默认续期窗口永远从首次登录起算，天天在用也会在第 14 天被踢：
 
 ```php
 'refresh_iat' => true,   // 每次续签把起算点拨到当下
 ```
 
-代价是被盗 token 可以一直续，靠「登出即拉黑」兜底，内部管理系统可接受。
-
-## 5.4 默认值固化进 config，env 只留密钥
-
-原来 `config/jwt.php` 是 `env('JWT_TTL', 60)` —— 而 `.env.example` 里根本没有
-`JWT_TTL`，新手拿到的实际是 60 分钟，跟文档说的"2 天"对不上。学 wisdomcity 的做法：
-**默认值写死进 config，env 只留真正逐环境变化的键**（`JWT_SECRET`）。
+**④ 有效期默认值固化进 config** —— `.env` 里没有 `JWT_TTL` 时，包默认只有 60 分钟。
+把团队约定写死进 config，env 只留真正逐环境变化的 `JWT_SECRET`：
 
 ```php
-'ttl'         => (int) env('JWT_TTL', 2880),    // 2 天
+'ttl'         => (int) env('JWT_TTL', 2880),           // 2 天
 'refresh_ttl' => (int) env('JWT_REFRESH_TTL', 20160),  // 14 天
 ```
 
-顺手把整个 `config/jwt.php` 的注释换成中文逐项说明（抄 wisdomcity，教程项目更该这么做）。
+**⑤ 黑名单异常开关显式写上** —— 名字像日志开关，实际控制"已拉黑的 token 是否被拒"。
+包的代码级默认是关，全靠包内配置回填才是开，这里显式写死不赌运气：
 
-## 5.5 CORS：跨域必须暴露 authorization 响应头
+```php
+'show_black_list_exception' => true,
+```
 
-无感续签的新 token 放在 `authorization` **响应头**里。Laravel 默认 CORS 配置
-`exposed_headers` 是空的 —— 跨域场景（H5 / webview / 前后端分离本地调试）下浏览器
-读不到未暴露的响应头，新 token 直接丢失，旧 token 出宽限窗后就是 401。
+## 5.2 新建 `config/cors.php`
 
-新建 `config/cors.php`（Laravel 12 的 HandleCors 默认就在全局栈里，发布配置即生效）：
+无感续签的新 token 放在 `authorization` **响应头**里。CORS 默认不暴露任何响应头，
+跨域场景（H5 / 前后端分离调试）下浏览器拿不到新 token，旧 token 出宽限期就 401（坑 #12）。
+
+新建 `engine/config/cors.php`（Laravel 12 的 HandleCors 默认就在全局中间件里，发布配置即生效）：
 
 ```php
 'paths' => ['api/*', 'app/*'],
-'exposed_headers' => ['Authorization'],
+'exposed_headers' => ['Authorization'],   // 关键行
 ```
 
-## 5.6 异常采集与上报节流（`bootstrap/app.php`）
+其余键照抄 Laravel 默认即可（完整文件见仓库）。
+
+## 5.3 登录补账号状态检查
+
+第 3 章的登录只校验了密码——被**禁用/锁定**的人员照样能登录。
+在 `app/Admin/Controllers/AuthController.php` 的 `Hash::check` 之后补两段：
 
 ```php
+if ($user->account_status === AccountStatus::FORBIDDEN->value) {
+    throw ValidationException::withMessages(['account' => ['帐号已被禁止登录。']]);
+}
+if ($user->account_status === AccountStatus::LOCKED->value) {
+    throw ValidationException::withMessages(['account' => ['帐号已被锁定，请联系管理员。']]);
+}
+```
+
+> ⚠️ **必须写 `->value`**（坑 #19）：本生态约定枚举不进 `$casts`，`account_status`
+> 是裸 int。写成 `=== AccountStatus::FORBIDDEN`（枚举实例）永远为 false，
+> 检查等于没写——wisdomcity 的同款检查就这样静默失效了很久。
+
+## 5.4 `/refresh` 路由单独挂中间件
+
+第 3 章把 `refresh` 放进了 `jwt.auth.refresh` 那个组——**要移出来**（坑 #18）：
+那个中间件会对过期 token 先自动续签一次（新 token 放响应头），控制器再续签第二次
+（放响应体），一个旧 token 就派生出两个有效新 token，响应头那个永远不会作废。
+
+改 `routes/admin.php`：
+
+```php
+// 主动刷新：只校验 guard claim，不挂 jwt.auth.refresh
+Route::post('refresh', [AuthController::class, 'refresh'])
+    ->middleware('jwt.guard.auth:admin')->name('refresh');
+
+// 需要登录（JWT 强制认证 + 近过期续签）
+Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], function () {
+    Route::get('me/info', [AuthController::class, 'me'])->name('me.info');
+});
+```
+
+控制器里 `refresh()` 对应改成"自己处理异常 + 同步登录记录"：
+
+```php
+public function refresh(Request $request): JsonResponse
+{
+    try {
+        // forceForever=false：旧 token 走 90 秒宽限；resetClaims=false：保留 guard
+        $token = Auth::guard('admin')->refresh(false, false);
+    } catch (JWTException $e) {
+        // 无 token / 伪造 / 超出续期窗口 / 已拉黑 → 重新登录
+        throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
+    }
+
+    if (! empty($request->bearerToken())) {
+        UpdateLoginTokenJob::dispatch($request->bearerToken(), $token);
+    }
+
+    return response()->json(['data' => [
+        'token' => $token,
+        'expires_in' => Auth::guard('admin')->factory()->getTTL() * 60,
+    ]]);
+}
+```
+
+> refresh 本身就接受"过期但在续期窗口内"的 token，不需要前置强制认证。
+
+## 5.5 异常采集与节流（`bootstrap/app.php`）
+
+在 `withExceptions()` 里补三段：
+
+```php
+// 同一异常只报一次
 $exceptions->dontReportDuplicates()->dontReport([...]);
 
-// 一行接入 moo-scaffold 的运行时异常采集（落盘 storage/scaffold/runtimes）
+// 一行接入 moo-scaffold 的运行时异常采集（落盘 storage/scaffold/runtimes，/scaffold 可看）
 $exceptions->reportable(function (Throwable $e): void {
     app(ExceptionDispatcher::class)->dispatch($e);
 });
@@ -94,108 +144,106 @@ $exceptions->reportable(function (Throwable $e): void {
 $exceptions->throttle(fn (Throwable $e) => Limit::perMinute(1000));
 ```
 
-## 5.7 接口限流
+## 5.6 接口限流
 
-`AppServiceProvider::boot()` 里定义，再挂进中间件组：
+`AppServiceProvider::boot()` 里先定义，再挂进中间件组：
 
 ```php
 RateLimiter::for('admin', fn (Request $r) => Limit::perMinute(300)->by($r->user()?->id ?: $r->ip()));
 RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
 ```
 
-`admin` / `moo-system` 组加 `'throttle:admin'`，`client` 组加 `'throttle:client'`。
-验证：响应头出现 `X-RateLimit-Limit: 300`。
+`admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`。
 
-## 5.8 操作日志中间件
+验证：随便调一个 admin 接口，响应头出现 `X-RateLimit-Limit: 300` 即生效。
 
-moo-system 提供了 `system_operation_logs` 表和 `AddOperationLogJob`，但**采集点是
-host 的责任**。新建 `app/Http/Middleware/OperationLog.php`（仿 wisdomcity 精简）：
-terminable 中间件，响应发出后才收集（不拖慢请求），密码/token 等敏感入参
-`[FILTERED]`，root 不记录。挂到 `admin` / `moo-system` 组，开关在
-`config/logging.php` 的 `'operation' => env('OPERATION_LOG', false)`。
+## 5.7 操作日志中间件
 
-> **坑（第 13 条）**：wisdomcity 的版本用了 `LARAVEL_START` 常量算耗时 —— 那是老版本
-> Laravel 入口文件定义的，**Laravel 12 已经没有了**，跑起来直接
-> `Undefined constant "LARAVEL_START"`。改用 `$request->server('REQUEST_TIME_FLOAT')`。
+moo-system 提供了 `system_operation_logs` 表和写库的 Job，但**什么时候记、记什么**
+由 host 决定。新建 `app/Http/Middleware/OperationLog.php`（完整代码见仓库），要点：
 
-## 5.9 `.env.example` 重写 + 生产 composer
+- 用 `terminate()`（响应发出后才执行，不拖慢请求）；
+- 密码 / token 等敏感入参替换成 `[FILTERED]`；
+- 失败响应的 body 截断到 6 万字符再入库——`response_content` 是 64KB 的 text 列，
+  调试模式下一个 5xx 带全量堆栈轻松超限，会让 insert 直接失败；
+- 开关在 `config/logging.php`：`'operation' => env('OPERATION_LOG', false)`。
 
-- `.env.example` 按教程预填（MariaDB `moo_skeleton`、8088、分组中文注释），删掉骨架
-  用不到的死键（MAIL/AWS/MEMCACHED），补上 `JWT_SECRET`、`SCAFFOLD_AUTHOR`、
-  `OPERATION_LOG` 占位。`QUEUE_CONNECTION=sync` —— 教程期登录记录/操作日志即时可见，
-  生产换 redis + worker。
-- 新增 `composer.production.json`：moo 包换成 `^3.0` / `^1.2` + Gitee VCS 仓库
-  （SSH 部署公钥鉴权）。部署时 `cp composer.production.json composer.json` 再
-  `composer install`，与第 2 章讲的「开发 path / 生产 vcs」双轨制闭环。
+写好后挂到 `admin` 和 `moo-system` 两个组的末尾。
 
-## 5.10 第一批接口测试（`tests/Feature/AuthTest.php`）
+> ⚠️ 坑 #13：别照抄老项目里的 `LARAVEL_START` 常量算耗时——Laravel 12 入口文件
+> 已经没有它了，用 `$request->server('REQUEST_TIME_FLOAT')`。
 
-6 个用例守住整条登录链路：登录成功 / 错密码 422 / 无 token 401 / 带 token 200 /
-**续签后新 token 仍可用** / 登出即拉黑。`phpunit.xml` 加了测试专用 `JWT_SECRET`
-（sqlite :memory:，与真实库无关）。
+## 5.8 `.env.example` 与生产 composer
+
+- 把 `.env.example` 改成"复制即可用"：预填 MariaDB `moo_skeleton`、8088 端口、
+  分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` / `OPERATION_LOG` 占位，
+  删掉骨架用不到的 MAIL/AWS 等死键（完整文件见仓库）；
+- 新建 `composer.production.json`：moo 包换成 `^3.0` / `^1.2` + Gitee VCS 仓库。
+  部署时 `cp composer.production.json composer.json && composer install --no-dev`，
+  和第 2 章讲的"开发 path / 生产 vcs"双轨制闭环。
+
+## 5.9 第一批接口测试
+
+公共辅助在 `tests/TestCase.php`（登录拿 token、模拟跨进程、手工造过期 token），
+用例在 `tests/Feature/AuthTest.php`，守住整条链路：
+登录成功 / 错密码 422 / 禁用账号 422 / 无 token 401 / 带 token 200 /
+续签后新 token 可用 / 过期 token 续签只产生一个新 token / 登出即拉黑。
 
 ```bash
 php artisan test
-# Tests:    8 passed (21 assertions)
+# Tests: 21 passed
 ```
 
-> **坑（第 14 条）**：Feature 测试里 login 和 refresh 跑在**同一个进程**，
-> `tymon.jwt.payload.factory` 是单例，登录残留的 claim 会喂给后面的 refresh ——
-> 测出来永远是"没问题"。真实世界两次请求是两个进程。测试里要用
-> `$this->app->make('tymon.jwt.payload.factory')->emptyClaims()` 模拟新进程。
+> ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的 payload 工厂是单例，
+> 上一次登录残留的 claim 会喂给下一次续签——丢 claim 的 bug 永远测不出来。
+> 跨请求断言之间要调 `$this->freshJwtProcess()`（内部 `emptyClaims()`）模拟真实跨进程。
 
-## 5.11 真机验证全记录
+## 5.10 真机验证清单
 
-服务照常起：`PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload`。
+服务照常起：`PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload`
 
-| # | 验证 | 结果 |
+| # | 验证 | 期望 |
 |---|---|---|
-| 1 | 无 token 访问 `me/info` | 401 ✓ |
-| 2 | 登录 → 带 token 访问 | 200 ✓ |
-| 3 | `POST /refresh` → 新 token（独立请求 = 真实跨进程） | 新旧 token 不同 ✓ |
-| 4 | 解码新 token payload | `"guard":"admin"` 在，`exp-iat=172800s`（2 天）✓ |
-| 5 | 用新 token 访问 `me/info` | 200 ✓（5.1 的修复生效） |
-| 6 | 手工构造**已过期** token 访问 | 200 + 响应头 `authorization: <新token>` ✓（无感续签） |
-| 7 | 新 token 的 `iat` | = 当下（滑动续期生效）✓ |
-| 8 | 已拉黑的旧 token 90 秒内再用 | 200 ✓（宽限期生效） |
-| 9 | 登出后再用 | 401 ✓（forceForever 不吃宽限） |
-| 10 | 带 `Origin` 的跨域请求 | `Access-Control-Expose-Headers: Authorization` ✓ |
-| 11 | 任意 admin 接口响应头 | `X-RateLimit-Limit: 300` ✓ |
-| 12 | `system_operation_logs` | 落库，含用户归属/响应码/耗时，401 也记 ✓ |
-| 13 | `php artisan moo-system check` | 6/6 ✓ |
+| 1 | 无 token 访问 `me/info` | 401 |
+| 2 | 登录 → 带 token 访问 | 200 |
+| 3 | `POST /refresh` → 解码新 token | `"guard":"admin"` 在，`exp-iat=172800s` |
+| 4 | 用新 token 访问 `me/info` | 200 |
+| 5 | 手工构造**已过期** token 访问业务接口 | 200 + 响应头 `authorization: <新token>`（无感续签） |
+| 6 | 过期 token 调 `/refresh` | 200，且响应头**没有** authorization（不产生孤儿 token） |
+| 7 | 已拉黑的旧 token 90 秒内再用 | 200（宽限期生效） |
+| 8 | 登出后再用 | 401（forceForever 不吃宽限） |
+| 9 | 带 `Origin` 的跨域请求 | 响应头 `Access-Control-Expose-Headers: Authorization` |
+| 10 | 任意 admin 接口 | 响应头 `X-RateLimit-Limit: 300` |
+| 11 | 查 `system_operation_logs` 表 | 有记录，含用户归属/响应码/耗时 |
+| 12 | `php artisan moo-system check` | 6/6 |
 
-第 6 项的过期 token 构造（教程小技巧 —— `auth()->login()` 签出来就自检过期，没法直接造，
-用 JWT_SECRET 手工签一个 `exp` 在过去、`iat` 在续期窗口内的）：
+过期 token 没法用 `auth()->login()` 直接造（签完自检就抛异常），手工签一个
+`exp` 在过去、`iat` 在续期窗口内的即可——做法见 `tests/TestCase.php` 的
+`makeExpiredToken()`，命令行版：
 
 ```bash
 SECRET=$(grep "^JWT_SECRET=" .env | cut -d= -f2)
-php -r '...HS256 手工拼 header.payload.signature，claims 带 guard/prv...' "$SECRET"
-curl -s -D - http://127.0.0.1:8088/api/admin/me/info -H "Authorization: Bearer <过期token>"
-# HTTP/1.1 200 OK
-# authorization: eyJ0eXAiOiJKV1QiLCJhbGciO...   ← 无感续签的新 token
+# 用 php -r 按 HS256 手工拼 header.payload.signature（claims 带 guard/prv），略
 ```
 
-## 5.12 复审补强（多 agent 代码评审的产出）
+## 已知局限（记录在案，不修）
 
-第 5~7 章落地后，对全部改动做了一轮多角度代码评审 + 真机回归，修了四处、记一处已知局限：
+对"已过期但仍在续期窗口内"的 token 调 `logout` 会返回 200 但**没有真正拉黑**
+（jwt-auth 的 `logout()` 静默吞掉过期解码异常）。被盗的过期 token 在窗口内无法主动吊销，
+只能等窗口关闭或换 `JWT_SECRET` 全员下线。这是 jwt-auth 的设计局限；
+敏感场景可在登录管理里把记录置失效 + 缩短 `refresh_ttl` 缓解。
 
-1. **登录缺账号状态前置检查**：原来只 `Hash::check`，被禁用/锁定的人员照样能登录拿新
-   token。两个登录入口都补了 `account_status` 检查。**注意裸 int 枚举的比较**：本生态
-   约定枚举不进 `$casts`，`account_status` 是裸 int，必须写
-   `=== AccountStatus::FORBIDDEN->value`；写 `=== AccountStatus::FORBIDDEN`（enum 实例）
-   永远为 false，检查静默失效——wisdomcity 的登录前置检查正是这种写法，**是死代码**（第 19 条坑）。
-2. **`/refresh` 不能挂 `jwt.auth.refresh`**：过期 token 会被中间件、控制器各续签一次，
-   派生两个有效 token（孤儿 token）。已改为单独挂 `jwt.guard.auth` + 控制器 catch
-   JWTException 转 401，并补 `UpdateLoginTokenJob` 同步登录记录（第 18 条坑，
-   wisdomcity 同样中招）。有过期 token 回归测试守护。
-3. **`show_black_list_exception` 显式写回 config**：名字像日志开关，实际是黑名单的
-   执行开关之一（false 时已拉黑 token 照常通过 decode）。包代码级默认是 0，全靠包内
-   默认 config 回填才为 true——不赌 merge 行为，显式写 `true`。
-4. **操作日志 response 内容截断**：`response_content` 是 text 列（64KB），APP_DEBUG 下
-   一个 5xx 带全量 trace 轻松超限导致 insert 失败。派发前 `mb_substr(..., 0, 60000)`。
+> 进阶小知识（可跳过）：`persistent_claims` 在 jwt-auth **2.8.x** 上不配必丢 guard；
+> **2.9.x** 因内部实现"碰巧"保留。不管哪个版本都该配——契约写在文档里，不赌内部实现。
 
-**已知局限（不修，记录在案）**：对「已过期但仍在续期窗口内」的 token 调 `logout`
-会返回 200 但**没有真正拉黑**——jwt-auth 的 `JWTGuard::logout()` 静默吞掉解码异常，
-而过期 token 的 decode 必抛。也就是说被盗的过期 token 在续期窗口内无法被用户主动吊销，
-只能等窗口关闭或换 `JWT_SECRET` 全员下线。这是 jwt-auth 的设计局限（wisdomcity 同样
-存在），生产敏感场景可在 moo-system 登录管理里把对应记录置为失效 + 缩短 refresh_ttl 缓解。
+---
+
+## 本章产出
+
+- `config/jwt.php` 5 处加固 + `config/cors.php` 暴露续签响应头；
+- 登录有状态检查、`/refresh` 不再产生孤儿 token；
+- 限流（admin 300/分钟）+ 操作日志落库；
+- `.env.example` 复制即可用，`composer.production.json` 部署双轨闭环；
+- 21 个接口测试全绿，12 项真机验证通过。
+
+下一章：把第 2 章故意公开的 `food` 接口锁进 JWT，并启用**动作级 ACL 授权**。
