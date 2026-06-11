@@ -66,9 +66,11 @@ class OperationLog
             $user_name = $user->real_name;
         }
 
-        // 成功响应不存 body，失败响应存下来便于排查
+        // 成功响应不存 body，失败响应存下来便于排查。
+        // 截断到 6 万字符以内：response_content 是 text 列（64KB），APP_DEBUG 下一个
+        // 5xx 带全量 trace 轻松超限，strict mode 会让 insert 直接失败、job 重试堆积。
         $content = ((int) $response->getStatusCode() !== 200 && (int) $response->getStatusCode() !== 201)
-            ? ($response->getContent() ?: '')
+            ? mb_substr($response->getContent() ?: '', 0, 60000)
             : '[]';
 
         // Laravel 12 入口不再定义 LARAVEL_START（wisdomcity 用它是老版本升级遗留），

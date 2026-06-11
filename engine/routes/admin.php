@@ -18,10 +18,14 @@ Route::get('/', static fn () => 'Hello admin api ~');
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+// 主动刷新：只校验 guard claim，不挂 jwt.auth.refresh —— 否则过期 token 会被中间件和
+// 控制器各续签一次，派生两个有效 token（孤儿 token），详见 AuthController::refresh 注释
+Route::post('refresh', [AuthController::class, 'refresh'])
+    ->middleware('jwt.guard.auth:admin')->name('refresh');
+
 // 需要登录（JWT 强制认证 + 近过期续签）
 Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], function () {
     Route::get('me/info', [AuthController::class, 'me'])->name('me.info');
-    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
 });
 
 // 业务路由（scaffold 生成插入处）。

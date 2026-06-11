@@ -52,13 +52,22 @@ $token = Auth::guard('user')->refresh(true, false);
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+// refresh 只挂 guard 校验，不挂 jwt.auth.refresh（原因见下）
+Route::post('refresh', [AuthController::class, 'refresh'])
+    ->middleware('jwt.guard.auth:user')->name('refresh');
+
 Route::group(['middleware' => ['jwt.guard.auth:user', 'jwt.auth.refresh']], function () {
     Route::get('me/info', [AuthController::class, 'me'])->name('me.info');
-    Route::post('refresh', [AuthController::class, 'refresh'])->name('refresh');
 
     // :insert_code_here:do_not_delete   ← 生成器插入的移动端路由默认就在保护圈里
 });
 ```
+
+> **为什么 refresh 不能挂 jwt.auth.refresh**（复审时发现的坑，第 18 条）：该中间件会对
+> 过期 token 先自动续签一次（新 token 放响应头），控制器再续签第二次（放响应体）——
+> 一个旧 token 派生出**两个**有效新 token，响应头那个永远不会被作废（孤儿 token），
+> 「单设备」承诺被打破。refresh 本身就接受过期 token（续期窗口内），单独挂
+> `jwt.guard.auth` 即可，控制器里 catch JWTException 转 401。
 
 ## 7.4 真机验证
 

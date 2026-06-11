@@ -22,28 +22,6 @@ class ApiAuthTest extends TestCase
 
     protected $seed = true;
 
-    private function appLogin(): string
-    {
-        return $this->postJson('app/authenticate', [
-            'account' => '13800000000',
-            'password' => 'admin888',
-        ])->assertOk()->json('data.token');
-    }
-
-    private function adminLogin(): string
-    {
-        return $this->postJson('api/admin/authenticate', [
-            'account' => '13800000000',
-            'password' => 'admin888',
-        ])->assertOk()->json('data.token');
-    }
-
-    /** 模拟真实跨请求：清掉 payload 工厂单例残留的 claim（见 AuthTest 的说明） */
-    private function freshProcess(): void
-    {
-        $this->app->make('tymon.jwt.payload.factory')->emptyClaims();
-    }
-
     public function test_app_me_without_token_returns_401(): void
     {
         $this->getJson('app/me/info')->assertStatus(401);
@@ -61,9 +39,9 @@ class ApiAuthTest extends TestCase
     public function test_guard_isolation_between_admin_and_user_tokens(): void
     {
         $admin_token = $this->adminLogin();
-        $this->freshProcess();
+        $this->freshJwtProcess();
         $app_token = $this->appLogin();
-        $this->freshProcess();
+        $this->freshJwtProcess();
 
         // admin token（guard=admin）调移动端接口 → 401 Guard Unverified
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$admin_token}"])
@@ -81,19 +59,34 @@ class ApiAuthTest extends TestCase
     public function test_app_refresh_is_single_device(): void
     {
         $token = $this->appLogin();
-        $this->freshProcess();
+        $this->freshJwtProcess();
 
         $new_token = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$token}"])
             ->assertOk()
             ->json('data.token');
         $this->assertNotSame($token, $new_token);
-        $this->freshProcess();
+        $this->freshJwtProcess();
 
         // 新 token 带着 guard=user 正常使用（persistent_claims 契约）
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$new_token}"])->assertOk();
-        $this->freshProcess();
+        $this->freshJwtProcess();
 
         // 旧 token 被 forceForever 拉黑，**没有** 90 秒宽限，立即 401 —— 单设备登录
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$token}"])->assertStatus(401);
+    }
+
+    public function test_app_refresh_with_expired_token_yields_single_token(): void
+    {
+        $expired = $this->makeExpiredToken('user');
+
+        $response = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$expired}"])
+            ->assertOk();
+        // 路由不挂 jwt.auth.refresh，响应头不得再出现第二个 token（孤儿 token 回归测试）
+        $response->assertHeaderMissing('authorization');
+
+        $new_token = $response->json('data.token');
+        $this->freshJwtProcess();
+
+        $this->getJson('app/me/info', ['Authorization' => "Bearer {$new_token}"])->assertOk();
     }
 }
