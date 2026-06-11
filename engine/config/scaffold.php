@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 /*
  * @Author: Charsen
  * @Date: 2024-07-29 16:22
@@ -27,8 +29,9 @@ return [
      * 后台，授权验证
      */
     'authorization' => [
-        // 是否开启 验证验证
-        'check' => false,
+        // 是否开启 ACL 鉴权（Gate 'acl_authentication' 由 App\Providers\AuthServiceProvider 定义，
+        // 角色授权流程见 docs 第 6 章；关掉则所有 checkAuthorization() 直接放行）
+        'check' => true,
         // 是否通过 md5 加密别名 key
         'md5' => true,
         // 排除制定的动作，生成 api 时，header 中不包含 Authorization 参数
@@ -54,7 +57,7 @@ return [
      * API 接口配置文件的路径
      */
     'api' => [
-        'schema'  => 'scaffold/api/',
+        'schema' => 'scaffold/api/',
         'history' => 'scaffold/api/history/',
     ],
 
@@ -70,15 +73,15 @@ return [
      */
     'controller' => [
         'admin' => [
-            'name'          => ['zh-CN' => '后台管理', 'en' => 'Admin'],
-            'api_name'      => '后台管理',  // 接口调试工具中的显示名称
-            'path'          => 'app/Admin/Controllers/',
-            'requests'      => ['index', 'store', 'update', 'destroyBatch', 'create', 'edit'], // 默认的 action 对应的 request 定义
-            'request_path'  => 'app/Admin/Requests/',
+            'name' => ['zh-CN' => '后台管理', 'en' => 'Admin'],
+            'api_name' => '后台管理',  // 接口调试工具中的显示名称
+            'path' => 'app/Admin/Controllers/',
+            'requests' => ['index', 'store', 'update', 'destroyBatch', 'create', 'edit'], // 默认的 action 对应的 request 定义
+            'request_path' => 'app/Admin/Requests/',
             'resource_path' => 'app/Admin/Resources/',
-            'stub'          => 'controller-admin',
-            'trait_stub'    => 'controller-admin-base-action-trait',
-            'route'         => 'routes/admin.php',
+            'stub' => 'controller-admin',
+            'trait_stub' => 'controller-admin-base-action-trait',
+            'route' => 'routes/admin.php',
             // 包提供的额外 admin 模块：模块名 => 控制器命名空间（默认空）。这些控制器不在 host 的
             // controller.admin.path 下、生产环境又位于 vendor/，列在此处后即纳入 ACL（moo:auth）/
             // API 文档（moo:api）/ 路由调试 / 接口调试，并按此命名空间解析 FQCN。
@@ -90,15 +93,15 @@ return [
             ],
         ],
         'api' => [
-            'name'          => ['zh-CN' => '接口', 'en' => 'Api'],
-            'api_name'      => '客户端接口',  // 接口调试工具中的显示名称
-            'path'          => 'app/Api/Controllers/',
-            'requests'      => ['index'], // 默认的 action 对应的 request
-            'request_path'  => 'app/Api/Requests/',
+            'name' => ['zh-CN' => '接口', 'en' => 'Api'],
+            'api_name' => '客户端接口',  // 接口调试工具中的显示名称
+            'path' => 'app/Api/Controllers/',
+            'requests' => ['index'], // 默认的 action 对应的 request
+            'request_path' => 'app/Api/Requests/',
             'resource_path' => 'app/Api/Resources/',
-            'stub'          => 'controller-api',
-            'trait_stub'    => 'controller-api-base-action-trait',
-            'route'         => 'routes/api.php',
+            'stub' => 'controller-api',
+            'trait_stub' => 'controller-api-base-action-trait',
+            'route' => 'routes/api.php',
         ],
     ],
 
@@ -116,13 +119,13 @@ return [
      */
     'class' => [
         'resources' => [
-            'base'          => 'Mooeen\Scaffold\Foundation\BaseResource',
-            'collection'    => 'Mooeen\Scaffold\Foundation\BaseResourceCollection',
-            'form'          => 'Mooeen\Scaffold\Foundation\FormWidgetCollection',
+            'base' => 'Mooeen\Scaffold\Foundation\BaseResource',
+            'collection' => 'Mooeen\Scaffold\Foundation\BaseResourceCollection',
+            'form' => 'Mooeen\Scaffold\Foundation\FormWidgetCollection',
             'table_columns' => 'Mooeen\Scaffold\Foundation\TableColumnsCollection',
-            'columns'       => 'Mooeen\Scaffold\Foundation\ColumnsCollection',
+            'columns' => 'Mooeen\Scaffold\Foundation\ColumnsCollection',
         ],
-        'actions'    => 'Mooeen\Scaffold\Foundation\Actions',
+        'actions' => 'Mooeen\Scaffold\Foundation\Actions',
         'controller' => 'Mooeen\Scaffold\Foundation\Controller',
         // 注：FormRequest 基类 / 校验规则类（NumericArray / Mobile / DatetimeArray）不在此配置。
         // 这些只在 codegen 时使用，固定用 scaffold 自带类，见 CreateControllerGenerator。
@@ -133,7 +136,7 @@ return [
      */
     'route' => [
         'enabled' => true,
-        'prefix'  => 'scaffold',
+        'prefix' => 'scaffold',
         // 默认不挂额外中间件组（[]）。需要 session 的认证路由已在 routes.php 内层 group 显式挂
         // StartSession / VerifyCsrfToken；外层默认成 ['web'] 会让 UI 路由吃全局 CSRF，曾踩 419
         // 「CSRF token mismatch」（见 routes.php 顶部注释）。要额外中间件用 SCAFFOLD_MIDDLEWARE env 注入。
@@ -147,7 +150,7 @@ return [
      * 首次部署若 yaml 不存在，用 `php artisan moo:account:add` 创建首个账号。
      */
     'auth' => [
-        'enabled'     => true,
+        'enabled' => true,
         'cookie_name' => 'scaffold_auth',
         // 登录会话有效期（分钟）。默认 24h；安全敏感场景可调短，便利场景可调长。
         // cookie 现在用 AES-256 加密 + HMAC 签名，但仍建议尽量短以缩小被盗用窗口。
@@ -185,10 +188,10 @@ return [
         'cli_experiment_skip' => true,
         // 终端敲错命令(命令不存在 / 参数缺失 / 选项非法 等 Symfony Console 用法错)自动跳过 — 是输入错,不是应用 runtime 错误
         'console_input_skip' => true,
-        'mail'               => [
+        'mail' => [
             // null = 仅 prod 发(`!app()->isLocal()`); true/false = 强制
             'enabled' => env('SCAFFOLD_EXCEPTION_MAIL_ENABLED'),
-            'to'      => env('SCAFFOLD_EXCEPTION_MAIL_TO'),
+            'to' => env('SCAFFOLD_EXCEPTION_MAIL_TO'),
             // 想品牌化:写一个继承 \Mooeen\Scaffold\Mail\ExceptionNotice 的子类,FQCN 填这里
             'mailable' => null,
         ],
@@ -302,10 +305,10 @@ return [
      * `moo:free -a` 跑前端生成步骤会自动 skip。
      */
     'frontend' => [
-        'src'    => '../admin/src/',
+        'src' => '../admin/src/',
         'models' => '../admin/src/models/',
-        'views'  => '../admin/src/views/',
-        'types'  => '../admin/types/',
+        'views' => '../admin/src/views/',
+        'types' => '../admin/types/',
     ],
 
     /*
@@ -326,9 +329,9 @@ return [
      */
     'ai' => [
         'base_url' => env('SCAFFOLD_AI_BASE_URL', 'https://api.deepseek.com/v1'),
-        'api_key'  => env('SCAFFOLD_AI_API_KEY', ''),
-        'model'    => env('SCAFFOLD_AI_MODEL', 'deepseek-chat'),
-        'timeout'  => (int) env('SCAFFOLD_AI_TIMEOUT', 10),
+        'api_key' => env('SCAFFOLD_AI_API_KEY', ''),
+        'model' => env('SCAFFOLD_AI_MODEL', 'deepseek-chat'),
+        'timeout' => (int) env('SCAFFOLD_AI_TIMEOUT', 10),
     ],
 
     /*
@@ -338,7 +341,7 @@ return [
         // YAML 主文件，路径相对 base_path()；跟随 git 同步（团队共享 + 远程部署）
         'yaml_path' => env('SCAFFOLD_ACCOUNTS_YAML', 'scaffold/accounts.yaml'),
         // 包内 stub 模板（首次导入 / artisan 命令时复制到 yaml_path）
-        'stub_path' => __DIR__ . '/../stubs/accounts.example.yaml',
+        'stub_path' => __DIR__.'/../stubs/accounts.example.yaml',
     ],
 
 ];

@@ -215,6 +215,10 @@ mysql -uroot -p7777 -h127.0.0.1 moo_skeleton -e "DESCRIBE foods;"
 
 ## 2.7 真机调试接口（两种方式）
 
+> **来自第 6 章的更新**：food 路由后来上了 JWT + ACL（见第 6 章），本节的无 token 玩法
+> 只在「刚做完本章、还没做第 6 章」的状态下成立。已做完第 6 章的话，先按第 4 章登录
+> 拿 token，下面的 curl 加上 `-H "Authorization: Bearer $TOKEN"` 即可，其余照旧。
+
 ### 方式一：命令行 curl 直接打
 
 ```bash
