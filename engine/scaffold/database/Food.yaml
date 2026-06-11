@@ -13,6 +13,7 @@ tables:
             class: Food
         controller:
             app: ['admin', 'api']
+            resource: ['admin']
             class: FoodController
         attrs:
             name: 食品

@@ -20,6 +20,7 @@ use App\Admin\Requests\Food\Food\EditRequest;
 use App\Admin\Requests\Food\Food\IndexRequest;
 use App\Admin\Requests\Food\Food\StoreRequest;
 use App\Admin\Requests\Food\Food\UpdateRequest;
+use App\Admin\Resources\Food\FoodResource;
 use App\Models\Food\Enums\FoodStatus;
 use App\Models\Food\Food;
 use Mooeen\Scaffold\Foundation\BaseResource;
@@ -103,7 +104,8 @@ class FoodController extends Controller
             ->paginate(($validated['page_limit'] ?? null));
         $result->append(['options']);
 
-        return BaseResource::collection($result)
+        // 专属 Resource + 链式 ->trashed()：deleted_at 只在回收站出现（见 FoodResource::whenTrashed）
+        return FoodResource::collection($result)
             ->trashed()
             ->additional([
                 'columns' => $this->getListColumns('trashed'),
@@ -154,7 +156,11 @@ class FoodController extends Controller
 
         $columns = ['id', 'food_name', 'food_category', 'price', 'stock', 'calories', 'food_status', 'description', 'deleted_at', 'created_at', 'updated_at'];
 
-        return BaseResource::make($result)->additional(['columns' => ColumnsCollection::make($columns)]);
+        // 专属 Resource：created_at 输出 'Y-m-d H:i'；详情查的是 withTrashed，
+        // 已软删的记录链 ->trashed(true) 让 deleted_at 一并输出
+        return FoodResource::make($result)
+            ->trashed($result->trashed())
+            ->additional(['columns' => ColumnsCollection::make($columns)]);
     }
 
     /**

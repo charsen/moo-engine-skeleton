@@ -249,6 +249,6 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
 
 **主线教程完成。** 你现在拥有：代码生成（moo-scaffold）+ 自建用户 JWT + 动作级 ACL +
 双守卫隔离的移动端 + 完整系统管理（moo-system）。
-踩坑速查表（26 条）见 [docs/README.md](./README.md)。
+踩坑速查表（27 条）见 [docs/README.md](./README.md)。
 
 下一章（可选）：把它部署到真正的服务器上。
