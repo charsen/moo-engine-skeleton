@@ -1,17 +1,29 @@
 <?php
 
+declare(strict_types=1);
+use PHPOpenSourceSaver\JWTAuth\Providers\Auth\Illuminate;
+use PHPOpenSourceSaver\JWTAuth\Providers\JWT\Lcobucci;
+
+/*
+ * This file is part of jwt-auth.
+ *
+ * (c) Sean Tymon <tymon148@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 return [
+
     /*
     |--------------------------------------------------------------------------
-    | JWT Authentication Secret
+    | 签名密钥
     |--------------------------------------------------------------------------
     |
-    | Don't forget to set this in your .env file, as it will be used to sign
-    | your tokens. A helper command is provided for this:
-    | `php artisan jwt:secret`
-    |
-    | Note: This will be used for Symmetric algorithms only (HMAC),
-    | since RSA and ECDSA use a private/public key combo (See below).
+    | 用来给 token 签名/验签的密钥，泄露 = 任何人都能伪造登录，务必只放 .env。
+    | 生成命令：php artisan jwt:secret
+    | 注意：换密钥 = 所有已发出的 token 立刻全部失效，全员被踢重新登录。
+    | 仅 HMAC 系列算法（HS256 等）使用本项；RSA/ECDSA 用下面的公私钥对。
     |
     */
 
@@ -19,116 +31,82 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | JWT Authentication Keys
+    | 非对称算法密钥对
     |--------------------------------------------------------------------------
     |
-    | The algorithm you are using, will determine whether your tokens are
-    | signed with a random string (defined in `JWT_SECRET`) or using the
-    | following public & private keys.
-    |
-    | Symmetric Algorithms:
-    | HS256, HS384 & HS512 will use `JWT_SECRET`.
-    |
-    | Asymmetric Algorithms:
-    | RS256, RS384 & RS512 / ES256, ES384 & ES512 will use the keys below.
+    | 只有 algo 配成 RS256/ES256 等非对称算法时才用得上。
+    | 本骨架用 HS256（对称），这一段留空即可，不用管。
     |
     */
 
     'keys' => [
-        /*
-        |--------------------------------------------------------------------------
-        | Public Key
-        |--------------------------------------------------------------------------
-        |
-        | A path or resource to your public key.
-        |
-        | E.g. 'file://path/to/public/key'
-        |
-        */
 
+        // 公钥路径，如 'file://path/to/public/key'
         'public' => env('JWT_PUBLIC_KEY'),
 
-        /*
-        |--------------------------------------------------------------------------
-        | Private Key
-        |--------------------------------------------------------------------------
-        |
-        | A path or resource to your private key.
-        |
-        | E.g. 'file://path/to/private/key'
-        |
-        */
-
+        // 私钥路径，如 'file://path/to/private/key'
         'private' => env('JWT_PRIVATE_KEY'),
 
-        /*
-        |--------------------------------------------------------------------------
-        | Passphrase
-        |--------------------------------------------------------------------------
-        |
-        | The passphrase for your private key. Can be null if none set.
-        |
-        */
-
+        // 私钥口令，没有就 null
         'passphrase' => env('JWT_PASSPHRASE'),
+
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | JWT time to live
+    | token 有效期（分钟）
     |--------------------------------------------------------------------------
     |
-    | Specify the length of time (in minutes) that the token will be valid for.
-    | Defaults to 1 hour.
+    | 一个 token 从签发起能用多久。过期后并不是直接 401：
+    | 只要还在下面 refresh_ttl 的续期窗口内，中间件(JWTAuthOrRefresh)会自动
+    | 换发新 token 放进响应头 authorization，前端接住替换即可无感续期。
     |
-    | You can also set this to null, to yield a never expiring token.
-    | Some people may want this behaviour for e.g. a mobile app.
-    | This is not particularly recommended, so make sure you have appropriate
-    | systems in place to revoke the token if necessary.
-    | Notice: If you set this to null you should remove 'exp' element from 'required_claims' list.
+    | 设为 null = 永不过期（同时要把 required_claims 里的 'exp' 删掉），不建议。
     |
     */
 
-    'ttl' => (int) env('JWT_TTL', 60),
+    'ttl' => (int) env('JWT_TTL', 2880),  // 2880 分钟 = 2 天
 
     /*
     |--------------------------------------------------------------------------
-    | Refresh time to live
+    | 续期窗口（分钟）
     |--------------------------------------------------------------------------
     |
-    | Specify the length of time (in minutes) that the token can be refreshed within.
-    | This defines the refresh window, during which the user can refresh their token
-    | before re-authentication is required.
+    | token 过期后，多长时间内还允许拿它换新 token。超过这个窗口就只能重新登录。
+    | 窗口从哪里起算，由下面的 refresh_iat 决定。
     |
-    | By default, a refresh will NOT issue a new "iat" (issued at) timestamp. If changed
-    | to true, each refresh will issue a new "iat" timestamp, extending the refresh
-    | period from the most recent refresh. This results in a rolling refresh
-    |
-    | To retain a fluid refresh window from the last refresh action (i.e., the behavior between
-    | version 2.5.0 and 2.8.2), set "refresh_iat" to true. With this setting, the refresh
-    | window will renew with each subsequent refresh.
-    |
-    | The refresh ttl defaults to 2 weeks.
-    |
-    | You can also set this to null, to yield an infinite refresh time.
-    | Some may want this instead of never expiring tokens for e.g. a mobile app.
-    | This is not particularly recommended, so make sure you have appropriate
-    | systems in place to revoke the token if necessary.
+    | 设为 null = 永远可续，不建议。
     |
     */
 
-    'refresh_iat' => env('JWT_REFRESH_IAT', false),
-    'refresh_ttl' => (int) env('JWT_REFRESH_TTL', 20160),
+    'refresh_ttl' => (int) env('JWT_REFRESH_TTL', 20160),  // 20160 分钟 = 14 天
 
     /*
     |--------------------------------------------------------------------------
-    | JWT hashing algorithm
+    | 滑动续期开关
     |--------------------------------------------------------------------------
     |
-    | Specify the hashing algorithm that will be used to sign the token.
+    | 决定上面 14 天续期窗口的起算点：
     |
-    | See here: https://github.com/namshi/jose/tree/master/src/Namshi/JOSE/Signer/OpenSSL
-    | for possible values.
+    | false（包默认）：永远从「首次登录」起算。就算天天在用，第 14 天也会
+    |   被强制踢出重新登录 —— 后台"不经意 401"的常见来源之一。
+    |
+    | true（本骨架，对齐 wisdomcity）：每次续签都把起算点拨到当下，窗口跟着
+    |   活跃度往后滑。只要不连续闲置超过 14 天，就一直不用重新登录。
+    |   代价：token 一旦被盗可被一直续下去，靠「登出即拉黑」兜底，
+    |   内部管理系统可接受。
+    |
+    */
+
+    'refresh_iat' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | 签名算法
+    |--------------------------------------------------------------------------
+    |
+    | HS256：对称签名，签发和验证用同一个 JWT_SECRET，单体应用够用（本骨架）。
+    | RS/ES 系列：非对称，签发用私钥、验证用公钥，多服务间互信才需要。
     |
     */
 
@@ -136,12 +114,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Required Claims
+    | 必备声明（claims）
     |--------------------------------------------------------------------------
     |
-    | Specify the required claims that must exist in any token.
-    | A TokenInvalidException will be thrown if any of these claims are not
-    | present in the payload.
+    | token 里必须带全的字段，少一个直接判 token 非法（401）。
+    | iss=签发方 iat=签发时间 exp=过期时间 nbf=生效时间 sub=用户id jti=唯一标识。
+    | 没有特殊理由不要动。
     |
     */
 
@@ -156,36 +134,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Persistent Claims
+    | 续签时要保留的自定义声明
     |--------------------------------------------------------------------------
     |
-    | Specify the claim keys to be persisted when refreshing a token.
-    | `sub` and `iat` will automatically be persisted, in
-    | addition to the these claims.
+    | 换发新 token 时，旧 token 里的这些自定义字段要原样带到新 token 上
+    | （sub、iat 包会自动处理，不用列）。
     |
-    | Note: If a claim does not exist then it will be ignored.
+    | 'guard'：Personnel::getJWTCustomClaims()(moo-system) 注入的守卫标识，
+    | JWTGuardAuth 中间件靠它校验。这里必须列上 —— 这是包文档对「续签保留
+    | 自定义 claim」的唯一契约。jwt-auth 2.8.x 上不配它，续签出的新 token
+    | 直接丢 guard，下次过校验 401 'Guard Unverified'（wisdomcity 生产踩过）；
+    | 2.9.x 因 decode 时 payload 工厂状态残留而「碰巧」保留 —— 别赌内部实现，
+    | 按契约配置。行为有 tests/Feature/AuthTest 的 refresh 用例守护。
     |
     */
 
     'persistent_claims' => [
-        // 'foo',
-        // 'bar',
+        'guard',
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Lock Subject
+    | 锁定用户模型
     |--------------------------------------------------------------------------
     |
-    | This will determine whether a `prv` claim is automatically added to
-    | the token. The purpose of this is to ensure that if you have multiple
-    | authentication models e.g. `App\User` & `App\OtherPerson`, then we
-    | should prevent one authentication request from impersonating another,
-    | if 2 tokens happen to have the same id across the 2 different models.
-    |
-    | Under specific circumstances, you may want to disable this behaviour
-    | e.g. if you only have one authentication model, then you would save
-    | a little on token size.
+    | true 时往 token 里加 prv 字段（用户模型类名的哈希），防止两个不同
+    | 模型恰好同 id 时拿着 A 模型的 token 冒充 B 模型登录。
+    | 本骨架 admin/user 两个 guard 共用 Personnel 模型，留 true 即可。
     |
     */
 
@@ -193,16 +168,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Leeway
+    | 时钟容差（秒）
     |--------------------------------------------------------------------------
     |
-    | This property gives the jwt timestamp claims some "leeway".
-    | Meaning that if you have any unavoidable slight clock skew on
-    | any of your servers then this will afford you some level of cushioning.
-    |
-    | This applies to the claims `iat`, `nbf` and `exp`.
-    |
-    | Specify in seconds - only if you know you need it.
+    | 校验 iat/nbf/exp 这几个时间字段时允许的误差，用于多台服务器之间
+    | 时钟不完全同步的场景。单机部署保持 0 即可。
     |
     */
 
@@ -210,11 +180,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Blacklist Enabled
+    | 黑名单开关
     |--------------------------------------------------------------------------
     |
-    | In order to invalidate tokens, you must have the blacklist enabled.
-    | If you do not want or need this functionality, then set this to false.
+    | 开着才能"作废"一个 token：登出、续签换下来的旧 token 都进黑名单
+    | （存在 cache 里，本骨架默认 database，生产建议 Redis）。
+    | 关掉 = 登出形同虚设，token 到自然过期前永远有效。必须开。
+    |
+    | 注意：部署时 optimize:clear / cache:clear 会清空缓存连带清掉黑名单，
+    | 已作废的 token 会"复活"到自然过期为止。
     |
     */
 
@@ -222,43 +196,27 @@ return [
 
     /*
     | -------------------------------------------------------------------------
-    | Blacklist Grace Period
+    | 黑名单宽限期（秒）
     | -------------------------------------------------------------------------
     |
-    | When multiple concurrent requests are made with the same JWT,
-    | it is possible that some of them fail, due to token regeneration
-    | on every request.
+    | 解决并发请求打架的问题：页面同时发了好几个请求，第一个触发了续签，
+    | 旧 token 随即进黑名单 —— 如果没有宽限期，同批在途的其余请求全部 401。
+    | 设了宽限期，旧 token 进黑名单后的这段时间内仍然放行。
     |
-    | Set grace period in seconds to prevent parallel request failure.
-    |
-    */
-
-    'blacklist_grace_period' => (int) env('JWT_BLACKLIST_GRACE_PERIOD', 0),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Show blacklisted token option
-    |--------------------------------------------------------------------------
-    |
-    | Specify if you want to show black listed token exception on the laravel logs.
+    | 90 秒：覆盖多标签页、慢接口、弱网重试等场景；前端没接住新 token 时，
+    | 用户也有 90 秒缓冲而不是立刻被踢。
     |
     */
 
-    'show_black_list_exception' => env('JWT_SHOW_BLACKLIST_EXCEPTION', true),
+    'blacklist_grace_period' => 90,
 
     /*
     |--------------------------------------------------------------------------
-    | Cookies encryption
+    | Cookie 解密
     |--------------------------------------------------------------------------
     |
-    | By default Laravel encrypt cookies for security reason.
-    | If you decide to not decrypt cookies, you will have to configure Laravel
-    | to not encrypt your cookie token by adding its name into the $except
-    | array available in the middleware "EncryptCookies" provided by Laravel.
-    | see https://laravel.com/docs/master/responses#cookies-and-encryption
-    | for details.
-    |
-    | Set it to true if you want to decrypt cookies.
+    | 仅当 token 走 cookie 传输且被 Laravel 加密时才需要开。
+    | 本骨架 token 走 Authorization 请求头，保持 false。
     |
     */
 
@@ -266,56 +224,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cookie key name
+    | 底层实现提供者
     |--------------------------------------------------------------------------
     |
-    | Specify the cookie key name that you would like to use for the cookie token.
-    |
-    */
-
-    'cookie_key_name' => 'token',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Providers
-    |--------------------------------------------------------------------------
-    |
-    | Specify the various providers used throughout the package.
+    | jwt：编码/解码实现；auth：对接 Laravel 认证；storage：黑名单存储
+    | （走 Laravel cache）。一般不用动。
     |
     */
 
     'providers' => [
-        /*
-        |--------------------------------------------------------------------------
-        | JWT Provider
-        |--------------------------------------------------------------------------
-        |
-        | Specify the provider that is used to create and decode the tokens.
-        |
-        */
 
-        'jwt' => PHPOpenSourceSaver\JWTAuth\Providers\JWT\Lcobucci::class,
+        'jwt' => Lcobucci::class,
 
-        /*
-        |--------------------------------------------------------------------------
-        | Authentication Provider
-        |--------------------------------------------------------------------------
-        |
-        | Specify the provider that is used to authenticate users.
-        |
-        */
-
-        'auth' => PHPOpenSourceSaver\JWTAuth\Providers\Auth\Illuminate::class,
-
-        /*
-        |--------------------------------------------------------------------------
-        | Storage Provider
-        |--------------------------------------------------------------------------
-        |
-        | Specify the provider that is used to store tokens in the blacklist.
-        |
-        */
+        'auth' => Illuminate::class,
 
         'storage' => PHPOpenSourceSaver\JWTAuth\Providers\Storage\Illuminate::class,
+
     ],
+
 ];

@@ -85,7 +85,10 @@ class AuthController
      */
     public function refresh(): JsonResponse
     {
-        $token = Auth::guard('admin')->refresh();
+        // forceForever=false：旧 token 进黑名单但享受 90 秒宽限（并发请求不打架，见 config/jwt.php）；
+        // resetClaims=false：保留自定义 claim —— 配合 persistent_claims=['guard']，
+        // 新 token 才带 guard 声明，否则下次过 JWTGuardAuth 直接 401（对齐 wisdomcity 修复）。
+        $token = Auth::guard('admin')->refresh(false, false);
 
         return response()->json([
             'data' => [
