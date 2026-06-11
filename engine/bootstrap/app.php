@@ -18,8 +18,10 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         commands: __DIR__.'/../routes/console.php',
-        health: '/up',
         using: function (): void {
+            // 健康检查（用了 using: 后框架的 health: 参数不生效，手动补一条）
+            Route::get('up', static fn () => response('OK'));
+
             // web（保留 Laravel 默认 session/csrf）
             Route::middleware('web')->group(base_path('routes/web.php'));
 
