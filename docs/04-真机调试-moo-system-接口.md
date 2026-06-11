@@ -3,7 +3,7 @@
 目标：登录拿到 JWT，验证「无 token 401 / 有 token 200」，并在 **moo-scaffold 内置调试器**里
 带 token 调通 moo-system 的接口（README 第 4 步）。
 
-> 记得用多 worker 启动服务（否则调试器代理会和单线程服务死锁，见第 2 章第 4 个坑）：
+> 记得用多 worker 启动服务（否则调试器代理会和单线程服务死锁，坑 #4）：
 > ```bash
 > PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
 > ```
@@ -61,7 +61,7 @@ curl -s "http://127.0.0.1:8088/api/admin/departments?page=1&page_limit=10" \
 curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
   -H "Accept: application/json" -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
   -d '{"position_name":"测试工程师"}'
-# 201 {"data":{"position_status":7,"position_name":"后端工程师","id":"615921207845457920",...}}
+# 201 {"data":{"position_status":7,"position_name":"测试工程师","id":"615921207845457920",...}}
 ```
 
 至此 JWT 的「签发 / 守卫校验 / 强制认证」与 moo-system 的接口都在真机跑通。
@@ -94,10 +94,10 @@ php artisan moo:api admin System
 
 ![带 token 调通岗位列表 200](./images/04-system-positions-200.png)
 
-右侧拿到 `200`，响应里就是刚才用 curl 建的「后端工程师」岗位——
+右侧拿到 `200`，响应里能看到 seeder 建的三个岗位和刚才用 curl 新建的「测试工程师」——
 moo-system 的接口在 scaffold 调试器里联调成功。
 
-> ⚠️ **第 4 个坑**：调试器 Authorization 那栏要手动加 `Bearer ` 前缀；只填裸 token 会 401。
+> ⚠️ **坑 #8**：调试器 Authorization 那栏要手动加 `Bearer ` 前缀；只填裸 token 会 401。
 
 ---
 
