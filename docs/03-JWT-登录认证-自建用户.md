@@ -239,6 +239,7 @@ class AuthController
 `routes/admin.php` 里挂上（`authenticate`/`logout` 公开；`me`/`refresh` 进登录 group）：
 
 ```php
+// 文件顶部记得：use App\Admin\Controllers\AuthController;
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
