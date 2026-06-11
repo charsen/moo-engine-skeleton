@@ -7,10 +7,16 @@
 
 ## 1.1 检查环境
 
-先确认本机工具齐全（在仓库根目录执行）：
+还没有项目目录的话先建一个——它就是后文一直说的「仓库根目录」：
 
 ```bash
-php -v            # 应为 8.2 以上（本教程 8.3.31）
+mkdir moo-engine-skeleton && cd moo-engine-skeleton    # git init 可选
+```
+
+然后确认本机工具齐全（在仓库根目录执行）：
+
+```bash
+php -v            # 建议 8.3（本教程 8.3.31；仓库 composer.lock 按 8.3 解析，方式 A 在 8.2 上装不了）
 composer --version
 node -v && npm -v
 mysql --version   # MariaDB 12.x 客户端

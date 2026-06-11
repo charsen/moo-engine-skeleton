@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', static fn () => 'Hello app api ~');
 
 // 公开：登录 / 退出
-Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
+Route::post('authenticate', [AuthController::class, 'authenticate'])->middleware('throttle:login')->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
 // 主动刷新：只校验 guard claim，不挂 jwt.auth.refresh（原因见 AuthController::refresh 注释）

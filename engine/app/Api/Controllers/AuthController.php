@@ -111,7 +111,11 @@ class AuthController
     }
 
     /**
-     * 退出登录（永久拉黑当前 token）
+     * 退出登录（永久拉黑当前 token）。
+     *
+     * 路由是公开的（不挂 JWT 中间件）。无 token / 垃圾 token 也不会 500：
+     * JWTGuard::logout() 内部自己捕获了 JWTException（拉黑不了就当作已登出），
+     * 所以本接口对任何输入都幂等返回 200——RegressionTest 守护了这个契约。
      */
     public function logout(): JsonResponse
     {

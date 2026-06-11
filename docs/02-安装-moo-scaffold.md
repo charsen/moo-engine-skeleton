@@ -273,7 +273,7 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以 path 模式接入，21 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数）；
+- `moo-scaffold` 以 path 模式接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数）；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；
 - 接口用 curl 和内置调试器两种方式真机验证通过（HTTP 200）。
 

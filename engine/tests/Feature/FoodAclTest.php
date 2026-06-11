@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /*
- * ACL 鉴权链路守护测试（docs 第 6 章）。
+ * ACL 鉴权链路守护测试（docs 第 5 章）。
  *
  * 完整闭环：无 token 401 → 有 token 无权限 403 → 角色授权后 200。
  * 顺带守住「系统管理员角色的 is_root 字面量 = 超级权限」和

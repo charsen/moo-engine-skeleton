@@ -192,9 +192,9 @@ button { font-family: inherit; cursor: pointer; }
 'use strict';
 /* ================= 配置 ================= */
 const CHAPTERS = [
-  { id: 'readme', file: 'README.md',                    title: '教程总览与踩坑速查', sub: '环境要求 · 22 条坑速查表', steppable: false },
+  { id: 'readme', file: 'README.md',                    title: '教程总览与踩坑速查', sub: '环境要求 · 踩坑速查表', steppable: false },
   { id: 'ch1',    file: '01-安装-laravel.md',            title: '第 1 章 安装 Laravel 12', sub: '建项目 · 连库 · 真机访问' },
-  { id: 'ch2',    file: '02-安装-moo-scaffold.md',       title: '第 2 章 安装 moo-scaffold', sub: '私有包 · 生成 foods · 调试器' },
+  { id: 'ch2',    file: '02-安装-moo-scaffold.md',       title: '第 2 章 安装 moo-scaffold', sub: '开源代码生成器 · 生成 foods · 调试器' },
   { id: 'ch3',    file: '03-JWT-登录认证-自建用户.md',    title: '第 3 章 JWT 登录认证', sub: '自建 User · 零付费依赖' },
   { id: 'ch4',    file: '04-JWT-加固与生产化.md',         title: '第 4 章 JWT 加固与生产化', sub: '5 处加固 · 限流 · 测试' },
   { id: 'ch5',    file: '05-给-Food-上-JWT-与-ACL.md',   title: '第 5 章 Food 上 JWT 与 ACL', sub: '动作级授权 401→403→200' },
@@ -336,13 +336,13 @@ function renderSidebar() {
   $('#chapter-list').innerHTML = CHAPTERS.map((ch, idx) => {
     const p = state.progress[ch.id];
     const total = state.cache[ch.id]?.steps.length;
-    const done = p && total && ch.steppable !== false && p.doneSteps.length >= total;
+    const done = p && total && ch.steppable !== false && p.doneSteps.filter(x => x < total).length >= total;
     return `<button class="chap${ch.id === state.cur ? ' active' : ''}${done ? ' done' : ''}" data-id="${ch.id}">
       <span class="num">${done ? '✓' : (idx === 0 ? '☰' : idx)}</span>
       <span class="chap-main"><span class="chap-title">${ch.title}</span><span class="chap-sub">${ch.sub}</span></span>
     </button>`;
   }).join('');
-  // 总进度：7 个正式章节的完成步数 / 总步数
+  // 总进度：全部 steppable 章节的完成步数 / 总步数
   let done = 0, total = 0;
   for (const ch of CHAPTERS) {
     if (ch.steppable === false) continue;
@@ -386,7 +386,7 @@ async function show(chapterId, opts = {}) {
 
   let data;
   try { data = await fetchChapter(ch); }
-  catch (e) { return showFetchError(e); }
+  catch (e) { if (epoch !== renderEpoch) return; return showFetchError(e); }
   if (epoch !== renderEpoch) return;      // 已有更新的渲染请求，本次作废
 
   const p = prog(ch.id);
@@ -430,7 +430,7 @@ function showFetchError(e) {
          <pre>cd docs
 php -S 127.0.0.1:9999        # 或 python3 -m http.server 9999</pre>
          <p>然后访问 <a href="http://127.0.0.1:9999">http://127.0.0.1:9999</a>。</p>`
-      : `<p>请确认本页和 01~07 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
+      : `<p>请确认本页和 README 及 01~08 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
   </div>`;
 }
 
@@ -488,7 +488,7 @@ $('#reset-progress').onclick = () => {
 
 /* ================= 启动：预取全部章节以计算总进度，再进入上次位置 ================= */
 (async () => {
-  try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { return showFetchError(e); }
+  try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { if (epoch !== renderEpoch) return; return showFetchError(e); }
   // 从有进度的最后一章继续，否则从总览开始
   let entry = 'readme';
   for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;

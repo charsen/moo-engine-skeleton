@@ -10,7 +10,7 @@ use Mooeen\System\Models\Role;
 /**
  * 授权角色。
  *
- * ACL 校验已开启（config('scaffold.authorization.check')=true，docs 第 6 章）：
+ * ACL 校验已开启（config('scaffold.authorization.check')=true，docs 第 5 章）：
  * - 「系统管理员」授 is_root 字面量 = 超级权限（雪花主键下不存在 id=1 的天然 root，
  *   靠它兜底，Gate 见 App\Providers\AuthServiceProvider）；
  * - 「开发 / 编辑员」不预置动作，按需到后台「授权」模块或用 tinker 勾选，

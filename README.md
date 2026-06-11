@@ -41,7 +41,11 @@
 
 ## 🚀 快速开始
 
-**方式 A：直接用本仓库**（最终态，含全部七章成果）：
+**方式 A：直接用本仓库**（最终态，含主线七章 + 部署指引的全部成果）：
+
+> ⚠️ **前置**：① 需 **PHP 8.3**（composer.lock 按 8.3 解析）；② 仓库最终态已接入
+> **商业包 moo-system**（第 7 章）——没有它的源码/授权时 `composer install` 会失败，
+> 请走方式 B 从第 1 章跟做（**第 1~6 章零商业依赖、全程可跑**），或联系作者获取授权。
 
 ```bash
 cd engine
@@ -52,7 +56,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
 php artisan moo:account:add charsen --password=skeleton2026 --role=admin   # scaffold 调试台账号
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                                    # 27 passed
+php artisan test                                    # 35 passed
 ```
 
 **方式 B：从 0 跟教程搭**（推荐新手，带截图的完整教程见 [`docs/`](./docs/README.md)）：
