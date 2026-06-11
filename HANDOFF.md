@@ -49,7 +49,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed       # admin@example.com/password + 13800000000/admin888
 php artisan moo:account:add charsen --password=skeleton2026 --role=admin
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                 # ✅ 应 36 passed —— 环境一切正常的硬指标
+php artisan test                 # ✅ 应 41 passed —— 环境一切正常的硬指标
 ```
 
 **不随 git 走、需重建的**：`engine/.env`、`vendor/`、`scaffold/accounts.yaml`、

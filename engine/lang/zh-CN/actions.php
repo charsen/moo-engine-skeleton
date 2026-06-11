@@ -91,4 +91,11 @@ return [
         '02b45d4094e6a333' => '设置帐号',
         '02b45d4094e6a333-desc' => '',
     ],
+    'api' => [
+        'app-api' => '接口',
+        'module-83396895a2d651e6' => '食品管理',
+        'module-cb338ddfe04f8fb7' => '',
+        'controller-dad91e9b834bf12b' => '食品',
+        'controller-b512cf541a72e4ad' => '',
+    ],
 ];

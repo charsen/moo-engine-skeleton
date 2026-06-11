@@ -56,7 +56,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
 php artisan moo:account:add charsen --password=skeleton2026 --role=admin   # scaffold 调试台账号
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                                    # 36 passed
+php artisan test                                    # 41 passed
 ```
 
 **方式 B：从 0 跟教程搭**（推荐新手，带截图的完整教程见 [`docs/`](./docs/README.md)）：
@@ -115,7 +115,7 @@ moo-engine-skeleton/
 | [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | composer 双轨部署、Redis、nginx、supervisor、清缓存坑 |
 | [第 9 章 日常增量开发：改表与加接口](./docs/09-增量开发工作流.md) | 加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步 |
 
-教程目录页还附了一张**「踩过的坑」速查表**（25 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（26 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
 

@@ -54,7 +54,7 @@ moo-engine-skeleton/
 | [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
 | [第 8 章 部署上线](./08-部署上线.md) | composer 双轨部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
-| [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步 | 进阶 |
+| [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口 | 进阶 |
 
 > **包定位**：moo-scaffold 开源（MIT）；moo-system 是商业包（获取方式联系作者）。
 > 第 1~6 章不依赖任何付费包，装不装第 7 章，前六章的骨架都是完整可用的。
@@ -88,3 +88,4 @@ moo-engine-skeleton/
 | 23 | 手工改过的 `lang/en/model.php` 枚举标签被 `moo:i18n` 回退 | lang 是再生成区、yaml 才是真相源；英文标签写进 yaml 枚举定义，再 `moo:fresh` + `moo:i18n` | 9 |
 | 24 | `moo:adder admin Food` 直接崩：找不到 `FoodFoodController.php` | folder 参数与控制器文件名直接拼接，必须带尾斜杠写成 `Food/` | 9 |
 | 25 | 重跑 `moo:auth` 后零授权角色又被锁在门外（坑 #20 复发） | `config/actions.php` 是再生成区、整文件重写：手动放行的个人中心 8 个 key 会被冲掉（moo:auth 只自动放行「无 @acl」的 action）；重跑后要把 8 个 key 合并回 whitelist（FoodAclTest 有守护断言） | 9 |
+| 26 | `moo:free api` 生成的控制器第一次请求就 500：`Class "FoodResource" not found` | api 分片的 stub 按 `{Entity}Resource` 引用资源类（且无 `use`），但 `moo:resource` 不会为 api 分片生成它；改用 `BaseResource`（与 admin stub 对齐）或自建 Resource 后补 `use` | 9 |
