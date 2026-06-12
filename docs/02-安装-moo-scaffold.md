@@ -19,7 +19,8 @@
 
 > 注意将来也**不是** `--dev`：在这套架构里 scaffold 是**运行时依赖**，不是纯开发工具——
 > 生成的控制器直接继承 / 返回包里的类（`Mooeen\Scaffold\Foundation\{Controller, BaseResource, ...}`），
-> `bootstrap/app.php` 也引用了包里的 `BaseException` / `ExceptionDispatcher`。
+> `bootstrap/app.php` 也引用了包里的 `BaseException`（运行时异常采集则由 scaffold 3.9.0
+> 自动带入的 moo-monitor-laravel 在 Provider 里自动挂钩，无需 bootstrap 引用）。
 > 装进 `require-dev` 的话，本节自己推荐的 `composer install --no-dev` 部署会直接炸。
 > 本仓库 `engine/composer.json` 也是把它放在 `require` 里的。
 

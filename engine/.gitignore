@@ -28,5 +28,3 @@ Thumbs.db
 # moo-scaffold：账号 / 运行时数据（账号用 `php artisan moo:account:add` 重建，不入 git）
 /scaffold/accounts.yaml
 /scaffold/.local/
-/scaffold/runtimes/
-/scaffold/sql-slows/
