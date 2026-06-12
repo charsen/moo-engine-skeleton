@@ -133,7 +133,8 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |
 | 5 | Gitee Pages：仓库公开后，服务 → Pages → 部署目录 `docs/` | 公开后 |
 | 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9 章 + 守护测试 + 教程前半大修，21→41 passed），建议打 `0.3.0` | 作者决策 |
-| 7 | 剩余工程活（可委托 AI）：最小 UploaderController——moo-system 头像表单的上传地址现指向不存在的路由（断链 404）；移动端 `PUT app/me/password` 改密码（零付费 track 的账号自管理） | 作者决策 |
+| 7 | **监控标准件接入**（monitor+cloud，1.7 节+第 10 章+修 3.9.0 四处遗留）：完整执行计划见 `plans/monitor-cloud-integration.md`，等 cloud 项目 token | 可委托 AI |
+| 8 | 剩余工程活（可委托 AI）：最小 UploaderController——moo-system 头像表单的上传地址现指向不存在的路由（断链 404）；移动端 `PUT app/me/password` 改密码（零付费 track 的账号自管理） | 作者决策 |
 
 ## 7. 已知局限备忘
 
