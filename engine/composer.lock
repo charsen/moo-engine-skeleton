@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ab28edf6819d31b2ce7e96b42f86d789",
+    "content-hash": "085c9eefe6339da8ff046e003ff2ccb0",
     "packages": [
         {
             "name": "brick/math",
@@ -185,15 +185,94 @@
             "time": "2024-02-09T16:56:22+00:00"
         },
         {
+            "name": "charsen/moo-monitor-laravel",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "../../moo-monitor-laravel",
+                "reference": "4ea0d9123a8ebbb4a824a9701cdfd71fe59aac4b"
+            },
+            "require": {
+                "laravel/framework": "^12.0",
+                "php": "^8.2",
+                "symfony/yaml": "^7.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.13",
+                "orchestra/testbench": "^10.0",
+                "pestphp/pest": "^3.0",
+                "pestphp/pest-plugin-laravel": "^3.0",
+                "roave/security-advisories": "dev-latest"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.1.x-dev"
+                },
+                "laravel": {
+                    "providers": [
+                        "Mooeen\\Monitor\\MonitorProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Mooeen\\Monitor\\": "src"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Mooeen\\Monitor\\Tests\\": "tests"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "./vendor/bin/pest"
+                ],
+                "test:filter": [
+                    "./vendor/bin/pest --filter"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Charsen",
+                    "email": "780537@gmail.com",
+                    "homepage": "https://www.charsen.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Laravel runtime error & slow SQL monitoring SDK for moo-scaffold-cloud",
+            "homepage": "https://gitee.com/charsen/moo-monitor-laravel",
+            "keywords": [
+                "error-tracking",
+                "laravel",
+                "monitor",
+                "mooeen",
+                "slow-query"
+            ],
+            "support": {
+                "issues": "https://gitee.com/charsen/moo-monitor-laravel/issues",
+                "source": "https://gitee.com/charsen/moo-monitor-laravel",
+                "docs": "https://gitee.com/charsen/moo-monitor-laravel/blob/master/README.md"
+            },
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "charsen/moo-scaffold",
             "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "../../moo-scaffold",
-                "reference": "1a789b03dd9983c457282637cd8e6fea0b99e260"
+                "reference": "1103c11a2eb3d89b50b6b95b2ebf3a5933e350cf"
             },
             "require": {
                 "brick/varexporter": "^0.7.0",
+                "charsen/moo-monitor-laravel": "^0.1@dev",
                 "fakerphp/faker": "^1.23",
                 "laravel/framework": "^12.1.1",
                 "php": "^8.2",
@@ -270,7 +349,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../moo-system",
-                "reference": "ac1a98ac0a00c00ba986d94f8b1f54951ad0b0de"
+                "reference": "5eafd11ea55ea8c50285d4a9656e35fe5928a5c8"
             },
             "require": {
                 "charsen/moo-scaffold": "^3.0",
@@ -10012,6 +10091,12 @@
     ],
     "aliases": [
         {
+            "package": "charsen/moo-monitor-laravel",
+            "version": "9999999-dev",
+            "alias": "0.1.99",
+            "alias_normalized": "0.1.99.0"
+        },
+        {
             "package": "charsen/moo-scaffold",
             "version": "9999999-dev",
             "alias": "3.999.0",
@@ -10026,6 +10111,7 @@
     ],
     "minimum-stability": "stable",
     "stability-flags": {
+        "charsen/moo-monitor-laravel": 20,
         "charsen/moo-scaffold": 20,
         "charsen/moo-system": 20
     },

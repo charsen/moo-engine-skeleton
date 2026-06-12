@@ -43,9 +43,10 @@ wwwroot/                       # 任意父目录
 | `moo-scaffold-cloud` | 配套云服务 | 可选（教程九章不覆盖其搭建） | 云端的异常 / 慢 SQL / todos 管理平台，支持多项目 |
 
 > 关于 `moo-scaffold-cloud`：它是单独部署的云端平台，不是 composer 包，本教程不讲它的搭建。
-> 但 engine 经由 moo-scaffold 已自带三条对接命令：`moo:cloud:push`（把本地 runtime 错误 /
-> 慢 SQL 增量推送上云）、`moo:cloud:mcp`（以 MCP server 形式把云端数据暴露给 AI）、
-> `moo:cloud:adopt`（云端化收尾）。接入提示见第 8 章的慢 SQL 一节及 `HANDOFF.md`；
+> 但 engine 经由 moo-scaffold（3.9.0 起依赖 moo-monitor-laravel 提供监控）已自带三条
+> 对接命令：`moo:cloud:push`（把本地 runtime 错误 / 慢 SQL 增量推送上云）、`moo:cloud:mcp`
+>（以 MCP server 形式把云端数据暴露给 AI）、`moo:monitor:migrate`（≤3.8 旧数据迁移）。
+> 接入提示见第 8 章的慢 SQL 一节及 `HANDOFF.md`；
 > 不接云端不影响本教程任何一步。
 
 ## 🧰 环境要求

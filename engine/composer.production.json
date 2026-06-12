@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "charsen/moo-scaffold": "^3.0",
+        "charsen/moo-monitor-laravel": "^0.1",
         "charsen/moo-system": "^1.2",
         "godruoyi/php-snowflake": "^3.2",
         "laravel/framework": "^12.0",
@@ -19,6 +20,10 @@
         "scaffold": {
             "type": "vcs",
             "url": "git@gitee.com:charsen/moo-scaffold.git"
+        },
+        "monitor": {
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-monitor-laravel.git"
         },
         "system": {
             "type": "vcs",

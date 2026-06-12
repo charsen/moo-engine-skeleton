@@ -174,7 +174,6 @@ public function logout(): JsonResponse
 ```php
 // use Illuminate\Cache\RateLimiting\Limit;
 // use Mooeen\Scaffold\Exceptions\BaseException;
-// use Mooeen\Scaffold\Support\ExceptionDispatcher;
 // use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 // use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -185,10 +184,9 @@ $exceptions->dontReportDuplicates()->dontReport([
     BaseException::class,          // moo-scaffold 的业务异常（522）
 ]);
 
-// 一行接入 moo-scaffold 的运行时异常采集（落盘 storage/scaffold/runtimes，/scaffold 可看）
-$exceptions->reportable(function (Throwable $e): void {
-    app(ExceptionDispatcher::class)->dispatch($e);
-});
+// 运行时异常采集不用手动接：moo-monitor-laravel（随 scaffold 3.9.0 自动带入）的
+// MonitorProvider 已自动挂 reportable 钩子，异常落盘 storage/moo-monitor/runtimes，
+// 经 moo:cloud:push 推送上云后在云端查看。
 
 // 高频 5xx 时别把关键日志吞了
 $exceptions->throttle(fn (Throwable $e) => Limit::perMinute(1000));
