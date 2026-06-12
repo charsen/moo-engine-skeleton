@@ -1,0 +1,81 @@
+hash: f7c173bee2bc
+first_seen: '2026-06-11T14:41:44.113+00:00'
+last_seen: '2026-06-11T14:41:44.113+00:00'
+count: 1
+daily:
+  date: '2026-06-11'
+  count: 1
+status: open
+resolved_at: ~
+resolved_by: ~
+resolved_note: ~
+exception:
+  class: ErrorException
+  code: '0'
+  message: 'file(/Volumes/dev/wwwroot/moo-engine-skeleton/engine/app/Admin/Controllers/FoodFoodController.php): Failed to open stream: No such file or directory'
+  file: /Volumes/dev/wwwroot/moo-scaffold/src/Adder/ControllerAdder.php
+  line: 35
+request:
+  method: GET
+  url: 'http://127.0.0.1:8088'
+  ip: 127.0.0.1
+  user_id: ~
+  user_name: ~
+  guard: ~
+context:
+  env: local
+  project: moo-engine-skeleton
+  php: 8.3.31
+  laravel: 12.61.1
+  occurred_at: '2026-06-11T14:41:44.124+00:00'
+trace:
+  full: |-
+    #0 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(262): Illuminate\Foundation\Bootstrap\HandleExceptions->handleError(2, 'file(/Volumes/d...', '/Volumes/dev/ww...', 35)
+    #1 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->Illuminate\Foundation\Bootstrap\{closure}(2, 'file(/Volumes/d...', '/Volumes/dev/ww...', 35)
+    #2 /Volumes/dev/wwwroot/moo-scaffold/src/Adder/ControllerAdder.php(35): file('/Volumes/dev/ww...')
+    #3 /Volumes/dev/wwwroot/moo-scaffold/src/Command/AdderCommand.php(105): Mooeen\Scaffold\Adder\ControllerAdder->start('admin', 'Food', 'FoodFoodControl...', false, 'toggleStatus', '', '')
+    #4 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Mooeen\Scaffold\Command\AdderCommand->handle()
+    #5 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\Container\BoundMethod::Illuminate\Container\{closure}()
+    #6 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate\Container\Util::unwrapIfClosure(Object(Closure))
+    #7 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\Container\BoundMethod::callBoundMethod(Object(Illuminate\Foundation\Application), Array, Object(Closure))
+    #8 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate\Container\BoundMethod::call(Object(Illuminate\Foundation\Application), Array, Array, NULL)
+    #9 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Console/Command.php(211): Illuminate\Container\Container->call(Array)
+    #10 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/symfony/console/Command/Command.php(341): Illuminate\Console\Command->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Illuminate\Console\OutputStyle))
+    #11 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Illuminate\Console\OutputStyle))
+    #12 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/symfony/console/Application.php(1117): Illuminate\Console\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+    #13 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/symfony/console/Application.php(356): Symfony\Component\Console\Application->doRunCommand(Object(Mooeen\Scaffold\Command\AdderCommand), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+    #14 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/symfony/console/Application.php(195): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+    #15 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+    #16 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\Foundation\Console\Kernel->handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+    #17 /Volumes/dev/wwwroot/moo-engine-skeleton/engine/artisan(16): Illuminate\Foundation\Application->handleCommand(Object(Symfony\Component\Console\Input\ArgvInput))
+    #18 {main}
+  app_frames: {  }
+source_snippet:
+  file: /Volumes/dev/wwwroot/moo-scaffold/src/Adder/ControllerAdder.php
+  line: 35
+  language: php
+  code: |2-
+      25:         $folder       = $folder === '<ROOT_PATH>' ? '' : $folder;
+      26: 
+      27:         if ($new_controller) {
+      28:             $controller = Utility::ensureControllerSuffix($controller);
+      29:             $controller = ucfirst($controller);
+      30:             $file_path  = $this->buildNewController($folder, $controller);
+      31:         } else {
+      32:             $file_path = base_path('/') . $this->config['path'] . $controller . '.php';
+      33:         }
+      34:         $relative_file_path = str_replace(base_path('/'), './', $file_path);
+      35:         $file_codes         = file($file_path);
+      36:         $action_added       = false;
+      37: 
+      38:         $this->replaceUse($file_path, $file_codes, $request_name, $resource_name);
+      39: 
+      40:         if ($this->hasFunction($file_codes, $action)) {
+      41:             $this->console()->exists("Action {$action}", 'Already exists');
+      42:         } else {
+      43:             $end_line    = $this->getEndLine($file_codes);
+      44:             $action_code = $this->getActionFunction($action, $request_name, $resource_name);
+      45:             $this->replaceLine($action_code, $file_codes, $end_line);
+payload: {  }
+meta:
+  updated_at: '2026-06-11T14:41:44.125+00:00'
