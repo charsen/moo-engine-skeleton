@@ -10,30 +10,33 @@
 
 本项目把这套实践提炼为一个**从 0 开始的标准起点**，达成三个目标：
 
-1. **新项目脚手架**：克隆即得一个可运行、可生成代码、带完整认证授权的后端底座；
-2. **新人教学载体**：`docs/` 下七章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
-3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 21 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
+1. **新项目脚手架**：备齐依赖后克隆即得一个可运行、可生成代码、带完整认证授权的后端底座；
+2. **新人教学载体**：`docs/` 下九章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
+3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 27 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
 
-**教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学），任何人可完整跑通；第 7 章接入商业包 moo-system 为可选进阶——这使骨架同时满足开源教学与商业交付两种场景。
+**教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
+
+> **跑通前的硬前置**（只读本篇容易忽略）：`engine/composer.json` 以 path 仓库指向同级目录的 `../../moo-scaffold` 与 `../../moo-system`，**只克隆本仓库直接 `composer install` 会失败**。moo-scaffold 开源（MIT）但尚未发布到 Packagist，moo-system 是商业包需授权——两者都要先取得源码并克隆到与本仓库同级的目录（获取方式与完整环境步骤见 `HANDOFF.md` §1~2 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要商业包，不等于"零前置"。
 
 ## 二、技术栈与运行环境
 
 | 项 | 选型 | 说明 |
 |---|---|---|
-| 框架 | Laravel 12（PHP 8.3） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致 |
+| 框架 | Laravel 12（PHP 8.3） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致。注意：`composer.json` 声明 `"php": "^8.2"`，但 `composer.lock` 实锁的 jwt-auth 2.9.2 要求 php ^8.3，实际请按 8.3 准备环境（`HANDOFF.md` §1 同此口径） |
 | 数据库 | MariaDB 12 / MySQL 8 | 实测均可；骨架库名 `moo_skeleton` |
 | 认证 | php-open-source-saver/jwt-auth ^2.8 | tymon/jwt-auth 的维护分支，composer 直接依赖 |
 | 代码生成 | charsen/moo-scaffold（**开源 MIT**，path/vcs 双模式接入） | 仅开发期生效，不是运行时框架 |
 | 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
-| 测试 | Pest/PHPUnit，21 个 Feature 测试全绿 | 覆盖双守卫认证、ACL、移动端全链路 |
+| 测试 | PHPUnit 11（无 Pest），`php artisan test` 41 passed | Feature 9 个文件共 40 个测试方法 + Unit，覆盖双守卫认证、ACL、移动端全链路与增量开发回归 |
 
 ## 三、总体架构
 
 ```
 moo-engine-skeleton/
-├── docs/                      # 七章从零教程 + 网页引导器 + 21 条踩坑速查
-├── CLAUDE.md / README.md      # 工程说明
+├── docs/                      # 九章从零教程 + 网页引导器 + 27 条踩坑速查
+├── README.md / HANDOFF.md     # 快速开始 / 环境搭建与交接说明
+├── CLAUDE.md / CLAUDE.local.md# AI 协作工程说明（local 为本机文件，已 gitignore，新克隆没有）
 └── engine/                    # Laravel 12 应用本体
     ├── app/Admin/             # 后台分片（路由前缀 api/admin）
     ├── app/Api/               # 移动端分片（路由前缀 app）
@@ -47,7 +50,7 @@ moo-engine-skeleton/
 
 - **入口即边界，无 Service/Repository 层**：逻辑分布在轻量 Controller（编排）、Model（`boot()` 守卫 + trait + ModelFilter）、Resource（输出）三处；
 - **镜像对称的 HTTP 分片**：`Admin/`（后台）与 `Api/`（移动端）各自拥有 Controllers/Requests/Resources，互不渗透；
-- **响应约定无信封**：成功直接返回 Resource，错误为 `{"message": ...}`，HTTP 状态码承载语义（业务错误 522 / 校验 422 / 认证 401 / 越权 403）；
+- **响应约定无信封**：成功直接返回 Resource，错误为 `{"message": ...}`，HTTP 状态码承载语义（业务错误 522 / 校验 422 / 认证 401 / 越权 403）。522 不是标准 HTTP 状态码（不是 Cloudflare 那个超时，也不是笔误）——它是 moo-scaffold `BaseException` / moo-system `BusinessException` 约定的业务错误码，刻意避开标准码的既有语义；
 - **处处软删**：带完整「回收站 / 恢复 / 永久删除」生命周期及每行 `options` 动作列表；
 - **枚举不进 `$casts`**：字段保持裸 int，显式 `Enum::tryFrom()` 转换，规避枚举实例比较陷阱。
 
@@ -59,10 +62,10 @@ Laravel 12 标准工程加生态约定的固化。
 
 | 功能点 | 介绍 |
 |---|---|
-| `engine/` 子目录工程布局 | 仓库根只放文档与部署脚本，与生态内全部项目统一，包的相对路径（`../../moo-scaffold`）因此可复用 |
+| `engine/` 子目录工程布局 | 仓库根只放文档（部署内容也是文档：`docs/08-部署上线.md`，无部署脚本），与生态内全部项目统一，包的相对路径（`../../moo-scaffold`）因此可复用 |
 | `bootstrap/app.php` 横切接线 | Laravel 12 无 Kernel.php，分片中间件挂载、全局异常分发、校验错误 render 重写集中于此 |
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
-| `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、`DELETE /forever/{id}` 永久删除、先于 `/{id}` 注册的 `/trashed` 回收站路由 |
+| `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、批量删除 `destroyBatch`、回收站 `/trashed`（先于 `/{id}` 注册）、恢复 `restore`、`DELETE /forever/{id}` 永久删除；且**用反射检查控制器，action 真实存在且为 public 才注册对应路由**，杜绝"幻影路由"（声明了却 404 的路由） |
 | 通用 Model Traits | `UsingSnowFlakePrimaryKey`（雪花字符串主键）、`HasOperator`（操作人追踪）、`BaseFilter`（query string → 查询条件） |
 | moo-* 包双模式接入 | 开发期 path 仓库（同级目录 symlink，源码实时生效）；生产期 `composer.production.json` 切 VCS/Packagist，部署时一行 cp 切换 |
 
@@ -94,9 +97,9 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 | 黑名单 90 秒宽限 | 续签瞬间旧 token 进黑名单前留 90 秒宽限期，并发在途请求不被误杀 |
 | 滑动续期 | `refresh_iat=true` + ttl 2880 分钟 / refresh_ttl 20160 分钟，活跃用户无感长登录 |
 | refresh 防孤儿 token | `/refresh` 路由不挂 `jwt.auth.refresh` 中间件，避免中间件与控制器各续签一次派生两个有效 token |
-| 单设备语义（移动端） | 移动端 refresh 采用 `(true, false)` 立即拉黑旧 token、无宽限期，实现单设备登录语义 |
+| 单设备语义（移动端） | 移动端主动刷新调用 `JWTGuard::refresh($forceForever, $resetClaims)` 时传 `(true, false)`——`$forceForever=true` 让旧 token **立即**进黑名单（跳过 90 秒宽限），实现单设备登录语义（见 `app/Api/Controllers/AuthController.php`） |
 | CORS 配套 | `config/cors.php` 暴露 `Authorization` 响应头，跨域前端才能读到无感续签的新 token |
-| 接口限流 | 后台 300 次/分钟限流，防暴力撞库与异常流量 |
+| 接口限流 | 后台 300 次/分钟限流，另有登录接口专用限流（`AppServiceProvider`），防暴力撞库与异常流量 |
 
 ### 模块 4：ACL 动作级授权
 
@@ -105,7 +108,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 | 功能点 | 介绍 |
 |---|---|
 | Gate `acl_authentication` 契约 | 定义在 host 的 `AuthServiceProvider`，**多态设计**——自建 User 与 moo-system Personnel 通吃，主体切换不动授权代码 |
-| 动作自动鉴权 | 基类 Controller 的 `callAction()` 先 `boot()` 再 `checkAuthorization()`，把 `Class::method` 映射为 snake 风格 ACL key（`substr(md5(key), 8, 16)`）自动鉴权，业务代码零侵入 |
+| 动作自动鉴权 | 基类 Controller 的 `callAction()` 先 `boot()` 再 `checkAuthorization()` 自动鉴权，业务代码零侵入。ACL key 分两步生成（实现见 moo-scaffold `Foundation/Controller.php`）：① 把 `Class::method` 各段 snake 化拼成明文 key，如 `App\Admin\Controllers\Food\FoodController::index` → `admin-food-food-index`；② 再 `substr(md5(明文key), 8, 16)` 截成 16 位十六进制串，即数据库里实际存的 key |
 | 权限复用（transform_methods） | 一个 action 可声明复用另一个 action 的权限，避免权限点爆炸 |
 | User.actions 最小实现 | 自建 User 用一个 JSON 列存权限 key 数组，`is_root` 字面量为超级权限；演示契约的最小可行实现 |
 | 角色制接管（第 7 章） | 接入 moo-system 后无缝切换为 角色-授权 体系，含个人中心 8 个动作的白名单兜底（防零授权角色把自己锁死） |
@@ -134,7 +137,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 | 角色与授权 Role / Authorization | 角色制 ACL 编辑器，支持权限矩阵 Excel 导出 |
 | 通知机器人 NotifyRobot | 钉钉/企微类机器人通知通道 |
 | 登录管理 LoginManagement | 登录态与设备管理 |
-| 操作日志 OperationLog | 中间件式操作审计，异步落库（队列） |
+| 操作日志 OperationLog | 中间件式操作审计，经 Job 异步落库——**依赖队列被消费**。本仓库 `engine/.env.example` 预设 `QUEUE_CONNECTION=sync` 所以开箱可见日志；若从零自装（Laravel 默认 database 队列）而不跑 worker，会出现"日志永远 0 条且无报错"（踩坑速查 #21） |
 | 个人中心 me* | 个人资料、改密等 8 个白名单动作 |
 | host 契约实现 | `MediaSynchronous` / `Notification` / `BaseActionTrait` / `UploaderTrait` / `SendBlessMessage` / `toLabelValue()` 全局函数等契约在骨架中给出标准实现 |
 | 自检命令 | `php artisan moo-system check` 6 项 host 集成自检全过 |
@@ -147,11 +150,11 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| 七章从零教程 | 安装 Laravel → 接入 scaffold → JWT 自建用户 → JWT 生产化 → ACL 闭环 → 移动端分片 → moo-system，每章照实记录命令与真机结果 |
+| 九章从零教程 | 安装 Laravel → 接入 scaffold → JWT 自建用户 → JWT 生产化 → ACL 闭环 → 移动端分片 → moo-system → 部署上线 → 增量开发工作流，每章照实记录命令与真机结果 |
 | 零依赖网页引导器 | `docs/index.html` 单文件（内联全部 CSS/JS），支持分步模式、进度记忆、代码一键复制，`php -S` 即可启动 |
-| 21 条踩坑速查表 | 现象 → 原因 → 解决 → 所在章节，全部来自真实搭建与生产回灌（JWT 丢 claim、孤儿 token、nestedset 静默、枚举比较死代码等） |
-| 中间态代码内联 | 仓库代码为第 7 章最终态，第 3~5 章的中间态代码（User 版 AuthController 等）以完整代码内联在章节文档中，保证任意章节可独立复现 |
-| cleanroom 验证 | 教程经过"从零重做七章"的洁净环境终极验证，修复全部卡点后定稿 |
+| 27 条踩坑速查表 | `docs/README.md`「踩过的坑速查」，现象 → 原因 → 解决 → 所在章节，全部来自真实搭建与生产回灌（JWT 丢 claim、孤儿 token、nestedset 静默、枚举比较死代码等） |
+| 中间态代码内联 | 仓库代码为第 9 章最终态（含第 9 章增量演练的 Food 增量产物与测试），第 3~5 章的中间态代码（User 版 AuthController 等）以完整代码内联在章节文档中，保证任意章节可独立复现 |
+| cleanroom 验证 | 主线七章经过"从零重做"的洁净环境终极验证，修复全部卡点后定稿；第 8~9 章为后续增补 |
 
 ### 模块 8：测试与质量保障
 
@@ -159,29 +162,40 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| 21 个 Feature 测试 | `AuthTest`（Personnel 后台认证）、`ApiAuthTest`（User 移动端认证）、`FoodAclTest`（角色制 ACL），`php artisan test` 全绿 |
-| 跨进程行为模拟 | 测试中用 `emptyClaims()` 清空 payload 工厂单例，使同进程测试能复现真实跨进程的续签丢 claim 问题 |
+| Feature 测试（9 文件 40 方法） | `AuthTest`（Personnel 后台认证）、`ApiAuthTest`（User 移动端认证）、`FoodAclTest`（角色制 ACL）、`JwtAutoRefreshTest`（无感续签）、`RegressionTest`（回归集）、`SeederIntegrityTest`（种子数据完整性）、`FoodIncrementalTest` / `ApiFoodTest`（第 9 章增量产物）、`ExampleTest`；连同 Unit 共 `php artisan test` 41 passed 全绿 |
+| 跨进程行为模拟 | 测试基类 `tests/TestCase.php` 的 `freshJwtProcess()` 用 `forgetInstance` 重置整条 jwt 服务链单例（`tymon.jwt.*` + `auth.driver`），使同进程测试能复现真实跨进程的续签丢 claim 问题 |
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |
 
-## 五、交付现状与默认账号
+## 五、交付现状、初始化与默认账号
 
-七章全部搭建完成并经真机验证，仓库代码为最终态。
+九章全部搭建完成并经真机验证，仓库代码为第 9 章最终态。
+
+**从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：moo-scaffold / moo-system 已克隆到同级目录，见第一节硬前置）：
+
+```bash
+cd engine/
+composer install                  # 解析同级目录的 moo-* path 包
+cp .env.example .env              # 已预设 QUEUE_CONNECTION=sync 等
+php artisan key:generate
+php artisan jwt:secret --force
+# 建库 moo_skeleton 后：
+php artisan migrate --seed        # 产出下表前两个账号（UserSeeder / PersonnelSeeder）
+php artisan moo:account:add <用户名> --password=<密码> --role=admin   # /scaffold 登录账号，seed 不创建
+
+# 启动（多 worker 为接口调试器代理所必需）；开发 UI 在 http://127.0.0.1:8088/scaffold
+PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
+```
 
 | 账号 | 凭据 | 用途 |
 |---|---|---|
-| 自建用户 | `admin@example.com` / `password` | 第 3~6 章后台 + 永久移动端 |
-| Personnel 管理员 | `13800000000` / `admin888` | 第 7 章起的后台 |
-| Scaffold 开发 UI | `charsen` / `skeleton2026` | `/scaffold` 开发工具登录 |
-
-```bash
-# 启动（在 engine/ 下；多 worker 为接口调试器代理所必需）
-PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-```
+| 自建用户 | `admin@example.com` / `password` | 第 3~6 章后台 + 永久移动端（`migrate --seed` 产出） |
+| Personnel 管理员 | `13800000000` / `admin888` | 第 7 章起的后台（`migrate --seed` 产出） |
+| Scaffold 开发 UI | 自定 | `http://127.0.0.1:8088/scaffold` 登录。账号存于 `engine/scaffold/accounts.yaml`——该文件已 gitignore，**新克隆后不存在任何账号**，必须用上面的 `moo:account:add` 自行创建 |
 
 ## 六、预期收益
 
 - **新项目启动成本**：从"按生产仓库考古搭建底座（数天）"降为"克隆骨架 + 改库名（小时级）"；
-- **新人培养**：七章教程 + 引导器使新人可独立完成从空目录到带认证授权后端的全过程，建立与团队生产代码一致的心智模型；
-- **质量基线**：21 条生产级踩坑以代码形式固化，新项目天然规避；双向回灌机制（骨架 ↔ 生产仓库）持续提升存量项目质量；
+- **新人培养**：九章教程 + 引导器使新人可独立完成从空目录到带认证授权后端的全过程，建立与团队生产代码一致的心智模型；
+- **质量基线**：27 条生产级踩坑以代码形式固化，新项目天然规避；双向回灌机制（骨架 ↔ 生产仓库）持续提升存量项目质量；
 - **商业弹性**：前六章可独立开源引流，第 7 章商业包形成付费转化路径。
