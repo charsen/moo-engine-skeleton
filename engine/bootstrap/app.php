@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Mooeen\Scaffold\Exceptions\BaseException;
-use Mooeen\Scaffold\Support\ExceptionDispatcher;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -45,11 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
             BaseException::class,
         ]);
 
-        // 接入 moo-scaffold 的运行时异常采集（落盘 storage/scaffold/runtimes，
-        // 可在 /scaffold 开发 UI 查看；配 moo-scaffold-cloud 后可推云端）
-        $exceptions->reportable(function (Throwable $e): void {
-            app(ExceptionDispatcher::class)->dispatch($e);
-        });
+        // 运行时异常采集:scaffold 3.9.0 起由 moo-monitor-laravel 的 MonitorProvider
+        // 自动挂 reportable 钩子,无需手动接入(落盘 storage/moo-monitor/runtimes,推送上云后在云端查看)。
 
         // 上报节流：阈值放宽到 1000 条/分钟，避免高频 5xx 时关键日志被吞
         $exceptions->throttle(function (Throwable $e) {
