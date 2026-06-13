@@ -40,37 +40,161 @@ php artisan jwt:secret --force        # 生成 JWT_SECRET 写入 .env
 ## 3.2 自建最简用户：User 实现 JWTSubject
 
 Laravel 自带 `users` 表（id / name / email / password），直接用它当认证主体。
-改造 `app/Models/User.php`（**完整文件见仓库，直接抄**），核心就两个接口方法：
+
+### 3.2.1 改造 User 模型
+
+**编辑** `app/Models/User.php`，完整代码如下（含第 5 章 ACL 的 actions 列前置）：
 
 ```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
+
 class User extends Authenticatable implements JWTSubject
 {
-    // token 的 sub 声明 = 主键
+    use HasFactory, Notifiable;
+
+    protected $fillable = ['name', 'email', 'password', 'actions'];
+
+    protected $hidden = ['password', 'remember_token'];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'actions' => 'array',
+        ];
+    }
+
+    // ========== JWT 接口实现 ==========
+
+    /** token 的 sub 声明 = 主键 */
     public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
-    // 自定义声明：把「本 token 是哪个守卫签发的」写进 token。
-    // 注意 Auth::getDefaultDriver() 返回的是当前默认守卫名（如 admin），不是 jwt 这个 driver 名；
-    // 「当前默认守卫」由 3.4 要写的 JWTAssignGuard 按路由指派（Auth::shouldUse），这里先记住即可
+    /**
+     * 自定义声明：把「本 token 是哪个守卫签发的」写进 token。
+     *
+     * Auth::getDefaultDriver() 返回的是当前默认守卫名（如 admin），不是 jwt 这个 driver 名；
+     * 「当前默认守卫」由 3.4 要写的 JWTAssignGuard 按路由指派（Auth::shouldUse）
+     */
     public function getJWTCustomClaims(): array
     {
         return ['guard' => Auth::getDefaultDriver()];
     }
+
+    // ========== ACL 最小实现（第 5 章）==========
+
+    /**
+     * 获取授权动作列表（第 5 章的 Gate 会调用）
+     *
+     * @return array<string>
+     */
+    public function getActions(): array
+    {
+        return $this->actions ?? [];
+    }
+
+    /** 是否超级管理员（actions 里有 'is_root' 字面量） */
+    public function isRoot(): bool
+    {
+        return in_array('is_root', $this->getActions(), true);
+    }
 }
 ```
 
-> 仓库版还多了 `actions` 列和 `getActions()/isRoot()` 两个方法——那是第 5 章 ACL
-> 的最小授权存储，本章不用理解，但**必须照抄**：下面的 UserSeeder 会写入
-> `actions = ['is_root']`，跳过这一步直接 seed 会因 `actions` 列不存在而报错。
-> 配套迁移（给 users 加 `actions` 列）也在仓库：
-> `database/migrations/*_add_actions_to_users_table.php`，抄完跑 `php artisan migrate`。
+核心就两个 `JWTSubject` 接口方法：
+- `getJWTIdentifier()`：token 的 sub 声明 = 主键
+- `getJWTCustomClaims()`：自定义声明，把 `guard` 写进 token
 
-建第一个用户（`database/seeders/UserSeeder.php`，抄仓库），并把 `DatabaseSeeder`
-的 `run()` 改成只调它（📦 仓库版的 `DatabaseSeeder` 还列着第 7 章的四个 moo-system
-seeder——那四个 Seeder 类文件仓库里都有，但它们依赖 moo-system 包的 Personnel 等模型，
-**你的项目**现在还没装包，照抄仓库版跑起来会报错——本章先这样写，第 7 章再加回去）：
+`getActions()` 和 `isRoot()` 是第 5 章 ACL 的最小授权存储，本章先不用理解。
+
+### 3.2.2 给 users 表加 actions 列
+
+第 5 章会给 User 加 `actions` 列（ACL 最小授权存储）——为了让下面的 UserSeeder 能运行，
+现在先建好这个列。
+
+**新建迁移文件** `database/migrations/2024_01_15_100000_add_actions_to_users_table.php`
+（时间戳用当前时间，格式为 `年_月_日_时分秒`），完整代码如下：
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->json('actions')->nullable()->comment('授权动作列表（第 5 章 ACL）');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('actions');
+        });
+    }
+};
+```
+
+执行迁移：
+
+```bash
+php artisan migrate
+```
+
+### 3.2.3 建第一个用户（UserSeeder）
+
+**新建文件** `database/seeders/UserSeeder.php`，完整代码如下：
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+
+class UserSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $user = User::firstOrNew(['email' => 'admin@example.com']);
+        $user->name = '管理员';
+        $user->password = 'password';
+        $user->actions = ['is_root'];  // 第 5 章 ACL：超级权限
+        $user->email_verified_at = now();
+        $user->save();
+
+        $this->command?->info('UserSeeder：admin@example.com / password（is_root 超级权限）。');
+    }
+}
+```
+
+**编辑** `database/seeders/DatabaseSeeder.php`，修改 `run()` 方法只调用 UserSeeder
+（📦 仓库版的 `DatabaseSeeder` 还列着第 7 章的四个 moo-system seeder——那四个依赖
+moo-system 包的 Personnel 等模型，你的项目现在还没装包，照抄仓库版跑起来会报错——
+本章先这样写，第 7 章再加回去）：
 
 ```php
 public function run(): void
@@ -80,6 +204,8 @@ public function run(): void
     ]);
 }
 ```
+
+执行 seeder：
 
 ```bash
 php artisan db:seed --class=UserSeeder
@@ -119,9 +245,10 @@ php artisan db:seed --class=UserSeeder
 > `personnels`（包里的 Personnel 模型）；`user` 守卫**永久**用自建 User。
 > 所以仓库里的 `config/auth.php` 是切换后的最终版，本章按上面的写。
 
+
 ## 3.4 三个 JWT 中间件 + 中间件组
 
-需要 3 个中间件（**完整代码在仓库 `app/Http/Middleware/`，与主体模型无关，直接抄**）：
+需要 3 个中间件，完整代码如下：
 
 | 文件 | 职责 |
 |---|---|
@@ -134,23 +261,183 @@ php artisan db:seed --class=UserSeeder
 > 它都抛 `UnauthorizedHttpException`，再由下文 `bootstrap/app.php` 的 render 渲染成
 > JSON 401。所以 3.6 ① 的「无 token → 401」来自 `jwt.auth.refresh`，与表格并不矛盾。
 
-注册别名和中间件组，写在 `App\Providers\AppServiceProvider::boot()`：
+### 3.4.1 JWTAssignGuard 中间件
+
+**新建文件** `app/Http/Middleware/JWTAssignGuard.php`，完整代码：
 
 ```php
-// use Illuminate\Routing\Middleware\SubstituteBindings;（路由模型绑定，Laravel 自带）
-$router = $this->app['router'];
-$router->aliasMiddleware('jwt.assign.guard', JWTAssignGuard::class);
-$router->aliasMiddleware('jwt.guard.auth',   JWTGuardAuth::class);
-$router->aliasMiddleware('jwt.auth.refresh', JWTAuthOrRefresh::class);
+<?php
 
-// admin 组：只指定守卫、不强制认证（放行登录路由、第 2 章的 food 接口）
-$router->middlewareGroup('admin', ['jwt.assign.guard:admin', SubstituteBindings::class]);
-// client 组：移动端
-$router->middlewareGroup('client', ['jwt.assign.guard:user', SubstituteBindings::class]);
-// moo-system 组：完整强制认证链（第 7 章给包路由用，现在先建好）
-$router->middlewareGroup('moo-system', [
-    'jwt.assign.guard:admin', 'jwt.guard.auth:admin', 'jwt.auth.refresh', SubstituteBindings::class,
-]);
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * 按路由参数指派守卫（Auth::shouldUse）
+ *
+ * 用法：Route::middleware('jwt.assign.guard:admin')
+ */
+class JWTAssignGuard
+{
+    public function handle(Request $request, Closure $next, string $guard): Response
+    {
+        Auth::shouldUse($guard);
+
+        return $next($request);
+    }
+}
+```
+
+### 3.4.2 JWTGuardAuth 中间件
+
+**新建文件** `app/Http/Middleware/JWTGuardAuth.php`，完整代码：
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+
+/**
+ * JWT 守卫验证：校验 token 里的 guard 声明和路由要求一致
+ *
+ * 没带 token → 放行（401 由 jwt.auth.refresh 负责）
+ * 带了 token 但 guard 不匹配 → 401 Guard Unverified
+ */
+class JWTGuardAuth
+{
+    public function handle(Request $request, Closure $next, string $expectedGuard): Response
+    {
+        $guard = auth($expectedGuard);
+
+        // 没带 token → 放行（强制认证由 jwt.auth.refresh 负责）
+        if (! $request->bearerToken()) {
+            return $next($request);
+        }
+
+        try {
+            $payload = $guard->payload();
+        } catch (\Exception $e) {
+            throw new UnauthorizedHttpException('jwt-auth', 'Token Invalid: '.$e->getMessage());
+        }
+
+        $tokenGuard = $payload->get('guard');
+
+        if ($tokenGuard !== $expectedGuard) {
+            throw new UnauthorizedHttpException('jwt-auth', "Guard Unverified: token guard={$tokenGuard}, route expects={$expectedGuard}");
+        }
+
+        return $next($request);
+    }
+}
+```
+
+### 3.4.3 JWTAuthOrRefresh 中间件
+
+**新建文件** `app/Http/Middleware/JWTAuthOrRefresh.php`，完整代码：
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+
+/**
+ * JWT 强制认证 + 自动续签（无感刷新）
+ *
+ * - 无 token / token 非法 → 401
+ * - token 有效 → 放行
+ * - token 过期但在刷新窗口内 → 自动续签，新 token 放进响应头 Authorization
+ */
+class JWTAuthOrRefresh
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $guard = auth();
+
+        try {
+            // 尝试认证（会检查 token 有效性 + 黑名单）
+            if (! $guard->check()) {
+                throw new UnauthorizedHttpException('jwt-auth', 'Unauthorized');
+            }
+        } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException $e) {
+            // token 过期但可续签 → 自动刷新
+            try {
+                $newToken = $guard->refresh(false, false);  // forceForever=false, resetClaims=false
+                $response = $next($request);
+                $response->headers->set('Authorization', 'Bearer '.$newToken);
+
+                return $response;
+            } catch (\Exception $refreshException) {
+                throw new UnauthorizedHttpException('jwt-auth', 'Token Expired and cannot be refreshed: '.$refreshException->getMessage());
+            }
+        } catch (\Exception $e) {
+            throw new UnauthorizedHttpException('jwt-auth', 'Token Invalid: '.$e->getMessage());
+        }
+
+        return $next($request);
+    }
+}
+```
+
+### 3.4.4 注册中间件别名和组
+
+编辑 `app/Providers/AppServiceProvider.php`，在 `boot()` 方法里添加（如果文件还没有 `boot()` 方法，就新增一个）：
+
+```php
+public function boot(): void
+{
+    $router = $this->app['router'];
+
+    // 注册 JWT 中间件别名
+    $router->aliasMiddleware('jwt.assign.guard', \App\Http\Middleware\JWTAssignGuard::class);
+    $router->aliasMiddleware('jwt.guard.auth',   \App\Http\Middleware\JWTGuardAuth::class);
+    $router->aliasMiddleware('jwt.auth.refresh', \App\Http\Middleware\JWTAuthOrRefresh::class);
+
+    // 注册中间件组
+    // admin 组：只指定守卫、不强制认证（放行登录路由、第 2 章的 food 接口）
+    $router->middlewareGroup('admin', [
+        'jwt.assign.guard:admin',
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
+    ]);
+
+    // client 组：移动端
+    $router->middlewareGroup('client', [
+        'jwt.assign.guard:user',
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
+    ]);
+
+    // moo-system 组：完整强制认证链（第 7 章给包路由用，现在先建好）
+    $router->middlewareGroup('moo-system', [
+        'jwt.assign.guard:admin',
+        'jwt.guard.auth:admin',
+        'jwt.auth.refresh',
+        \Illuminate\Routing\Middleware\SubstituteBindings::class,
+    ]);
+}
+```
+
+记得在文件顶部添加 use 语句（如果还没有的话）：
+
+```php
+use Illuminate\Routing\Middleware\SubstituteBindings;
 ```
 
 > **命名对照（容易绕晕，先记下来）**——同一条通道在三处用了不同名字：
@@ -172,7 +459,9 @@ $router->middlewareGroup('moo-system', [
 > 仓库最终版三个组并不一样：`admin` 和 `moo-system` 组两样都加了；`client` 组只加了
 > `throttle:client`，**没有 OperationLog**（移动端不记操作日志）。
 
-然后改 `bootstrap/app.php`：**把第 2 章写的 `then:` 整段替换**成 `using:`——
+### 3.4.5 修改 bootstrap/app.php 路由挂载
+
+编辑 `bootstrap/app.php`，**把第 2 章写的 `then:` 整段替换**成 `using:`——
 区别是挂载点可以指定中间件组（第 2 章还没有组，现在有了）：
 
 ```php
@@ -189,27 +478,42 @@ $router->middlewareGroup('moo-system', [
 )
 ```
 
-并在 `withExceptions()` 里加两条 JSON 渲染（完整版见仓库 `bootstrap/app.php`，
-第 4 章还会扩充）：
+### 3.4.6 配置异常 JSON 渲染
+
+继续在 `bootstrap/app.php` 的 `withExceptions()` 里添加两条 JSON 渲染（完整版见仓库 `bootstrap/app.php`，第 4 章还会扩充）：
 
 ```php
-$exceptions->shouldRenderJsonWhen(fn ($request, $e) =>
-    $request->is('api/*') || $request->is('app/*') || $request->expectsJson());
+->withExceptions(function (Exceptions $exceptions) {
+    // API 路由强制返回 JSON
+    $exceptions->shouldRenderJsonWhen(fn ($request, $e) =>
+        $request->is('api/*') || $request->is('app/*') || $request->expectsJson());
 
-$exceptions->render(fn (UnauthorizedHttpException $e) =>
-    response()->json(['message' => $e->getMessage()], 401));
+    // 401 未授权
+    $exceptions->render(fn (\Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException $e) =>
+        response()->json(['message' => $e->getMessage()], 401));
 
-$exceptions->render(function (ValidationException $e) {
-    $errors = $e->errors();
-    return response()->json(['message' => reset($errors)[0] ?? '参数错误', 'errors' => $errors], $e->status);
-});
+    // 422 校验错误
+    $exceptions->render(function (\Illuminate\Validation\ValidationException $e) {
+        $errors = $e->errors();
+        return response()->json([
+            'message' => reset($errors)[0] ?? '参数错误',
+            'errors' => $errors,
+        ], $e->status);
+    });
+})
 ```
+
+记得在文件顶部添加 use 语句：
+
+```php
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Support\Facades\Route;
+```
+
 
 ## 3.5 登录控制器
 
-写 `app/Admin/Controllers/AuthController.php`——本章是 **User（email 登录）版**，
-完整代码如下（📦 第 7 章会把主体换成 Personnel，仓库里是 Personnel 最终版，
-所以这一份照着敲或复制下面的）：
+**新建文件** `app/Admin/Controllers/AuthController.php`，完整代码如下：
 
 ```php
 <?php
@@ -292,10 +596,9 @@ class AuthController
 >   过不了 `JWTGuardAuth`（生产真坑，坑 #10，仓库 AuthController 的注释有详细说明）；
 > - `logout(true)` 的 `true` 也是 `forceForever`：把当前 token **永久**拉黑。
 
-`routes/admin.php` 里挂上（`authenticate`/`logout` 公开；`me`/`refresh` 进登录 group）：
+**编辑** `routes/admin.php`，添加路由（记得文件顶部添加 `use App\Admin\Controllers\AuthController;`）：
 
 ```php
-// 文件顶部记得：use App\Admin\Controllers\AuthController;
 Route::post('authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 

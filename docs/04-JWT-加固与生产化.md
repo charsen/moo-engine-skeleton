@@ -18,9 +18,10 @@
 
 ## 4.1 加固 `config/jwt.php`（5 处）
 
-两种走法任选：直接整份照抄仓库 `engine/config/jwt.php`（该文件后续章节不再改动，
-注释已全部中文化、与认证主体无关，抄了就能用）；或打开自己的 `config/jwt.php`，
-逐处核对下面 5 处：
+推荐逐处核对下面 5 处（理解每个配置的作用）。如果希望直接使用完整配置，
+也可以参考本仓库 `engine/config/jwt.php`（该文件后续章节不再改动，注释已全部中文化）。
+
+**关键配置 5 处**：
 
 **① 续签时保留 guard 声明** —— 不配它，在 jwt-auth **2.8.x** 上换发的新 token 会丢掉
 `guard`，下次请求过 `JWTGuardAuth` 直接 401（坑 #10，生产偶发 401 的真因）。
@@ -87,7 +88,25 @@
 php artisan config:publish cors
 ```
 
-嫌麻烦也可以直接整份照抄仓库 `engine/config/cors.php`（已带中文注释，最终态与本章一致）。
+**完整的 `config/cors.php` 配置示例**：
+
+```php
+<?php
+
+return [
+    'paths' => ['api/*', 'app/*', 'sanctum/csrf-cookie'],
+    'allowed_methods' => ['*'],
+    'allowed_origins' => ['*'],
+    'allowed_origins_patterns' => [],
+    'allowed_headers' => ['*'],
+    'exposed_headers' => ['Authorization'],  // ← 关键：暴露 Authorization 头
+    'max_age' => 0,
+    'supports_credentials' => false,
+];
+```
+
+> 说明：`exposed_headers` 必须包含 `Authorization`，否则前端无法读取响应头中的新 token（无感续签失效）。
+> 其余配置可根据生产环境安全要求收紧（如 `allowed_origins` 改为白名单）。
 
 ## 4.3 登录补账号状态检查
 
@@ -169,7 +188,7 @@ public function logout(): JsonResponse
 
 ## 4.5 异常采集与节流（`bootstrap/app.php`）
 
-在 `withExceptions()` 里补三段（完整文件见仓库 `engine/bootstrap/app.php`）：
+在 `withExceptions()` 里补三段（第 3 章已有 2 段，本章再加 1 段 BaseException）：
 
 ```php
 // use Illuminate\Cache\RateLimiting\Limit;
@@ -233,7 +252,7 @@ RateLimiter::for('login', function (Request $r) {
 
 - 把 `.env.example` 改成"复制即可用"：预填 MariaDB `moo_skeleton`、8088 端口、
   分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` 占位，
-  删掉骨架用不到的 MAIL/AWS 等死键（完整文件见仓库）；
+  删掉骨架用不到的 MAIL/AWS 等死键（如 MAIL_MAILER、AWS_* 等，保留 DB/CACHE/REDIS 相关）；
 - 新建 `composer.production.json`：moo-* 包换成版本约束 + VCS 仓库。
   部署时 `cp composer.production.json composer.json && composer install --no-dev`，
   和第 2 章讲的"开发 path / 生产 vcs"双轨制闭环。
@@ -342,7 +361,7 @@ php artisan test
 
 > 这个「9 passed」只对**跟到本章为止的你本地**成立。仓库是全书最终态，
 > `tests/Feature/` 下已有 9 个测试文件，在仓库里直接跑会得到
-> `Tests: 41 passed (130 assertions)`——数字对不上不代表你做错了。
+> `Tests: 43 passed (139 assertions)`——数字对不上不代表你做错了。
 
 > ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的服务链是单例
 > （payload 工厂的 claim 残留、auth 适配器绑死首个守卫），跨守卫/跨请求断言会
@@ -377,7 +396,7 @@ php artisan test
 > RegressionTest 自动守护（`php artisan test`），手工复现属进阶选做。
 
 > 📦 仓库最终态里 **admin 守卫（后台侧）**的认证主体是 Personnel（第 7 章换的，
-> 这里说的不是 git 分支）。本章时间点后台主体还是 User——照抄仓库代码做验证时，
+> 这里说的不是 git 分支）。本章时间点后台主体还是 User——参考仓库代码做验证时，
 > 把主体查询换回 User。token 里的 `prv` 字段（4.1 末尾提到的 `lock_subject` 写入的
 > 模型哈希，值为 `sha1(主体模型类名)`）也跟着主体走：主体模型对不上，签出的 token
 > 就过不了这个哈希校验。
