@@ -344,9 +344,9 @@ token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关
 
 ```bash
 php artisan test
-# 按章节顺序做到本章：Tests: 35 passed
+# 按章节顺序做到本章：Tests: 37 passed
 # （最终态仓库是 43 passed——多出的 6 个是第 9 章新增的 FoodIncrementalTest 1 个
-#   + ApiFoodTest 5 个。此刻跑出 35 就是对的，不是你做错了。）
+#   + ApiFoodTest 5 个。此刻跑出 37 就是对的，不是你做错了。）
 ```
 
 `FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，
@@ -404,7 +404,7 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
   + `AuthController.php` 整个换掉；中间件 / 路由 / Gate / 移动端零改动——
   这就是第 3 章骨架设计的价值；
 - 角色制授权接管 ACL（白名单放行个人中心），操作日志落库（记得 `OPERATION_LOG=true`）；
-- 测试换最终版后本章应得 **35 passed**（终态 43 含第 9 章 + 监控测试），调试器联调通过。
+- 测试换最终版后本章应得 **37 passed**（终态 43 含第 9 章 + 监控测试），调试器联调通过。
 
 **主线教程完成。** 你现在拥有：代码生成（moo-scaffold）+ 自建用户 JWT + 动作级 ACL +
 双守卫隔离的移动端 + 完整系统管理（moo-system）。
