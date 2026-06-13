@@ -120,6 +120,11 @@ class User extends Authenticatable implements JWTSubject
 
 `getActions()` 和 `isRoot()` 是第 5 章 ACL 的最小授权存储，本章先不用理解。
 
+> 📦 仓库 `engine/app/Models/User.php` 的 `isRoot()` 实为 `return false`（注释：自增主键体系下不启用，
+> 超级权限统一走 `actions` 里的 `is_root` 字面量，由第 5 章 host 的 `AuthServiceProvider` 在 Gate 里用
+> `getActions()` 兜底判定）。两种写法对 `is_root` 用户的最终效果一致、本章也用不到该方法——这里按上面这版
+> （`in_array` 更直观）写即可；仓库那行 `return false` 是第 7 章主体切到 Personnel 后定的最终形态。
+
 ### 3.2.2 给 users 表加 actions 列
 
 第 5 章会给 User 加 `actions` 列（ACL 最小授权存储）——为了让下面的 UserSeeder 能运行，
@@ -356,46 +361,67 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
+use PHPOpenSourceSaver\JWTAuth\JWTAuth;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 /**
- * JWT 强制认证 + 自动续签（无感刷新）
+ * JWT 强制认证 + 近过期自动续签（无感刷新）
  *
  * - 无 token / token 非法 → 401
  * - token 有效 → 放行
- * - token 过期但在刷新窗口内 → 自动续签，新 token 放进响应头 Authorization
+ * - token 过期但在刷新窗口内 → 自动续签，新 token 放进响应头 authorization
+ *
+ * 关键：认证门用 parseToken()->authenticate()，token 过期时它会**抛 TokenExpiredException**，
+ * 下面的续签分支才进得去。若改用 auth()->check()，过期会被它内部吞成 false（永不抛异常），
+ * catch(TokenExpiredException) 就成了永不可达的死代码——中间件看似有续签、实则从不续签。
  */
 class JWTAuthOrRefresh
 {
-    public function handle(Request $request, Closure $next): Response
+    public function __construct(protected JWTAuth $auth) {}
+
+    public function handle(Request $request, Closure $next): mixed
     {
-        $guard = auth();
-
         try {
-            // 尝试认证（会检查 token 有效性 + 黑名单）
-            if (! $guard->check()) {
-                throw new UnauthorizedHttpException('jwt-auth', 'Unauthorized');
+            // token 有效则认证通过、直接放行；过期会抛 TokenExpiredException 落到下面续签
+            if ($this->auth->parseToken()->authenticate()) {
+                return $next($request);
             }
-        } catch (\PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException $e) {
-            // token 过期但可续签 → 自动刷新
+            throw new UnauthorizedHttpException('jwt-auth', 'Token not provided');
+        } catch (TokenInvalidException $e) {
+            throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
+        } catch (TokenExpiredException $e) {
+            // token 过期但在刷新窗口内 → 自动续签
             try {
-                $newToken = $guard->refresh(false, false);  // forceForever=false, resetClaims=false
-                $response = $next($request);
-                $response->headers->set('Authorization', 'Bearer '.$newToken);
+                $token = $this->auth->refresh();
 
-                return $response;
-            } catch (\Exception $refreshException) {
-                throw new UnauthorizedHttpException('jwt-auth', 'Token Expired and cannot be refreshed: '.$refreshException->getMessage());
+                // 续签后用户数据已不存在（如开发期 reseed 把人删了）→ 让前端清缓存重登
+                if ($this->auth->user() === null) {
+                    throw new UnauthorizedHttpException('jwt-auth', 'Token not provided');
+                }
+            } catch (JWTException $e) {
+                throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
             }
-        } catch (\Exception $e) {
-            throw new UnauthorizedHttpException('jwt-auth', 'Token Invalid: '.$e->getMessage());
-        }
 
-        return $next($request);
+            // 续签成功：把新 token 放进响应头 authorization（前端据此无感换 token）
+            $response = $next($request);
+            $response->headers->set('authorization', $token);
+
+            return $response;
+        } catch (JWTException $e) {
+            throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
+        }
     }
 }
 ```
+
+> 📦 第 7 章接入 moo-system 后，续签成功处会**再补一行**
+> `if (! empty($old_token) && class_exists(UpdateLoginTokenJob::class)) { UpdateLoginTokenJob::dispatch($old_token, $token); }`
+> （同步包里的登录管理记录）。它用 `class_exists` 守卫——未装 moo-system 时静默跳过，
+> 所以本章这版**不依赖任何付费包、可直接抄**，与仓库 `engine/app/Http/Middleware/JWTAuthOrRefresh.php`
+> 的差异仅此一行（仓库版即上面这段 + 这行 Job）。
 
 ### 3.4.4 注册中间件别名和组
 
