@@ -21,14 +21,14 @@
 
 ## 6.2 写移动端登录控制器
 
-> 📦 **先说清「本章时间点，仓库哪些文件能直接抄」**（仓库代码都在 `engine/` 子目录下，
+> 📦 **先说清「本章时间点，仓库哪些文件可参考」**（仓库代码都在 `engine/` 子目录下，
 > 仓库根目录只有 docs、README 等）：
 > `engine/app/Api/Controllers/AuthController.php` 和 `engine/tests/Feature/ApiAuthTest.php`
 > 是最终版，直接用；`engine/routes/api.php`（混入了后续章节的路由，见 6.3 的 📦 注）、
 > `engine/tests/TestCase.php` 和 `engine/app/Admin/Controllers/AuthController.php`
 > （这两个都是第 7 章 Personnel 最终版）**不能照搬**，差异在用到处各有 📦 注。
 
-新建 `app/Api/Controllers/AuthController.php`（完整文件见仓库
+新建 `app/Api/Controllers/AuthController.php`，完整代码如下（与后台版的差异见注释）
 `engine/app/Api/Controllers/AuthController.php`，这就是最终版）。
 骨架仍是熟悉的「查用户 → `Hash::check` → 签发」，与第 3 章的后台版相比有**三个差异**
 （仓库文件头注释列的就是这三条）：

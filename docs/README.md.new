@@ -1,0 +1,90 @@
+# moo-engine-skeleton 从 0 开始搭建教程
+
+这是一套**面向新手**的后端开发骨架教程：从一个空目录开始，一步步搭出一个带
+**代码生成器（moo-scaffold）**、**系统管理模块（moo-system：部门 / 岗位 / 人员 / 角色 / 授权）**
+和 **JWT 登录认证** 的 Laravel 12 后端骨架。
+
+## 第 0 步：把仓库拿到本地
+
+```bash
+git clone <本仓库地址> moo-engine-skeleton   # 地址以作者提供为准
+cd moo-engine-skeleton
+```
+
+教程有两种走法，定义在[仓库根 README 的「快速开始」](../README.md)：
+
+- **方式 A：直接用本仓库**——`engine/` 已是最终成品，装好依赖即可运行（需 PHP 8.3；且最终态接入了商业包 moo-system，拿不到其源码时 `composer install` 会失败）；
+- **方式 B：从 0 跟教程搭**——从第 1 章起一步步自己搭，**推荐新手**。
+
+后文出现的「方式 A / 方式 B」均指这里。
+
+> 🎯 **推荐的阅读方式**：本目录自带一个零依赖的网页引导器（`docs/index.html`，
+> 单文件含全部 CSS/JS），支持分步模式、进度记忆、代码一键复制：
+> ```bash
+> cd docs && php -S 127.0.0.1:9999     # 或 python3 -m http.server 9999
+> # 浏览器打开 http://127.0.0.1:9999
+> ```
+> ![网页引导器](./images/00-tutorial-guide.png)
+
+> 本教程遵循两条原则：
+> 1. **每一步都有操作记录**，命令和结果都照实写下来，方便照着做；
+> 2. **每一步都用真机测试**（启动真实服务、用浏览器/接口真实请求验证），而不是只写代码。
+
+## 环境要求
+
+| 软件 | 版本（本教程实测） | 说明 |
+|---|---|---|
+| PHP | 8.3.31 | Laravel 12 要求 `^8.2`；但仓库 lock 的 jwt-auth 2.9.x 要求 `^8.3`，直接用本仓库（**方式 A**，见第 0 步）必须 8.3 |
+| Composer | 2.9.5 | PHP 包管理器 |
+| Node / npm | Node 26 / npm 11 | **整行可选**：教程第 1-10 章均不涉及前端资源构建，可完全不装；保留此行是为可能的前端分离架构预留 |
+| MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
+| Git | 任意较新版本 | **无需 git-lfs**（本仓库不使用 LFS） |
+| moo-scaffold 源码 | dev-master | **第 2 章起必需**。开源包（MIT，规划发 Packagist），但**尚未正式发布——目前唯一获取途径是联系作者要源码**，缺它 `composer install` 直接失败。克隆到与本仓库同级目录，第 2 章用相对路径引用；moo-system 为第 7 章的**商业包**（可选，同样联系作者获取） |
+
+动手前先自检一遍（PHP 版本不对的话，先安装/切换到 8.3 再继续）：
+
+```bash
+php -v              # 方式 A 必须 8.3
+composer -V
+mysql --version
+node -v && npm -v   # 可选，不做前端构建可跳过
+```
+
+数据库连接：教程统一用示例凭据 **`root` / `7777`**（换成你自己的，命令里同步替换），库名 **`moo_skeleton`**。建库命令（与[根 README 方式 B](../README.md) 相同）：
+
+```bash
+mysql -uroot -p7777 -h127.0.0.1 -e \
+  "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+## 目录结构约定（重要）
+
+Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档（部署相关内容在[第 8 章](./08-部署上线.md)文档里，根目录没有部署脚本）。
+这是作者所有项目统一的目录约定。
+moo-* 包用 path 仓库引用，相对路径统一写 `../../moo-scaffold`——注意基准是 `composer.json` 所在的 **`engine/` 子目录**（不是仓库根），所以「同级目录」要往上两层 `../../`，而不是 `../`。
+
+```
+moo-engine-skeleton/              # ← 与 moo-scaffold、moo-system 克隆在同级目录
+├── README.md  CLAUDE.md          # 说明文档（根目录另有 HANDOFF.md、overview.md 等开发随档）
+├── docs/                         # 就是你正在看的这套教程
+└── engine/                       # ← Laravel 12 应用本体（composer 命令都在这里执行）
+```
+
+## 章节
+
+| 章节 | 内容 | 定位 |
+|---|---|---|
+| [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问、**1.7 接入监控（本骨架标准件）** | 基础 |
+| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器接入（dev=路径 / prod=VCS）、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
+| [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
+| [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
+| [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
+| [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
+| [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
+| [第 8 章 部署上线](./08-部署上线.md) | composer 双轨部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
+| [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
+| [第 10 章 云端监控进阶](./10-云端监控进阶.md) | moo-scaffold-cloud 聚合告警、**AI 辅助处理（MCP 接入，全教程独有亮点）**、≤3.8 迁移、多项目管理 | 进阶 |
+
+> **包定位**：moo-scaffold 开源（MIT）但**尚未发布到 Packagist**，正式发布前需联系作者获取源码；moo-system 是商业包（获取方式同样联系作者）。
+> 第 1~6 章不依赖任何**付费**包，装不装第 7 章，前六章的骨架都是完整可用的——但前提是已拿到 moo-scaffold 源码（第 2 章起必需，见上方环境要求表），「开源」不等于现在就能从 Packagist 装到。
+

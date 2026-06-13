@@ -67,13 +67,15 @@ composer update charsen/moo-system --with-all-dependencies
 >    `destroyBatch`；`trashed` 的固定段必须先于 `show` 的 `/{id}` 注册，否则被抢匹配），
 >    无脑 `Route::resource` 会产出大量调用即 500 的「幻影路由」。
 >
-> 所以别自己写：**直接抄仓库的 `engine/app/Providers/AppServiceProvider.php`**
+> **解决方法**：把宏从 `boot()` 移到 `register()`，并使用完整的反射实现。
+
+完整的 `register()` 方法代码（约 60 行）见本仓库 `engine/app/Providers/AppServiceProvider.php`**
 > （`register()` 里就是完整的宏实现，注释写明了每条规则的原因）。
 
 ## 7.2 提供 host 端契约（5 个文件 + 1 个全局函数）
 
 moo-system 的控制器/模型会 `use` host 侧的几个 trait 和类（叫「host 契约」）。
-**5 个成品文件都在本仓库里，直接抄**：
+需要提供以下 5 个文件：
 
 ```
 engine/app/Admin/Controllers/Traits/BaseActionTrait.php   ← 覆盖第 2 章 scaffold 生成的精简版
@@ -87,7 +89,25 @@ engine/app/Notifications/SendBlessMessage.php
 > **存在**，不校验内容——忘了覆盖、还在用第 2 章精简版时自检照样全绿，
 > 问题会推迟到调用包接口时才暴露。这一步务必以仓库文件为准。
 
-还差一个全局函数 `toLabelValue()`（部门控制器在用）：抄 `engine/app/Helpers/helpers.php`，
+还差一个全局函数 `toLabelValue()`（部门控制器在用）。
+**新建文件** `engine/app/Helpers/helpers.php`，内容如下：
+
+```php
+<?php
+
+if (! function_exists('toLabelValue')) {
+    function toLabelValue(array $items): array
+    {
+        $result = [];
+        foreach ($items as $value => $label) {
+            $result[] = ['label' => $label, 'value' => $value];
+        }
+        return $result;
+    }
+}
+```
+
+然后
 并在 `composer.json` 登记 `files` 自动加载后 `composer dump-autoload`：
 
 ```json
@@ -98,6 +118,8 @@ engine/app/Notifications/SendBlessMessage.php
 ```
 
 > ⚠️ **坑 #6**：不补 `toLabelValue()`，调部门列表会报 `undefined function`（HTTP 500）。
+> 这时去 `storage/moo-monitor/runtimes/open/` 看（第 1.7 节接入的监控），能看到完整的
+> 异常栈与触发位置——从此报错有地方看了。
 
 ## 7.3 后台主体切换：User → Personnel
 
@@ -125,7 +147,7 @@ engine/app/Notifications/SendBlessMessage.php
 > 不是 Laravel 教科书默认的 `web`——这处**不需要**在本章再动。
 
 **② `app/Admin/Controllers/AuthController.php`** 换成 Personnel 版
-（**仓库里就是最终版，直接抄**）。与第 3 章 User 版的差异一目了然：
+（需要将第 3 章的 User 版改为 Personnel 版）。与第 3 章 User 版的差异一目了然：
 
 - 查询主体：请求体字段统一叫 **`account`**，控制器拿它**同时匹配姓名或手机号**——
   `Personnel::where('real_name', $params['account'])->orWhere('mobile', $params['account'])`。
@@ -194,7 +216,7 @@ php artisan moo-system check    # 应 6/6 全绿
 
 ## 7.5 初始数据：角色 → 部门 → 岗位 → 人员
 
-4 个 seeder **完整代码见仓库 `engine/database/seeders/`，抄过来**，
+4 个 seeder 完整代码见仓库 `engine/database/seeders/`（建议从仓库复制，
 并把第 3 章精简过的 `DatabaseSeeder` 换成仓库版（UserSeeder 之后按序调用四个）：
 
 | Seeder | 内容 |
@@ -287,7 +309,7 @@ token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关
 ```bash
 php artisan test
 # 按章节顺序做到本章：Tests: 35 passed
-# （最终态仓库是 41 passed——多出的 6 个是第 9 章新增的 FoodIncrementalTest 1 个
+# （最终态仓库是 43 passed——多出的 6 个是第 9 章新增的 FoodIncrementalTest 1 个
 #   + ApiFoodTest 5 个。此刻跑出 35 就是对的，不是你做错了。）
 ```
 
@@ -346,7 +368,7 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
   + `AuthController.php` 整个换掉；中间件 / 路由 / Gate / 移动端零改动——
   这就是第 3 章骨架设计的价值；
 - 角色制授权接管 ACL（白名单放行个人中心），操作日志落库（记得 `OPERATION_LOG=true`）；
-- 测试换最终版后本章应得 **35 passed**（终态 41 含第 9 章新增），调试器联调通过。
+- 测试换最终版后本章应得 **35 passed**（终态 43 含第 9 章 + 监控测试），调试器联调通过。
 
 **主线教程完成。** 你现在拥有：代码生成（moo-scaffold）+ 自建用户 JWT + 动作级 ACL +
 双守卫隔离的移动端 + 完整系统管理（moo-system）。

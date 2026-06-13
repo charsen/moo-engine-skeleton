@@ -49,7 +49,7 @@ public function boot(): void
 ## 5.2 启用 ACL（三步）
 
 **第 1 步：写 Gate。** 新建 `app/Providers/AuthServiceProvider.php`，核心就是下面这个
-判定顺序——这段是**可以照抄运行的完整闭包**（Gate 是多态的，第 7 章换成 Personnel
+判定顺序——这段是**完整的闭包实现**（Gate 是多态的，第 7 章换成 Personnel
 后一行不用改）：
 
 ```php
@@ -91,7 +91,7 @@ Gate::define('acl_authentication', function ($user, $acl_key) {
 > 判定逻辑与上面一致，但注释里出现 Personnel、RoleSeeder、「系统管理员」等第 7 章
 > 才介绍的概念；其中「moo:acl 生成时维护」是**笔误**——这个命令不存在，实际命令叫
 > `moo:auth`（vendor `UpdateAuthorizationCommand` 里 `$name = 'moo:auth'`）。
-> 本章照抄上面这段即可，不必对着仓库版逐行比对。
+> 本章使用上面这段即可（已是完整实现）。
 
 别忘了在 `bootstrap/providers.php` 登记这个 Provider。
 
@@ -136,7 +136,7 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 跟做前先确认两件事：
 
 ```bash
-# ⓐ users 表要有 actions 列——第 3 章让你「先照抄不用管」的那个独立迁移
+# ⓐ users 表要有 actions 列——第 3 章已建立的迁移
 #   （database/migrations/*_add_actions_to_users_table.php）。漏抄的话，
 #   下面 ③ 赋权会直接报「列不存在」。检查 + 补救：
 php artisan tinker --execute="var_dump(Schema::hasColumn('users', 'actions'));"
@@ -228,7 +228,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/api/admin/food" \
 
 照第 4 章 AuthTest 的样子，给 ACL 写 4 个用例：无 token 401 / is_root 200 /
 零授权 403 / 授单个动作后 index 200 而 store 仍 403。
-参考答案：仓库 `engine/tests/Feature/FoodAclTest.php`（Laravel 应用整体在 `engine/`
+完整的测试代码见本仓库 `engine/tests/Feature/FoodAclTest.php`（Laravel 应用整体在 `engine/`
 子目录，仓库根没有 `tests/`）。
 
 > 📦 注意：那是第 7 章接入 moo-system 后的**最终版**——登录主体是 Personnel

@@ -12,6 +12,12 @@
 
 ## 2.1 接入 moo-scaffold：开发用 path、生产用 vcs
 
+> **与第 1.7 节的关系**：第 1 章单独装了 `moo-monitor-laravel`，本章装 `moo-scaffold`
+> 时，composer 会发现 monitor 包已经存在（且是同样的 path 仓库），自动去重、不会重复安装。
+> scaffold 3.9.0 的 `composer.json` 里声明了对 monitor 包的依赖（`^0.1@dev`），
+> 所以**只装 scaffold 时，monitor 会作为传递依赖自动带入**；第 1 章之所以单独装，
+> 是为了让监控在「裸 Laravel」这个最简单的时点先上岗——新手先建立「出错去哪看」的心智模型。
+
 先把这个包的身份说清楚：`moo-scaffold` 采用 **MIT 协议**，但**尚未公开发布**——
 没上 Packagist，Gitee 仓库目前也是私有的（所以下面生产环境才需要配 SSH 部署公钥；
 等仓库公开后这一步就不需要了）。规划发布到 Packagist 后，普通使用一行
@@ -26,9 +32,26 @@
 
 本教程用的是**源码模式**（便于跟着改包源码、也是作者的开发模式）：
 
-**前置条件**：`moo-scaffold/` 的源码已经克隆在与本仓库**同级**的目录。
-包发布前没有公开下载渠道，源码需**找作者获取**；拿不到源码的话，本章起只能「读通」、
-没法「跑通」——下面第一步就会报 "path repository ... does not exist"。
+**前置条件（私有仓库访问）**：
+
+`moo-scaffold/` 的源码已经克隆在与本仓库**同级**的目录。目前仓库托管在 Gitee 私有项目，
+访问需要联系作者申请协作者权限。
+
+**克隆步骤**：
+1. 获取 Gitee 账号的协作者权限（联系作者）
+2. 在本机配置 SSH key（`ssh-keygen` + 添加到 Gitee 账号设置）
+3. 克隆到同级目录：
+   ```bash
+   cd wwwroot  # 假设你的 moo-engine-skeleton 在 wwwroot/ 下
+   git clone git@gitee.com:charsen/moo-scaffold.git
+   # 确认目录结构：
+   # wwwroot/
+   # ├── moo-engine-skeleton/
+   # └── moo-scaffold/
+   ```
+
+拿不到源码的话，本章起只能「读通」、没法「跑通」——下面第一步就会报 "path repository ... does not exist"。
+包发布到 Packagist 后，一行 `composer require charsen/moo-scaffold` 即可，无需克隆。
 
 接入前要先在 `engine/composer.json` 里声明 `repositories`。两种模式按环境选：
 
@@ -45,10 +68,38 @@
 "prefer-stable": true
 ```
 
-> ⚠️ 上面是**片段**，不是完整的 composer.json，要**合并**进已有文件：
-> `"require"` 里**追加**这一行（整块照抄会顶掉 `laravel/framework` 等核心依赖）；
-> `"repositories"` 是**新增**的键；`minimum-stability` / `prefer-stable` 两行
-> Laravel 默认 composer.json 里**本来就有**，列出来只是为了说明原理，不用动。
+> ⚠️ 上面是**片段**，不是完整的 composer.json，要**合并**进已有文件。
+> 
+> **合并示例（修改前后对照）**：
+> 
+> **修改前**（Laravel 12 默认的 `engine/composer.json` 部分）：
+> ```json
+> "require": {
+>     "php": "^8.2",
+>     "laravel/framework": "^12.0",
+>     "laravel/tinker": "^2.10"
+> },
+> "minimum-stability": "stable",
+> "prefer-stable": true
+> ```
+> 
+> **修改后**（追加 moo-scaffold）：
+> ```json
+> "require": {
+>     "php": "^8.2",
+>     "laravel/framework": "^12.0",
+>     "laravel/tinker": "^2.10",
+>     "charsen/moo-scaffold": "dev-master as 3.999.0"
+> },
+> "repositories": {
+>     "scaffold": { "type": "path", "url": "../../moo-scaffold" }
+> },
+> "minimum-stability": "stable",
+> "prefer-stable": true
+> ```
+> 
+> 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）；
+> `"repositories"` 是**新增**的顶层键（与 `"require"` 平级）。
 
 > 为什么是 `../../moo-scaffold`？因为 Laravel 应用在 `moo-engine-skeleton/engine/` 下，
 > 而 `moo-scaffold/` 与 `moo-engine-skeleton/` 同级，从 `engine/` 往上两级正好到 `wwwroot/`。
@@ -78,6 +129,18 @@ cd engine
 composer update charsen/moo-scaffold --with-all-dependencies
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
+
+> **前置依赖自检**（避免后续 `moo:free` 报错）：
+> 
+> scaffold 生成的 Model 需要两个包：`tucker-eric/eloquentfilter`（查询过滤器）和
+> `godruoyi/php-snowflake`（雪花 ID）。scaffold 3.9.0+ 的 `composer.json` 已声明对它们的依赖，
+> 跟着 scaffold 一起自动装好。但如果你的 scaffold 版本 <3.9，需要手动补装：
+> 
+> ```bash
+> composer show tucker-eric/eloquentfilter  # 检查是否已装
+> # 如果报 Package not found，补装：
+> composer require tucker-eric/eloquentfilter godruoyi/php-snowflake
+> ```
 
 ## 2.2 初始化 + 发布资源
 
@@ -173,7 +236,7 @@ Route::macro('iResource', function (string $name, string $controller, array $opt
 > 部分没有 `show`/`index`，无脑 resource 会产出「幻影路由」——调用即
 > `Call to undefined method`（500）。上面的简化版**足够跑通本章全部内容**；
 > 第 7 章只负责把它挪进 `register()`，宏体的反射版重写是后来的复审修复、
-> 不在任何章节正文里——想要终态直接抄仓库即可。
+> 不在任何章节正文里——参考仓库最终版即可。
 
 ## 2.4 建调试工具的登录账号
 
