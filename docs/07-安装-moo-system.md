@@ -34,7 +34,9 @@ wwwroot/
 
 放错位置，下面的 `composer update` 第一步就会失败（找不到 path 仓库）。
 
-把 `system` 仓库加进 `engine/composer.json` 的 `repositories`（第 2 章只声明了 scaffold）：
+把 `system` 仓库加进 `engine/composer.json` 的 `repositories`（第 2 章只声明了 scaffold）。
+下面片段只示意要**新增** `system` 这一项——第 1.7 节装好的 `charsen/moo-monitor-laravel`
+及其 `monitor` path 仓库要原样保留，别拿整块去覆盖（覆盖会把 monitor 依赖删掉）：
 
 ```json
 "require": {
@@ -69,8 +71,8 @@ composer update charsen/moo-system --with-all-dependencies
 >
 > **解决方法**：把宏从 `boot()` 移到 `register()`，并使用完整的反射实现。
 
-完整的 `register()` 方法代码（约 60 行）见本仓库 `engine/app/Providers/AppServiceProvider.php`**
-> （`register()` 里就是完整的宏实现，注释写明了每条规则的原因）。
+完整的 `register()` 方法代码（约 60 行）见本仓库 `engine/app/Providers/AppServiceProvider.php`
+（`register()` 里就是完整的宏实现，注释写明了每条规则的原因）。
 
 ## 7.2 提供 host 端契约（5 个文件 + 1 个全局函数）
 
@@ -96,19 +98,52 @@ engine/app/Notifications/SendBlessMessage.php
 <?php
 
 if (! function_exists('toLabelValue')) {
-    function toLabelValue(array $items): array
+    /**
+     * 把数据集转成前端「label-value」选项结构（支持树状 children 与关联子项）。
+     *
+     * @param  array  $data  数据集（数组）
+     * @param  string  $key_field  作为 value 的字段名
+     * @param  string  $label_field  作为 label 的字段名
+     * @param  string  $count_field  可选：作为 count 的字段名
+     * @param  array  $other  可选：关联子项 [关联字段, 子value字段, 子label字段, 前缀?]
+     */
+    function toLabelValue(array $data, string $key_field, string $label_field, string $count_field = '', array $other = []): array
     {
-        $result = [];
-        foreach ($items as $value => $label) {
-            $result[] = ['label' => $label, 'value' => $value];
+        $res = [];
+        foreach ($data as $one) {
+            $tmp = ['value' => $one[$key_field], 'label' => $one[$label_field]];
+
+            if ($count_field !== '') {
+                $tmp['count'] = $one[$count_field];
+            }
+
+            if (! empty($one['children'])) {
+                $tmp['children'] = toLabelValue($one['children'], $key_field, $label_field, $count_field, $other);
+            }
+
+            // 处理 model 的关联数据（已是最后一级）
+            if (! empty($other) && ! empty($one[$other[0]])) {
+                $select = [];
+                $prefix = $other[3] ?? ' · ';
+                foreach ($one[$other[0]] as $o) {
+                    $select[] = ['value' => $o[$other[1]], 'label' => $prefix.$o[$other[2]]];
+                }
+                $tmp['children'] = isset($tmp['children']) ? array_merge($tmp['children'], $select) : $select;
+            }
+
+            $res[] = $tmp;
         }
-        return $result;
+
+        if (empty($res)) {
+            $res = [['label' => '暂无相关数据', 'value' => '']];
+        }
+
+        return $res;
     }
 }
 ```
 
-然后
-并在 `composer.json` 登记 `files` 自动加载后 `composer dump-autoload`：
+然后在 `composer.json` 登记 `files` 自动加载后 `composer dump-autoload`：
 
 ```json
 "autoload": {
@@ -301,7 +336,8 @@ OPERATION_LOG=true
 <env name="JWT_SECRET" value="testing-secret-do-not-use-in-production"/>
 ```
 
-仓库里另有三个守护测试：`JwtAutoRefreshTest`（中间件对过期 token 的静默续签——挂
+仓库里另有四个守护测试：`MonitorTest`（第 1.7 节接入的监控：运行时异常落本地缓冲、
+BaseException 不上报）、`JwtAutoRefreshTest`（中间件对过期 token 的静默续签——挂
 `jwt.auth.refresh` 的路由收到过期 token 应 200 并经 `authorization` 响应头下发新
 token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关联等 seeder 回归）、
 `RegressionTest`（幻影路由、logout 幂等、跨守卫过期续签、筛选字段对齐、登录限流等审查修复的回归）：
