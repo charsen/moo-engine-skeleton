@@ -8,16 +8,26 @@
 生态四仓库（moo-engine-skeleton / moo-scaffold / moo-system / moo-scaffold-cloud）
 **全部干净、全部已推送**，无任何未提交工作。
 
-最近两批（06-11 晚 ~ 06-12 早，已全部入 master）：
+最近批次（06-11 晚 ~ 06-12 晚，已全部入 master）：
 
 - **全面审查修复 + 第 9 章**：iResource 幻影路由、跨守卫过期续签、筛选死代码、
   登录专用限流、慢 SQL 开关、文档纠错；第 9 章「日常增量开发」9.1~9.9
   （文件名是 `docs/09-增量开发工作流.md`，H1 才叫「日常增量开发」——按文件名找）：
   加字段 / moo:adder / 移动端只读 Food + 守卫隔离实证 / FoodResource 链式字段控制。
-  测试 21 → **41 passed**，踩坑表扩到 **27 条**（含 3 个本批实测新挖的生成器坑 #25~#27）。
+  测试 21 → **43 passed**，踩坑表扩到 **27 条**（含 3 个本批实测新挖的生成器坑 #25~#27）。
 - **`cbc171e`（06-12 早）教程前半大修（README + docs 01-05）**：README 删 git-lfs
   虚假前置（docs/README 已明写「无需 git-lfs」）；01 拆解 PHP 8.2/8.3 矛盾；
   03 修 5 处事实错；05 开篇声明「适用代码状态」、Gate 伪代码补成可照抄实现并标注快照错位。
+- **`018e7c7` + `4f7cfb8`（06-12）监控标准件接入（部分）**：scaffold 3.9.0 拆分留下的
+  4 处遗留全清（ExceptionDispatcher 引用、死 env、死 config、docs/04/08 过时段）；
+  engine 显式 require moo-monitor-laravel；docs/04 §4.5 改写、docs/08 §8.2/§8.5 改写；
+  README 配套包表已提 push/mcp/migrate 三命令。
+- **本次（06-12 晚）监控接入收尾**：docs/01 新增 1.7 节（装包 + 配 .env + 故意抛异常 +
+  本地缓冲 + 推送云端，token `moo_5a8f9d8a03...` 已可用）；docs/10 新增第 10 章
+  「云端监控进阶」（聚合告警 / **AI 辅助处理 MCP 接入**全教程独有亮点 / ≤3.8 迁移 / 多项目管理）；
+  docs/README、docs/index.html、根 README、CLAUDE.md 同步更新章节表与进度。
+  **测试 43 passed**（新增 MonitorTest 2 个：runtime_exception_is_recorded_to_local_buffer + 
+  base_exception_is_not_reported）。
 
 > 术语速查（本节与第 7 节的黑话都有出处）：「iResource 幻影路由」→ docs 第 2 章
 > （02:172 附近的「幻影路由」说明）；「跨守卫过期续签」等审查修复项 → docs 第 7 章
@@ -78,7 +88,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed       # 种子账号两个，归属与验证见下方「首登自检」
 php artisan moo:account:add charsen --password=skeleton2026 --role=admin
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                 # ✅ 应 41 passed —— 环境一切正常的硬指标
+php artisan test                 # ✅ 应 43 passed —— 环境一切正常的硬指标
 ```
 
 **首登自检**（两个种子账号分属两个守卫、两个登录入口，各自拿到 token 即装好了）：
@@ -132,8 +142,8 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 | 3 | moo-system 商业化：LICENSE 授权条款、分发凭证机制（现状只能找作者人肉给源码，见第 2 节）。原列的「`--tag=moo-system-stubs` 修复」经核疑为过时待办——该 tag 已存在且可用（`MooeenSystemServiceProvider` 发布 6 个契约 stub，`Doctor` 仍引导使用），需作者确认已完成或补最小复现后再派工 | 作者决策 |
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |
 | 5 | Gitee Pages：仓库公开后，服务 → Pages → 部署目录 `docs/` | 公开后 |
-| 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9 章 + 守护测试 + 教程前半大修，21→41 passed），建议打 `0.3.0` | 作者决策 |
-| 7 | **监控标准件接入**（monitor+cloud，1.7 节+第 10 章+修 3.9.0 四处遗留）：完整执行计划见 `plans/monitor-cloud-integration.md`，等 cloud 项目 token | 可委托 AI |
+| 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9 章 + 守护测试 + 教程前半大修 + 监控接入，21→43 passed），建议打 `0.3.0` | 作者决策 |
+| 7 | **监控标准件接入**（monitor+cloud）：完整执行计划见 `plans/monitor-cloud-integration.md` §0.5。**已完成**：#1（docs/01 新增 1.7 节）、#5（docs/10 新增第 10 章）、#7 其余（docs/README、引导器 CHAPTERS、根 README、CLAUDE.md 同步）、#3/#4/#6（018e7c7 / 4f7cfb8 已清四处遗留）、#8（沿途引线 2 处：坑 #6 / #26）、监控 Feature 测试（MonitorTest 2 个方法，43 passed）。cloud token = `moo_5a8f9d8a03273ff0715ae232a660c0ba7bc2f325` 可用（作者提供）。**本待办已完成** | 已完成 ✅ |
 | 8 | 剩余工程活（可委托 AI）：最小 UploaderController——moo-system 头像表单的上传地址现指向不存在的路由（断链 404）；移动端 `PUT app/me/password` 改密码（零付费 track 的账号自管理） | 作者决策 |
 
 ## 7. 已知局限备忘

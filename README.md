@@ -1,55 +1,121 @@
 # moo-engine-skeleton
 
-一套 **Laravel 12 后端开发骨架**，把作者多年沉淀的业务代码结构提炼成一个「从 0 开始」的起点。
-配套一份可开源的新手教程：从空目录出发，一步步搭出带**代码生成器**、**系统管理模块**和
-**JWT 登录认证**的可运行后端——并且每一步都经过真机测试。
+**Laravel 12 后端开发骨架 + 配套新手教程**
 
-> 它与作者多个生产项目共用同一套 moo-* 包：开发期这些包不从 Packagist 安装，而是以
-> composer **path 仓库**的方式引用本仓库**同级目录**下的包源码（详见下文「配套包」）。
-> 本仓库就是按这套包搭出来的「骨架版」起点。
+从零开始，一步步搭建一个带**代码生成器**、**JWT 登录认证**和**完整系统管理**的 Laravel 后端——并且每一步都能真机跑通，不是纸上谈兵。
+
+## 这是什么
+
+这个仓库有两部分：
+
+1. **一个可运行的 Laravel 12 骨架项目**（在 `engine/` 目录）  
+   已接入 moo-scaffold 代码生成器 + JWT 认证 + moo-system 系统管理模块，是个「开箱即用」的起点。
+
+2. **一套完整的新手教程**（在 `docs/` 目录，带截图）  
+   从空目录出发，教你一步步搭出这个骨架。每一步都经过真机测试，跟着做就能跑起来。
+
+## 适合谁
+
+- **新手**：第一次用 Laravel 搭后端，不知道从哪开始
+- **想快速上手代码生成的**：看过 moo-scaffold 文档，但希望有个完整示例项目
+- **需要系统管理功能的**：不想从头写部门 / 人员 / 权限，直接用现成模块
+
+## 能学到什么
+
+跟完教程（主线 7 章 + 部署指引 + 增量开发 + 云端进阶），你会掌握：
+
+- Laravel 12 基础搭建（连 MariaDB、建库、配 .env）
+- **运行时监控采集与云端推送**（moo-monitor-laravel + moo-scaffold-cloud，含 AI 辅助处理）
+- moo-scaffold 代码生成器使用（YAML → Model / Controller / Migration）
+- JWT 登录认证（自建用户，零付费依赖，含生产加固）
+- 动作级授权（ACL，细到每个接口）
+- 双守卫隔离（后台 admin + 移动端 user）
+- 接入 moo-system 系统管理模块（部门 / 人员 / 角色）
+- 部署上线（nginx + supervisor + Redis）
+- 日常增量开发（改表 / 加接口 / 同步 ACL）
+
+教程共 10 章，前 6 章零商业依赖、全程可跑；第 7 章接入商业包 moo-system（可选）；第 8 章部署指引；第 9 章增量开发演练；第 10 章云端监控进阶。
+
+## 两种使用方式
+
+### 方式 A：直接用现成骨架（适合急着上手的）
+
+克隆本仓库，`engine/` 目录就是最终成品：
+
+### 方式 B：从零跟教程搭（适合想深入学习的）
+
+从空目录开始，一步步跟着 `docs/` 里的教程做：
+
+```bash
+# 第 1 章：安装 Laravel 12
+composer create-project "laravel/laravel:^12.0" engine
+
+# 第 2 章：接入 moo-scaffold 代码生成器
+# （需要先把 moo-scaffold clone 到同级目录）
+
+# 第 3~6 章：JWT 认证 + ACL + 双守卫
+# 第 7 章：接入 moo-system（可选）
+# 第 8 章：部署上线
+# 第 9 章：增量开发演练
+```
+
+教程入口：[docs/README.md](docs/README.md)（带「踩过的坑」速查表）
+
+推荐用**网页引导器**跟做（分步模式 + 进度记忆）：
+
+```bash
+cd docs
+php -S 127.0.0.1:9999
+# 浏览器打开 http://127.0.0.1:9999
+```
 
 ---
 
-## ✨ 这套骨架包含什么
+## 配套包（必读）
 
-从零搭到一个带 JWT 认证与动作级授权的 Laravel 12 后端，覆盖：
+本骨架依赖作者的另外几个包，**开发期这些包不从 Packagist 安装**，而是用 composer **path 仓库**引用**同级目录**的源码。
 
-1. **Laravel 12** 应用（放在 `engine/` 子目录），连接本机 MariaDB。
-2. **moo-scaffold** 代码生成器：用一份 YAML 设计数据表 → 一键生成 Model / Request /
-   Controller / 路由 / 迁移，并有内置的「数据库设计器 + 接口调试器」。
-3. **JWT 登录认证（自建最简用户，零付费依赖）**：登录签发、守卫校验、近过期自动续签、
-   生产级加固、动作级 ACL 授权、移动端双守卫隔离。
-4. **moo-system 系统管理模块（进阶/商业包，可选）**：部门 / 岗位 / 人员 / 角色 / 授权 /
-   登录管理 / 操作日志，最后一章接入——后台主体一键从自建用户切换为 Personnel。
-
-## 📦 配套包
-
-作者另外开发的插件包。`engine/composer.json` 的 `repositories` 用 **path 仓库**指向
-`../../moo-scaffold` 与 `../../moo-system`——即这两个包仓库**必须以固定目录名 clone 到
-本仓库的同级目录**（同 [`HANDOFF.md`](./HANDOFF.md) 第 2 节），像这样：
+**目录约定**（必须严格按这个结构 clone）：
 
 ```
 wwwroot/                       # 任意父目录
 ├── moo-engine-skeleton/       # 本仓库
-├── moo-scaffold/              # git clone git@gitee.com:charsen/moo-scaffold.git
-├── moo-system/                # git clone git@gitee.com:charsen/moo-system.git（商业包，需授权）
-└── moo-scaffold-cloud/        # 按需
+├── moo-scaffold/              # 必装（开源，MIT）
+├── moo-system/                # 可选（商业包，第 7 章用）
+└── moo-monitor-laravel/       # 按需（监控采集，scaffold 3.9+ 自动依赖）
 ```
 
-| 包 | 定位 | 是否必装 | 作用 |
+**如何 clone**：
+
+```bash
+cd ~/wwwroot  # 你的工作目录
+
+# 1. 本仓库
+git clone git@gitee.com:charsen/moo-engine-skeleton.git
+
+# 2. moo-scaffold（必装，开源但尚未发布到 Packagist）
+git clone git@gitee.com:charsen/moo-scaffold.git
+
+# 3. moo-system（可选，商业包需授权）
+git clone git@gitee.com:charsen/moo-system.git
+
+# 4. moo-monitor-laravel（可选，scaffold 3.9+ 自动依赖）
+git clone git@gitee.com:charsen/moo-monitor-laravel.git
+```
+
+| 包 | 定位 | 是否必装 | 说明 |
 |---|---|---|---|
-| `moo-scaffold` | **开源（MIT，规划发布到 Packagist，目前尚未发布——只能 clone 到同级目录走 path 安装）** | 必装（教程第 2 章接入） | 基础代码生成脚手架，含可视化数据库设计、接口调试 |
-| `moo-system` | **进阶/商业包**（教程第 7 章可选接入） | 可选 | 系统管理业务模块（部门、岗位、人员、角色等） |
-| `moo-scaffold-cloud` | 配套云服务 | 可选（教程九章不覆盖其搭建） | 云端的异常 / 慢 SQL / todos 管理平台，支持多项目 |
+| `moo-scaffold` | 开源（MIT，规划发布到 Packagist） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
+| `moo-system` | 进阶 / 商业包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
+| `moo-monitor-laravel` | 开源（MIT） | 按需 | 监控采集 SDK（scaffold 3.9+ 自动依赖，单独用 Laravel 也可装） |
 
-> 关于 `moo-scaffold-cloud`：它是单独部署的云端平台，不是 composer 包，本教程不讲它的搭建。
-> 但 engine 经由 moo-scaffold（3.9.0 起依赖 moo-monitor-laravel 提供监控）已自带三条
-> 对接命令：`moo:cloud:push`（把本地 runtime 错误 / 慢 SQL 增量推送上云）、`moo:cloud:mcp`
->（以 MCP server 形式把云端数据暴露给 AI）、`moo:monitor:migrate`（≤3.8 旧数据迁移）。
-> 接入提示见第 8 章的慢 SQL 一节及 `HANDOFF.md`；
-> 不接云端不影响本教程任何一步。
+**为什么用 path 仓库？**
 
-## 🧰 环境要求
+开发联调时改包源码立即生效，不用 commit/tag/push。生产部署再切回 vcs + 版本锁定。详见各包的 HANDOFF.md。
+
+---
+
+## 环境要求
 
 | 软件 | 版本（实测） | 说明 |
 |---|---|---|
@@ -61,9 +127,10 @@ wwwroot/                       # 任意父目录
 
 ## 🚀 快速开始
 
-> 先理清教程的「章」与「主线」：教程共 **9 章**——**第 1~7 章是主线**（其中**第 1~6 章
+> 先理清教程的「章」与「主线」：教程共 **10 章**——**第 1~7 章是主线**（其中**第 1~6 章
 > 零商业依赖、全程可跑**，第 7 章接入商业包 moo-system），**第 8 章是部署指引**，
-> **第 9 章是增量开发演练**。下文「主线七章 + 部署指引 + 第 9 章」即指这 9 章。
+> **第 9 章是增量开发演练**，**第 10 章是云端监控进阶**。下文「主线七章 + 部署指引 + 
+> 第 9 章 + 第 10 章」即指这 10 章。
 
 **方式 A：直接用本仓库**（最终态，即 9 章全部做完后的成品）：
 
@@ -91,7 +158,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
 php artisan moo:account:add <用户名> --password=<密码> --role=admin   # scaffold 调试台账号（自定，seed 不创建）
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                                    # 41 passed（用 sqlite 内存库，见下方说明）
+php artisan test                                    # 43 passed（用 sqlite 内存库，见下方说明）
 ```
 
 > 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，
