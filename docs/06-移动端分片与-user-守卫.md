@@ -28,8 +28,7 @@
 > `engine/tests/TestCase.php` 和 `engine/app/Admin/Controllers/AuthController.php`
 > （这两个都是第 7 章 Personnel 最终版）**不能照搬**，差异在用到处各有 📦 注。
 
-新建 `app/Api/Controllers/AuthController.php`，完整代码如下（与后台版的差异见注释）
-`engine/app/Api/Controllers/AuthController.php`，这就是最终版）。
+新建 `app/Api/Controllers/AuthController.php`（完整实现见仓库 `engine/app/Api/Controllers/AuthController.php`，这就是最终版，差异见下文注释）。
 骨架仍是熟悉的「查用户 → `Hash::check` → 签发」，与第 3 章的后台版相比有**三个差异**
 （仓库文件头注释列的就是这三条）：
 
@@ -122,7 +121,7 @@ echo $P | base64 -d
 # ③ 各回各家 200
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"   # 200
 
-# ④ 双向隔离 401（ADMIN_TOKEN 按第 3 章 3.6 的 ① 登录后台拿）
+# ④ 双向隔离 401（ADMIN_TOKEN 按第 3 章 3.6 的 ② 登录后台拿）
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $ADMIN_TOKEN"        # 401
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
 

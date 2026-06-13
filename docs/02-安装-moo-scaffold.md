@@ -133,8 +133,12 @@ php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令
 > **前置依赖自检**（避免后续 `moo:free` 报错）：
 > 
 > scaffold 生成的 Model 需要两个包：`tucker-eric/eloquentfilter`（查询过滤器）和
-> `godruoyi/php-snowflake`（雪花 ID）。scaffold 3.9.0+ 的 `composer.json` 已声明对它们的依赖，
-> 跟着 scaffold 一起自动装好。但如果你的 scaffold 版本 <3.9，需要手动补装：
+> `godruoyi/php-snowflake`（雪花 ID）。本骨架的 `engine/composer.json` 已经把这两个包直接写进
+> `require`（它们也是 `moo-system` 的依赖），跟着前面的 `composer install` / `composer update`
+> 一起装好——**scaffold 包本身并不声明这两个依赖**。
+> 
+> 全新项目（没有预填 composer.json）里若缺这两个包，`moo:free` 生成的 Model 会报
+> `Trait "EloquentFilter\Filterable" not found` / 找不到 `Godruoyi\Snowflake`，手动补装即可：
 > 
 > ```bash
 > composer show tucker-eric/eloquentfilter  # 检查是否已装
@@ -213,6 +217,10 @@ Route::get('/', static fn () => 'Hello app api ~');
     },
 )
 ```
+
+> ⚠️ 上面闭包里用了 `Route::`，但 Laravel 12 默认的 `bootstrap/app.php` **没有** import Route 门面。
+> 跟做时务必在该文件顶部补一行 `use Illuminate\Support\Facades\Route;`，否则运行即
+> `Fatal error: Class "Route" not found`（仓库 `engine/bootstrap/app.php` 顶部就有这行）。
 
 生成的后台控制器路由用了 `Route::iResource(...)` 宏，先注册在
 `app/Providers/AppServiceProvider.php` 的 `boot()` 里（比 `Route::resource`
@@ -317,7 +325,7 @@ php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i
 生成的目录结构：
 ```
 app/Models/Food/{Food.php, Filters/FoodFilter.php, Traits/FoodTrait.php, Enums/{FoodCategory,FoodStatus}.php}
-app/Models/Traits/{UsingSnowFlakePrimaryKey.php, HasOperator.php}   # 雪花 ID 等约定 trait（自动生成）
+app/Models/Traits/UsingSnowFlakePrimaryKey.php   # 雪花 ID 约定 trait（自动生成；HasOperator.php 仅当表含 creator_id/updater_id 时才生成，本章 Food.yaml 没有这两字段，故不会出现）
 app/Admin/Controllers/Food/{FoodController.php, Traits/FoodTrait.php}
 app/Admin/Requests/Food/Food/{Index,Store,Update,Create,Edit,DestroyBatch}Request.php
 app/Admin/Requests/Food/Food/FoodRequestTrait.php   # 各 Request 共用的表名/枚举值 trait（也是生成的）

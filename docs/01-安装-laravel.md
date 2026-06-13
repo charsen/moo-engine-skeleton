@@ -243,6 +243,11 @@ MOO_MONITOR_CLOUD_TOKEN=moo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 > 注册项目后获得。免费档支持 ≤3 个项目，注册流程：登录 → 新建项目 →
 > 复制接入 token。**没有 token 也不影响本地采集**——下面故意触发的异常仍然会落盘
 > `storage/moo-monitor/`，只是暂时推不到云端；拿到 token 后补配即可。
+>
+> **方式 A 读者注意**：成品 `engine/.env.example` 默认只含 `MOO_MONITOR_SQL_SLOW_*` 两行，
+> **不含**上面的 `MOO_MONITOR_CLOUD_ENABLED` / `MOO_MONITOR_CLOUD_TOKEN`——这是有意的：
+> `config/moo-monitor.php` 里 `cloud.enabled` 默认 `false`，不配也能本地落盘。你在
+> `.env.example` 里找不到这两项不是漏配，按需自己加即可。
 
 清理配置缓存：
 
@@ -272,20 +277,31 @@ php artisan config:clear
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
 ```
 
-**新开一个终端窗口**，用 curl 访问一个不存在的路由（会触发 404，但 404
-在 `bootstrap/app.php` 的 `dontReport` 列表里，不会被记录）。我们需要一个
-**真实的 5xx 异常**。最简单的方法：在 tinker 里手动抛：
+用 curl 访问一个不存在的路由（会触发 404，但 404 在 `bootstrap/app.php` 的
+`dontReport` 列表里，不会被记录）。我们需要一个**真实的 HTTP 5xx 异常**。
 
-```bash
-php artisan tinker
->>> throw new \RuntimeException('测试监控：故意抛出的异常');
-# 看到异常堆栈后，Ctrl+D 退出 tinker
+> **为什么不能用 `php artisan tinker` 或 `php -r` 手动抛？** 这两条路径都验证不了落盘：
+> tinker（Psy Shell）的 REPL 自己 catch 未捕获的 throw 并渲染，根本不经过 Laravel
+> 异常处理器的 `report()`，而监控正是挂在 `report()` → `reportable` 链上的；退一步说，
+> 即便走到分发，`config/moo-monitor.php` 的 `exception.cli_experiment_skip`（默认 `true`）
+> 会专门过滤掉 tinker / `php -r` 里经 `eval` 执行、异常文件名为 `Command line code` 的
+> 「实验异常」——这是包作者刻意设计的。所以必须用**真实的 HTTP 请求**触发。
+
+最简单的方法：在 `routes/web.php` 里**临时**加一条会抛异常的路由（验证完即删）：
+
+```php
+// routes/web.php —— 临时验证用，验证完务必删掉这一行
+Route::get('/__boom', fn () => throw new \RuntimeException('测试监控：故意抛出的异常'));
 ```
 
-或者访问一个故意写错的控制器方法（第 2 章之后才有控制器，现在还没有）。
-这里用 **tinker 手动抛**最直接。
+**新开一个终端窗口**，用 curl 访问它（会得到 HTTP 500）：
 
-查看本地缓冲：
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088/__boom   # 期望 500
+```
+
+这条异常源自 `routes/web.php`（不是 `Command line code`），且走完整的 `report()` →
+`reportable` 链，不会被 `cli_experiment_skip` 过滤，因此会落盘。查看本地缓冲：
 
 ```bash
 ls storage/moo-monitor/runtimes/open/
@@ -312,13 +328,16 @@ exception:
   file: ...
   line: ...
 request:
-  method: ...
-  url: ...
+  method: GET
+  url: 'http://127.0.0.1:8088/__boom'
   ip: 127.0.0.1
 context:
   env: local
   project: moo-engine-skeleton
 ```
+
+> **验证完务必删掉临时路由**：回到 `routes/web.php`，删掉上面那条 `/__boom` 路由
+> （它只是用来制造一次真实异常的，绝不能留在代码里）。
 
 **从此报错有地方看了。** 即使还没接入云端，本地 `storage/moo-monitor/runtimes/`
 就是你的异常档案馆——后续章节任何时候报错，先来这里看 `open/` 目录下最新的文件，
@@ -352,7 +371,7 @@ php artisan moo:cloud:push             # 真实推送
 
 ## 本章产出
 
-- `engine/` 下一个可运行的 Laravel 12（12.61.1）应用；
+- `engine/` 下一个可运行的 Laravel 12 应用（小版本号以实际安装为准，`^12.0` 内均可）；
 - 连上本机 MariaDB 的 `moo_skeleton` 库，基础表迁移完成；
 - 真实浏览器访问欢迎页通过（HTTP 200）；
 - **监控已接入**（moo-monitor-laravel），运行时异常自动记录到本地缓冲，可推送云端。

@@ -184,7 +184,8 @@ public function logout(): JsonResponse
 > 两处不矛盾，是各自场景的正确选择。
 >
 > refresh 本身就接受"过期但在续期窗口内"的 token，不需要前置强制认证。
-> 📦 第 7 章接入 moo-system 后，这里还会补一行 `UpdateLoginTokenJob`（同步包里的登录记录）。
+> 📦 第 7 章接入 moo-system 后，这里的 `refresh()` 会改为接收 `Request $request` 参数，
+> 并在续签成功后补一段 `if (! empty($request->bearerToken())) { UpdateLoginTokenJob::dispatch($request->bearerToken(), $token); }`（同步包里的登录记录）。
 
 ## 4.5 异常采集与节流（`bootstrap/app.php`）
 

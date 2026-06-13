@@ -490,7 +490,7 @@ $('#reset-progress').onclick = () => {
 
 /* ================= 启动：预取全部章节以计算总进度，再进入上次位置 ================= */
 (async () => {
-  try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { if (epoch !== renderEpoch) return; return showFetchError(e); }
+  try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { return showFetchError(e); }
   // 从有进度的最后一章继续，否则从总览开始
   let entry = 'readme';
   for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;
