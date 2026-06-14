@@ -258,7 +258,8 @@ function renderMd(md) {
     if (/^#{1,4} /.test(line)) {                              // 标题
       flushPara(para);
       const level = line.match(/^#+/)[0].length;
-      out.push(`<h${level}>${inline(escapeHtml(line.replace(/^#+ /, '')))}</h${level}>`);
+      const htext = line.replace(/^#+ /, '');
+      out.push(`<h${level} id="${slugify(htext)}">${inline(escapeHtml(htext))}</h${level}>`);
       i++; continue;
     }
     if (/^---+\s*$/.test(line)) { flushPara(para); out.push('<hr>'); i++; continue; }
@@ -418,7 +419,8 @@ async function show(chapterId, opts = {}) {
   } else {
     $('#inner').innerHTML = `<div class="md">${renderMd(data.md)}</div>`;
   }
-  $('#content').scrollTop = 0;
+  if (opts.anchor) scrollToAnchor(opts.anchor);
+  else $('#content').scrollTop = 0;
   bindCopyButtons();
   renderSidebar();
 }
@@ -437,15 +439,42 @@ php -S 127.0.0.1:9999        # 或 python3 -m http.server 9999</pre>
 }
 
 /* ================= 交互 ================= */
-// 站内 .md 链接（README 的章节表等）转为应用内跳转
+// 标题锚点：renderMd 给每个标题生成 slug id，下面据此把 #fragment 滚到对应标题
+function slugify(s) {
+  return String(s).trim().toLowerCase()
+    .replace(/[^\w一-龥\- ]+/g, '')   // 去标点/emoji，保留中英数 + CJK + 连字符 + 空格
+    .replace(/\s+/g, '-');
+}
+function scrollToAnchor(frag) {
+  const raw = decodeURIComponent(frag);
+  const slug = slugify(raw);
+  const el = document.getElementById(raw) || document.getElementById(slug) ||
+    [...document.querySelectorAll('#inner h1,#inner h2,#inner h3,#inner h4')]
+      .find(h => h.id === slug || slugify(h.textContent) === slug);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  else $('#content').scrollTop = 0;
+}
+
+// 站内 .md 链接（README 的章节表等）转为应用内跳转；#锚点滚到对应标题
 $('#content').addEventListener('click', e => {
   const a = e.target.closest('a');
   if (!a) return;
   const href = a.getAttribute('href') || '';
   if (/^https?:|^javascript:/.test(href)) return;
-  const file = decodeURIComponent(href.replace(/^\.\//, '').split('#')[0]);
-  const ch = CHAPTERS.find(c => c.file === file);
-  if (ch) { e.preventDefault(); show(ch.id); }
+
+  // 纯页内锚点（#xxx）：在当前章内滚动，不切章
+  if (href.startsWith('#')) { e.preventDefault(); scrollToAnchor(href.slice(1)); return; }
+
+  const [path, frag] = decodeURIComponent(href.replace(/^\.\//, '')).split('#');
+  const ch = CHAPTERS.find(c => c.file === path);
+  if (ch) { e.preventDefault(); show(ch.id, { anchor: frag }); return; }
+
+  // 站内相对链接但不对应任何一章（如 ../README.md 指向仓库根）：别让浏览器顺着
+  // href 跳走——会跳出 docs/ 服务根、脱出引导器（404）。拦下并提示去仓库看。
+  if (!/^\//.test(href)) {
+    e.preventDefault();
+    alert('该链接指向仓库根目录的文件（' + path + '），网页引导器只服务 docs/ 目录；请直接在代码仓库里查看它。');
+  }
 });
 
 $('#chapter-list').addEventListener('click', e => {
