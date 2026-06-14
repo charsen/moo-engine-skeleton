@@ -256,6 +256,12 @@ function renderMd(md) {
         `<pre><code>${escapeHtml(buf.join('\n'))}</code></pre></div>`);
       continue;
     }
+    if (/^<!--/.test(line)) {                                 // HTML 注释：编辑者可见、不渲染
+      flushPara(para);
+      while (i < lines.length && !/-->/.test(lines[i])) i++;  // 跨多行直到 -->
+      i++;
+      continue;
+    }
     if (/^#{1,4} /.test(line)) {                              // 标题
       flushPara(para);
       const level = line.match(/^#+/)[0].length;

@@ -11,6 +11,9 @@ git clone <本仓库地址> moo-engine-skeleton   # 地址以作者提供为准
 cd moo-engine-skeleton
 ```
 
+<!-- TODO(锚点·新手压测遗留#10)：上面 ../README.md 可补 #fragment 直达根 README 的「🚀 快速开始」节，
+     但该标题含 emoji，gitee 与 github 的锚点 slug 规则不同——需先在 gitee 渲染页实测真实 slug 再补；
+     猜错的锚点比现在的裸链更糟（裸链至少落在文件顶部、非死链）。本注释由 renderMd 跳过、不在引导器里显示。 -->
 教程有两种走法，定义在[仓库根 README 的「快速开始」](../README.md)：
 
 - **方式 A：直接用本仓库**——`engine/` 已是最终成品，装好依赖即可运行（需 PHP 8.3；且最终态接入了商业包 moo-system，拿不到其源码时 `composer install` 会失败）；
