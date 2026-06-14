@@ -223,7 +223,7 @@ composer update charsen/moo-monitor-laravel --with-all-dependencies
 
 ```bash
 php artisan list | grep "moo:cloud"
-# 应能看到 moo:cloud:push 和 moo:cloud:mcp
+# 应能看到 moo:cloud:push / moo:cloud:test / moo:cloud:mcp
 ```
 
 ### 1.7.2 配置 .env
@@ -345,7 +345,41 @@ context:
 
 ### 1.7.5 推送到云端（可选）
 
-如果你已经拿到 cloud token 并配到 `.env`，可以把刚才的异常推送上云：
+如果你已经拿到 cloud token 并配到 `.env`，先一键自检整条管道，确认无误后再推真实数据上云。
+
+**先自检**——不用等真异常发生，`moo:cloud:test` 直接推一条自检 runtime + 一条自检慢 SQL
+走真实接口，把「配置 → 连通 → 鉴权 → 推送」四步逐个走一遍并分别反馈，哪一步断一目了然：
+
+```bash
+php artisan moo:cloud:test             # 完整自检（runtime + 慢 SQL）
+# 只测一类：--type=runtimes / --type=slow_sql
+# 加 --resolve：推送后在云端把自检 runtime 自动标记已解决（默认保留「未处理」，便于亲眼确认数据已到达）
+```
+
+输出示例（token 会自动打码，不落终端 / CI 日志）：
+
+```
+moo-monitor 云端连通性自检
+────────────────────────────────────────────────
+① 配置检查
+   云端地址  : https://sc.mooeen.com
+   接入 token : moo_************xxxx
+   采集开关  : 已开启
+② 连通与鉴权(心跳)
+   ✓ 心跳正常:云端可达、token 有效。
+③ 推送一条自检 runtime
+   ✓ 已推送(saved=1, hash=……)。
+④ 推送一条自检慢 SQL
+   ✓ 已推送(saved=1, hash=……)。
+────────────────────────────────────────────────
+✓ 自检通过:接入配置有效,推送管道通畅。
+```
+
+> 没配 / token 错 / 网络不通时，它会在对应步骤明确报错并给排查项（如「✗ 心跳失败 ——
+> 无法连通云端，或 token 无效」），比 `moo:cloud:push` 推完一片沉默好定位得多。自检记录
+> 落在云端「未处理」，去 runtimes 列表即可亲眼确认数据已到达。
+
+**自检通过后**，再把刚才真实采集的异常推上云：
 
 ```bash
 php artisan moo:cloud:push --dry-run   # 预演，只统计待推送数量
