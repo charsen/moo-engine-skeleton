@@ -184,6 +184,13 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 新手最怕「不知道哪儿出错了、在哪看、连日志文件在哪都不知道」——监控先行，
 后续章节的所有报错都有了「去哪看」的答案。
 
+> **新手最常担心的两件事，这个包都替你兜住了：**
+> - **失败隔离**：监控是**旁路采集**，写盘失败、云端不通等任何环节出错都被 `SafelyLogs`
+>   静默吞掉，**绝不拖垮、也不拖慢你的业务请求**——装它只多一层保险，不引入新风险。
+> - **自动脱敏**：异常 / 慢 SQL 落盘**之前**，URL query、payload 键名、SQL 列名里命中
+>   `password / pwd / token / secret / api_key / authorization`（子串、不分大小写）的值会被抹成 `***`，
+>   所以连本地 `storage/moo-monitor/` 的 yaml 都不含明文密钥。自定义敏感字段见 [第 10 章 §10.6.4](./10-云端监控进阶.md)。
+
 ### 1.7.1 安装 moo-monitor-laravel
 
 这个包的定位：**headless 采集 SDK**（不提供本地页面，采集 + 缓冲 + 推送云端），
@@ -286,6 +293,9 @@ PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-rel
 > 即便走到分发，`config/moo-monitor.php` 的 `exception.cli_experiment_skip`（默认 `true`）
 > 会专门过滤掉 tinker / `php -r` 里经 `eval` 执行、异常文件名为 `Command line code` 的
 > 「实验异常」——这是包作者刻意设计的。所以必须用**真实的 HTTP 请求**触发。
+>
+> 同理，`exception.console_input_skip`（默认 `true`）会跳过 artisan 命令打错、参数缺失这类
+> **Console 用法错**——那是你敲错命令、不是应用 bug，没必要污染异常档案。
 
 最简单的方法：在 `routes/web.php` 里**临时**加一条会抛异常的路由（验证完即删）：
 
