@@ -176,9 +176,12 @@ php artisan serve --host=127.0.0.1 --port=8088
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 ```
 
-## 1.7 【可选】接入 moo-monitor-laravel（监控先行）
+## 1.7 接入 moo-monitor-laravel（监控先行 · 标准件必装）
 
-**监控与 JWT/限流/操作日志同级，是本骨架约定的强制标准件。**
+**监控与 JWT/限流/操作日志同级，是本骨架约定的强制标准件——接入本身＝必选，不是可选项。**
+（`engine/composer.json` 把它作为硬 `require`，缺它 `composer install` 直接失败。）
+**只有**后面 §1.7.5 的「**推送到云端**」才是可选——本地落盘到 `storage/moo-monitor/`
+不依赖任何云端 token，没 token 照样完整可用。
 本节在裸 Laravel 上接入 `charsen/moo-monitor-laravel` 包，配置好后，后端运行时异常和慢 SQL
 会自动记录到 `storage/moo-monitor/`，并可推送到 moo-scaffold-cloud 云端集中查看。
 新手最怕「不知道哪儿出错了、在哪看、连日志文件在哪都不知道」——监控先行，
