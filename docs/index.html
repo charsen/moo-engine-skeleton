@@ -123,6 +123,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .md blockquote.warn { background: var(--warn-bg); border-left-color: var(--warn-line); }
 .md blockquote.note { background: #eef4fb; border-left-color: #4a90d9; }
+.md blockquote.tip { background: #f3effb; border-left-color: #8b6fc9; }
 .md blockquote p { margin: .3em 0; }
 .md table { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: .88em; }
 .md th, .md td { border: 1px solid var(--line); padding: 7px 11px; text-align: left; vertical-align: top; }
@@ -269,8 +270,10 @@ function renderMd(md) {
       while (i < lines.length && /^> ?/.test(lines[i])) { buf.push(lines[i].replace(/^> ?/, '')); i++; }
       const inner = renderMd(buf.join('\n'));
       const text = buf.join('');
-      // 三类引用块：📦=最终态/版本提示（蓝），⚠/坑=警告（黄），其它=普通说明（绿）
-      const cls = text.trimStart().startsWith('📦') ? ' note' : (/⚠|坑 #/.test(text) ? ' warn' : '');
+      // 四类引用块：📦=最终态/版本提示（蓝），⚠=警告（黄），坑#=踩坑引用（紫），其它=普通说明（绿）
+      const cls = text.trimStart().startsWith('📦') ? ' note'
+        : (/⚠/.test(text) ? ' warn'
+        : (/坑\s*#/.test(text) ? ' tip' : ''));
       out.push(`<blockquote class="md${cls}">${inner}</blockquote>`);
       continue;
     }
