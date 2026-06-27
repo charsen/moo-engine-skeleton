@@ -70,5 +70,5 @@
 
 ## 6. 阻塞项与验收
 
-- **阻塞**：cloud 项目 token 由作者提供（sc.mooeen.com /app 面板签发）。没 token 时：本地落盘部分（含故意 throw 的真机实录）照做，1.7 云端小节与第 10 章的面板实录**留空位并标注 TODO**，不要贴编造的截图/输出。
+- **阻塞**：cloud 项目 token 由作者提供（c.mooeen.com /app 面板签发）。没 token 时：本地落盘部分（含故意 throw 的真机实录）照做，1.7 云端小节与第 10 章的面板实录**留空位并标注 TODO**，不要贴编造的截图/输出。
 - **验收**：① 测试全绿且含监控新测试；② 真机实录：throw → `storage/moo-monitor/runtimes/` 出现记录（有 token 则 + push 后云端可见）；③ 4 处遗留清零（全仓 grep `ExceptionDispatcher|SCAFFOLD_SQL_SLOW|SCAFFOLD_RUNTIME|SCAFFOLD_CLOUD` 仅允许出现在本计划文档）；④ 脱敏 grep 为空；⑤ 引导器能正常打开第 10 章。

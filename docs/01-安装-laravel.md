@@ -249,7 +249,7 @@ MOO_MONITOR_CLOUD_ENABLED=true
 MOO_MONITOR_CLOUD_TOKEN=moo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-> `MOO_MONITOR_CLOUD_TOKEN` 需要在 moo-scaffold-cloud（`https://sc.mooeen.com`）
+> `MOO_MONITOR_CLOUD_TOKEN` 需要在 moo-scaffold-cloud（`https://c.mooeen.com`）
 > 注册项目后获得。免费档支持 ≤3 个项目，注册流程：登录 → 新建项目 →
 > 复制接入 token。**没有 token 也不影响本地采集**——下面故意触发的异常仍然会落盘
 > `storage/moo-monitor/`，只是暂时推不到云端；拿到 token 后补配即可。
@@ -375,7 +375,7 @@ php artisan moo:cloud:test             # 完整自检（runtime + 慢 SQL）
 moo-monitor 云端连通性自检
 ────────────────────────────────────────────────
 ① 配置检查
-   云端地址  : https://sc.mooeen.com
+   云端地址  : https://c.mooeen.com
    接入 token : moo_************xxxx
    采集开关  : 已开启
 ② 连通与鉴权(心跳)
@@ -410,7 +410,7 @@ php artisan moo:cloud:push             # 真实推送
 +----------+------+------+------+------------------+
 ```
 
-登录 `https://sc.mooeen.com`，在「运行时异常」页面能看到刚才推上去的记录，
+登录 `https://c.mooeen.com`，在「运行时异常」页面能看到刚才推上去的记录，
 点开能查看详情、标记处理状态、添加备注。**云端的进阶用法放在第 10 章**
 （聚合告警、AI 辅助处理等），本章只走通「本地采集 → 云端可见」的基本闭环。
 
