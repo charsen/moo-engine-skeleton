@@ -147,7 +147,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
 php artisan moo:account:add <用户名> --password=<密码> --role=admin   # scaffold 调试台账号（自定，seed 不创建）
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                                    # 43 passed（用 sqlite 内存库，见下方说明）
+php artisan test                                    # 45 passed（用 sqlite 内存库，见下方说明）
 ```
 
 > 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，

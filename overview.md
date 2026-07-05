@@ -28,7 +28,7 @@
 | 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
 | 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
-| 测试 | PHPUnit 11（无 Pest），`php artisan test` 43 passed | Feature 10 个文件共 43 个测试方法，覆盖双守卫认证、ACL、移动端全链路、增量开发回归与监控采集 |
+| 测试 | PHPUnit 11（无 Pest），`php artisan test` 45 passed | Feature 11 个文件共 44 个测试方法 + Unit 1 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
 
 ## 三、总体架构
 
@@ -162,7 +162,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| Feature 测试（10 文件 43 方法） | `AuthTest`（Personnel 后台认证）、`ApiAuthTest`（User 移动端认证）、`FoodAclTest`（角色制 ACL）、`JwtAutoRefreshTest`（无感续签）、`RegressionTest`（回归集）、`SeederIntegrityTest`（种子数据完整性）、`FoodIncrementalTest` / `ApiFoodTest`（第 9 章增量产物）、`MonitorTest`（监控采集，第 1.7 节）、`ExampleTest`；`php artisan test` 43 passed 全绿 |
+| Feature 测试（11 文件 44 方法） | `AuthTest`（Personnel 后台认证）、`ApiAuthTest`（User 移动端认证）、`FoodAclTest`（角色制 ACL）、`JwtAutoRefreshTest`（无感续签）、`RegressionTest`（回归集）、`SeederIntegrityTest`（种子数据完整性）、`FoodIncrementalTest` / `ApiFoodTest`（第 9 章增量产物）、`MonitorTest`（监控采集，第 1.7 节）、`UploadTest`（头像/附件上传端点）、`ExampleTest`；`php artisan test` 45 passed 全绿 |
 | 跨进程行为模拟 | 测试基类 `tests/TestCase.php` 的 `freshJwtProcess()` 用 `forgetInstance` 重置整条 jwt 服务链单例（`tymon.jwt.*` + `auth.driver`），使同进程测试能复现真实跨进程的续签丢 claim 问题 |
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |

@@ -75,6 +75,11 @@ mysql --version   # MariaDB 12.x 客户端
 composer create-project "laravel/laravel:^12.0" engine --no-interaction
 ```
 
+> 如果这里报 `copy(): ... errno=28 No space left on device`，先清理磁盘空间
+> （常见是 Composer 缓存、旧 `vendor/`、Docker 镜像或下载目录占满）。这类失败通常已经留下
+> 一个半成品 `engine/`，重跑前先 `rm -rf engine` 或 `mv engine engine.failed`，否则下一次会变成
+> “目录非空”的错误。
+
 装完后实测版本：
 
 ```bash

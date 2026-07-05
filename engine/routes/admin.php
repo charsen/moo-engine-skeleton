@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 use App\Admin\Controllers\AuthController;
 use App\Admin\Controllers\Food\FoodController;
+use App\Admin\Controllers\UploadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn () => 'Hello admin api ~');
@@ -36,6 +37,8 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
     Route::iResource('food', FoodController::class);
 
     Route::post('food/{id}/toggle-status', [FoodController::class, 'toggleStatus']);
+    Route::post('upload/image', [UploadController::class, 'image'])->name('upload.image');
+    Route::post('upload/file', [UploadController::class, 'file'])->name('upload.file');
 
     // :insert_code_here:do_not_delete
 });
