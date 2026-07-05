@@ -198,37 +198,16 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 ### 1.7.1 安装 moo-monitor-laravel
 
 这个包的定位：**headless 采集 SDK**（不提供本地页面，采集 + 缓冲 + 推送云端），
-MIT 协议，目标发布到 Packagist。但目前尚未公开发布，**本节只能用线上 VCS 仓库接入**；
-不能直接裸跑 `composer require charsen/moo-monitor-laravel`。
+MIT 协议，目标发布到 Packagist。Packagist 目标版本同步完成后，直接用 Composer 安装即可。
 
-**前置条件**：你的 Gitee 账号已经有 `charsen/moo-monitor-laravel` 仓库访问权，
-本机 SSH key 也已加入 Gitee。拿不到仓库访问权的读者，本节只能「读通」、
-跑不起来——包发布到 Packagist 后才可以一行 `composer require charsen/moo-monitor-laravel`。
-
-编辑 `engine/composer.json`，在 `"require"` 块里追加（不是整段替换）：
-
-```json
-"require": {
-    "charsen/moo-monitor-laravel": "dev-master as 0.1.99"
-}
-```
-
-在 `"repositories"` 块里追加（如果还没有这个块，就新建）：
-
-```json
-"repositories": {
-    "monitor": { "type": "vcs", "url": "git@gitee.com:charsen/moo-monitor-laravel.git" }
-}
-```
-
-> **包发布后**（正式上 Packagist），直接 `composer require charsen/moo-monitor-laravel`，
-> 不需要声明 repositories。
-
-安装：
+安装（在 `engine/` 目录执行；Packagist 目标版本可解析后使用）：
 
 ```bash
-composer update charsen/moo-monitor-laravel --with-all-dependencies
+composer require "charsen/moo-monitor-laravel:^0.1"
 ```
+
+> 当前过渡期若 Packagist 还找不到该包，可临时在 `composer.json` 的 `repositories`
+> 里配置 `git@gitee.com:charsen/moo-monitor-laravel.git` 的 VCS 仓库；发布同步完成后删掉该配置。
 
 验证命令已注册：
 

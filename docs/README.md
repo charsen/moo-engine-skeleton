@@ -42,8 +42,8 @@ cd moo-engine-skeleton
 | Node / npm | Node 26 / npm 11 | **整行可选**：教程第 1-10 章均不涉及前端资源构建（不执行任何 npm 命令），可完全不装；`engine/` 已自带 vite/tailwind 构建配置（`package.json` + `vite.config.js`），仅本教程用不到 |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | **无需 git-lfs**（本仓库不使用 LFS） |
-| moo-scaffold 仓库访问权 | dev-master | **第 2 章起必需**。开源包（MIT，规划发 Packagist），但**尚未正式发布**。第 2 章通过线上 VCS 仓库 `git@gitee.com:charsen/moo-scaffold.git` 接入，别名 `dev-master as 3.999.0`。当前仓库私有，需联系作者申请协作者权限并配置好 Gitee SSH key；裸 `composer require charsen/moo-scaffold` 会因为尚未发布到 Packagist 而失败。moo-system 为第 7 章的**商业包**（可选，同样通过 VCS 仓库接入） |
-| moo-monitor-laravel 仓库访问权 | dev-master | **非可选**：第 1.7 节通过线上 VCS 仓库 `git@gitee.com:charsen/moo-monitor-laravel.git` 接入，别名 `dev-master as 0.1.99`。当前仓库私有，需联系作者申请协作者权限并配置好 Gitee SSH key；裸 `composer require charsen/moo-monitor-laravel` 会因为尚未发布到 Packagist 而失败。 |
+| moo-scaffold | ^3.10 | **第 2 章起必需**。开源包（MIT），目标通过 Packagist 安装：`composer require "charsen/moo-scaffold:^3.10"`。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
+| moo-monitor-laravel | ^0.1 | **非可选**：第 1.7 节目标通过 Packagist 安装：`composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
 
 动手前先自检一遍（PHP 版本不对的话，先安装/切换到 8.2 或更高版本再继续）：
 
@@ -65,7 +65,8 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 
 Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档（部署相关内容在[第 8 章](./08-部署上线.md)文档里，根目录没有部署脚本）。
 这是作者所有项目统一的目录约定。
-所有私有包都通过 Composer VCS 仓库接入，不依赖本地同级目录；执行 composer 命令时仍统一在 **`engine/` 子目录**内执行。
+目标状态下，开源包通过 Packagist 安装；只有商业包 moo-system 通过 Composer VCS 仓库接入。
+这些包都不依赖本地同级目录；执行 composer 命令时仍统一在 **`engine/` 子目录**内执行。
 
 ```
 moo-engine-skeleton/
@@ -79,18 +80,20 @@ moo-engine-skeleton/
 | 章节 | 内容 | 定位 |
 |---|---|---|
 | [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问、**1.7 接入监控（标准件·必装；需私有仓库访问权限）** | 基础 |
-| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器通过 VCS 接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
+| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器目标通过 Packagist 接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
 | [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
 | [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
 | [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
-| [第 8 章 部署上线](./08-部署上线.md) | Composer VCS 部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
+| [第 8 章 部署上线](./08-部署上线.md) | Composer / Packagist 部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
 | [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
 | [第 10 章 云端监控进阶](./10-云端监控进阶.md) | moo-scaffold-cloud 聚合告警、**AI 辅助处理（MCP 接入，全教程独有亮点）**、≤3.8 迁移、多项目管理 | 进阶 |
 
-> **包定位**：moo-scaffold 开源（MIT）但**尚未发布到 Packagist**，正式发布前需联系作者获取源码；moo-system 是商业包（获取方式同样联系作者）。
-> 第 1~6 章不依赖任何**付费**包，装不装第 7 章，前六章的骨架都是完整可用的——但前提是已拿到 moo-scaffold 源码（第 2 章起必需，见上方环境要求表），「开源」不等于现在就能从 Packagist 装到。
+> **包定位**：moo-scaffold / moo-monitor-laravel 是开源包，目标发布到 Packagist；
+> moo-system 是商业包，需要联系作者授权并通过 VCS 仓库安装。
+> 第 1~6 章不依赖任何**付费**包，装不装第 7 章，前六章的骨架都是完整可用的。
+> 当前过渡期若 Packagist 尚未同步目标版本，示例仓库会临时保留开源包的 VCS 配置以保证可运行。
 
 ## 踩过的坑速查
 
