@@ -189,7 +189,7 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "git@gitee.com:charsen/moo-monitor-laravel.git",
+                "url": "https://github.com/charsen/moo-monitor-laravel.git",
                 "reference": "f68aeb2eea8f86f5e72994c503c9eedda902299a"
             },
             "require": {
@@ -273,14 +273,20 @@
                 "source": "https://gitee.com/charsen/moo-monitor-laravel",
                 "docs": "https://gitee.com/charsen/moo-monitor-laravel/blob/master/README.md"
             },
-            "time": "2026-07-01T08:01:20+00:00"
+            "time": "2026-07-01T08:01:20+00:00",
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/charsen/moo-monitor-laravel/zipball/f68aeb2eea8f86f5e72994c503c9eedda902299a",
+                "reference": "f68aeb2eea8f86f5e72994c503c9eedda902299a",
+                "shasum": ""
+            }
         },
         {
             "name": "charsen/moo-scaffold",
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "git@gitee.com:charsen/moo-scaffold.git",
+                "url": "https://gitee.com/charsen/moo-scaffold.git",
                 "reference": "c3d81bd18e08f9668742dea398e7413e4ae9c0a0"
             },
             "require": {
@@ -360,7 +366,7 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "git@gitee.com:charsen/moo-system.git",
+                "url": "https://gitee.com/charsen/moo-system.git",
                 "reference": "27cec10b7748a3673a1c1fa16948bc83086b4a03"
             },
             "require": {
