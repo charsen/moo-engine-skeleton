@@ -10,17 +10,17 @@
 
 ---
 
-## 2.1 接入 moo-scaffold：开发用 path、生产用 vcs
+## 2.1 接入 moo-scaffold：Composer VCS 私有仓库
 
 > **与第 1.7 节的关系**：第 1 章单独装了 `moo-monitor-laravel`，本章装 `moo-scaffold`
-> 时，composer 会发现 monitor 包已经存在（且是同样的 path 仓库），自动去重、不会重复安装。
+> 时，composer 会发现 monitor 包已经存在，自动去重、不会重复安装。
 > scaffold 3.9.0 的 `composer.json` 里声明了对 monitor 包的依赖（`^0.1@dev`），
 > 所以**只装 scaffold 时，monitor 会作为传递依赖自动带入**；第 1 章之所以单独装，
 > 是为了让监控在「裸 Laravel」这个最简单的时点先上岗——新手先建立「出错去哪看」的心智模型。
 
 先把这个包的身份说清楚：`moo-scaffold` 采用 **MIT 协议**，但**尚未公开发布**——
-没上 Packagist，Gitee 仓库目前也是私有的（所以下面生产环境才需要配 SSH 部署公钥；
-等仓库公开后这一步就不需要了）。规划发布到 Packagist 后，普通使用一行
+没上 Packagist，Gitee 仓库目前也是私有的（所以本地和生产环境都需要能访问 Gitee 仓库的 SSH key；
+等仓库公开或发布到 Packagist 后这一步就不需要了）。规划发布到 Packagist 后，普通使用一行
 `composer require charsen/moo-scaffold` 即可。
 
 > 注意将来也**不是** `--dev`：在这套架构里 scaffold 是**运行时依赖**，不是纯开发工具——
@@ -30,39 +30,29 @@
 > 装进 `require-dev` 的话，本节自己推荐的 `composer install --no-dev` 部署会直接炸。
 > 本仓库 `engine/composer.json` 也是把它放在 `require` 里的。
 
-本教程用的是**源码模式**（便于跟着改包源码、也是作者的开发模式）：
+本教程统一用 Composer 的 **VCS 仓库**安装私有包，不使用本地 path 仓库。
 
 **前置条件（私有仓库访问）**：
 
-`moo-scaffold/` 的源码已经克隆在与本仓库**同级**的目录。目前仓库托管在 Gitee 私有项目，
-访问需要联系作者申请协作者权限。
-
-**克隆步骤**：
-1. 获取 Gitee 账号的协作者权限（联系作者）
-2. 在本机配置 SSH key（`ssh-keygen` + 添加到 Gitee 账号设置）
-3. 克隆到同级目录：
+1. 获取 Gitee 账号的协作者权限，或配置可读部署 key。
+2. 在本机配置 SSH key（`ssh-keygen` + 添加到 Gitee 账号设置）。
+3. 确认能访问仓库：
    ```bash
-   cd wwwroot  # 假设你的 moo-engine-skeleton 在 wwwroot/ 下
-   git clone git@gitee.com:charsen/moo-scaffold.git
-   # 确认目录结构：
-   # wwwroot/
-   # ├── moo-engine-skeleton/
-   # └── moo-scaffold/
+   ssh -T git@gitee.com
+   git ls-remote git@gitee.com:charsen/moo-scaffold.git
    ```
 
-拿不到源码的话，本章起只能「读通」、没法「跑通」——下面第一步就会报 "path repository ... does not exist"。
-包发布到 Packagist 后，一行 `composer require charsen/moo-scaffold` 即可，无需克隆。
+拿不到仓库权限的话，本章起只能「读通」、没法「跑通」——下面第一步会因为 VCS 仓库不可访问而失败。
+包发布到 Packagist 后，一行 `composer require charsen/moo-scaffold` 即可，无需声明 VCS 仓库。
 
-接入前要先在 `engine/composer.json` 里声明 `repositories`。两种模式按环境选：
-
-**开发环境（path 相对路径，改源码实时生效）** —— 本教程用这种：
+接入前要先在 `engine/composer.json` 里声明 `repositories`：
 
 ```json
 "require": {
     "charsen/moo-scaffold": "dev-master as 3.999.0"
 },
 "repositories": {
-    "scaffold": { "type": "path", "url": "../../moo-scaffold" }
+    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
 },
 "minimum-stability": "stable",
 "prefer-stable": true
@@ -92,7 +82,7 @@
 >     "charsen/moo-scaffold": "dev-master as 3.999.0"
 > },
 > "repositories": {
->     "scaffold": { "type": "path", "url": "../../moo-scaffold" }
+>     "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
 > },
 > "minimum-stability": "stable",
 > "prefer-stable": true
@@ -101,26 +91,12 @@
 > 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）；
 > `"repositories"` 是**新增**的顶层键（与 `"require"` 平级）。
 
-> 为什么是 `../../moo-scaffold`？因为 Laravel 应用在 `moo-engine-skeleton/engine/` 下，
-> 而 `moo-scaffold/` 与 `moo-engine-skeleton/` 同级，从 `engine/` 往上两级正好到 `wwwroot/`。
+> 为什么是 `git@gitee.com:charsen/moo-scaffold.git`？因为这个包当前没发布到 Packagist，
+> Composer 只能通过 VCS 仓库解析它。
 >
-> 为什么是 `dev-master as 3.999.0`？path/dev 分支没有版本号，用 `as 3.999.0`
+> 为什么是 `dev-master as 3.999.0`？dev 分支没有稳定版本号，用 `as 3.999.0`
 > 把 dev 分支「假装」成一个很高的稳定版本号，这样 `minimum-stability: stable` 不会拒绝它，
 > 其它包对它的 `"charsen/moo-scaffold": "^3.0"` 这类版本约束也能满足。
-
-**生产环境（vcs 私有仓库，锁 tag）** —— 部署时换成：
-
-```json
-"repositories": {
-    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
-},
-"require": { "charsen/moo-scaffold": "^3.0" }
-```
-
-因为仓库尚未公开，生产机需要配 Gitee **部署公钥（只读 SSH key）**才拉得到代码。
-常见做法是维护两份文件：开发用
-`composer.json`(path)，生产用 `composer.production.json`(vcs)，部署脚本里
-`cp composer.production.json composer.json && composer install --no-dev`。
 
 声明好之后安装：
 
@@ -157,7 +133,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 得到 `config/scaffold.php`（可改 route 前缀 / hosts / 各种开关）和
 `public/vendor/scaffold/*`（调试工具的前端静态资源）。
 
-> ⚠️ 用 path 模式时，改了包里的 JS/CSS，每个项目都要重新 `--tag=public --force`，
+> ⚠️ 更新了包里的 JS/CSS 后，每个项目都要重新 `--tag=public --force`，
 > 否则浏览器看到的还是旧资源。
 
 ## 2.3 给生成器留路由插入口 + 注册 iResource 宏
@@ -437,7 +413,7 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以 path 模式接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数；
+- `moo-scaffold` 以 VCS 模式接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数；
   「20」是**刚做完本章**、只装了 moo-scaffold 时的数——第 7 章装上 moo-system 后会更多，
   在仓库终态执行这条命令数出超过 20 是正常的）；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；

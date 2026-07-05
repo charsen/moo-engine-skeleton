@@ -34,8 +34,8 @@ php artisan jwt:secret --force        # 生成 JWT_SECRET 写入 .env
 > 所有已签发的 token 立刻全部作废、全员被踢重新登录（`config/jwt.php` 里的注释也这么写）。
 > 全新项目随便跑；在已有环境上跑之前想清楚。
 >
-> 版本提示：这里装 `^2.8`，仓库 lock 住的实际是 jwt-auth **2.9.2**，它要求 **PHP ≥ 8.3**
-> （Laravel 12 本身只要求 `^8.2`，见 docs/README.md 的环境表）。
+> 版本提示：这里装 `^2.8`，当前仓库 lock 在 PHP 8.2 环境下解析为 jwt-auth **v2.8.3**；
+> Laravel 12 本身也只要求 `^8.2`，见 docs/README.md 的环境表。
 
 ## 3.2 自建最简用户：User 实现 JWTSubject
 

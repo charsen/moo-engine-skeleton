@@ -20,23 +20,18 @@
 
 ## 7.1 接入包
 
-**前置：把包源码放对位置。** `repositories` 用的是 **path 类型仓库**，路径写死为
-engine 上两级的 `../../moo-system`（`../../moo-scaffold` 同理）——也就是说，
-moo-system 的源码目录必须和本仓库（moo-engine-skeleton）**放在同一个父目录下**：
+**前置：拿到私有仓库访问权。** `moo-system` 是商业包，安装前要先联系作者获取授权，
+并确保本机 / 部署机的 Gitee SSH key 能读取仓库：
 
-```
-wwwroot/
-├── moo-engine-skeleton/     ← 本仓库（engine 在它里面）
-│   └── engine/
-├── moo-scaffold/            ← 第 2 章已就位
-└── moo-system/              ← 拿到授权后把源码放这里
+```bash
+git ls-remote git@gitee.com:charsen/moo-system.git
 ```
 
-放错位置，下面的 `composer update` 第一步就会失败（找不到 path 仓库）。
+没有访问权，下面的 `composer update` 第一步就会失败（Composer 拉不到 VCS 仓库）。
 
 把 `system` 仓库加进 `engine/composer.json` 的 `repositories`（第 2 章只声明了 scaffold）。
 下面片段只示意要**新增** `system` 这一项——第 1.7 节装好的 `charsen/moo-monitor-laravel`
-及其 `monitor` path 仓库要原样保留，别拿整块去覆盖（覆盖会把 monitor 依赖删掉）：
+及其 `monitor` VCS 仓库要原样保留，别拿整块去覆盖（覆盖会把 monitor 依赖删掉）：
 
 ```json
 "require": {
@@ -44,8 +39,9 @@ wwwroot/
     "charsen/moo-system": "dev-master as 1.999.0"
 },
 "repositories": {
-    "scaffold": { "type": "path", "url": "../../moo-scaffold" },
-    "system":   { "type": "path", "url": "../../moo-system" }
+    "monitor":  { "type": "vcs", "url": "git@gitee.com:charsen/moo-monitor-laravel.git" },
+    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" },
+    "system":   { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
 }
 ```
 

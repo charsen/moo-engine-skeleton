@@ -254,12 +254,11 @@ RateLimiter::for('login', function (Request $r) {
 - 把 `.env.example` 改成"复制即可用"：预填 MariaDB `moo_skeleton`、8088 端口、
   分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` 占位，
   删掉骨架用不到的 MAIL/AWS 等死键（如 MAIL_MAILER、AWS_* 等，保留 DB/CACHE/REDIS 相关）；
-- 新建 `composer.production.json`：moo-* 包换成版本约束 + VCS 仓库。
-  部署时 `cp composer.production.json composer.json && composer install --no-dev`，
-  和第 2 章讲的"开发 path / 生产 vcs"双轨制闭环。
+- 新建 `composer.production.json`：moo-* 包使用版本约束 + VCS 仓库。
+  部署时 `cp composer.production.json composer.json && composer install --no-dev`。
   （📦 仓库版里有 moo-system 的内容——没装第 7 章的包就先删掉**两处**：
   `require` 里的 `"charsen/moo-system"` 一行，和 `repositories` 里的 `system` 块。
-  另外注意两个 VCS 地址都是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好
+  另外注意这些 VCS 地址都是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好
   对应仓库的访问权（SSH key），否则 `composer install --no-dev` 拉包会直接失败。）
 
 ## 4.8 第一批接口测试
@@ -415,7 +414,7 @@ php artisan test
 
 - `config/jwt.php` 5 处加固 + `config/cors.php` 暴露续签响应头；
 - 登录有状态检查、`/refresh` 不再产生孤儿 token；
-- 限流（admin 300/分钟）；`.env.example` 复制即可用，生产 composer 双轨闭环；
+- 限流（admin 300/分钟）；`.env.example` 复制即可用，生产 Composer VCS 部署闭环；
 - 9 个接口测试全绿，10 项真机验证通过。
 
 下一章：把第 2 章故意公开的 `food` 接口锁进 JWT，并启用**动作级 ACL 授权**。

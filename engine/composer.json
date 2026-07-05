@@ -18,16 +18,16 @@
     },
     "repositories": {
         "scaffold": {
-            "type": "path",
-            "url": "../../moo-scaffold"
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-scaffold.git"
         },
         "monitor": {
-            "type": "path",
-            "url": "../../moo-monitor-laravel"
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-monitor-laravel.git"
         },
         "system": {
-            "type": "path",
-            "url": "../../moo-system"
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-system.git"
         }
     },
     "require-dev": {
