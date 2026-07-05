@@ -200,14 +200,15 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 这个包的定位：**headless 采集 SDK**（不提供本地页面，采集 + 缓冲 + 推送云端），
 MIT 协议，目标发布到 Packagist。Packagist 目标版本同步完成后，直接用 Composer 安装即可。
 
-安装（在 `engine/` 目录执行；Packagist 目标版本可解析后使用）：
+安装（在 `engine/` 目录执行）。当前过渡期先声明 VCS 仓库，再 require dev 分支别名：
 
 ```bash
-composer require "charsen/moo-monitor-laravel:^0.1"
+composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git
+composer require "charsen/moo-monitor-laravel:dev-master as 0.1.99"
 ```
 
-> 当前过渡期若 Packagist 还找不到该包，可临时在 `composer.json` 的 `repositories`
-> 里配置 `git@gitee.com:charsen/moo-monitor-laravel.git` 的 VCS 仓库；发布同步完成后删掉该配置。
+> Packagist 目标版本可解析后，替换为
+> `composer require "charsen/moo-monitor-laravel:^0.1"`，并删掉 `repositories.monitor` 配置。
 
 验证命令已注册：
 

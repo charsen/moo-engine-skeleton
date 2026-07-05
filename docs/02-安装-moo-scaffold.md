@@ -10,7 +10,7 @@
 
 ---
 
-## 2.1 接入 moo-scaffold：Packagist 开源包
+## 2.1 接入 moo-scaffold：开源包（当前 VCS 过渡）
 
 > **与第 1.7 节的关系**：第 1 章单独装了 `moo-monitor-laravel`，本章装 `moo-scaffold`
 > 时，composer 会发现 monitor 包已经存在，自动去重、不会重复安装。
@@ -19,7 +19,7 @@
 > 是为了让监控在「裸 Laravel」这个最简单的时点先上岗——新手先建立「出错去哪看」的心智模型。
 
 先把这个包的身份说清楚：`moo-scaffold` 采用 **MIT 协议**，目标发布到 Packagist。
-Packagist 目标版本同步完成后，普通使用直接
+Packagist 目标版本同步完成后，届时普通使用直接
 `composer require "charsen/moo-scaffold:^3.10"` 即可。
 
 > 注意将来也**不是** `--dev`：在这套架构里 scaffold 是**运行时依赖**，不是纯开发工具——
@@ -29,12 +29,15 @@ Packagist 目标版本同步完成后，普通使用直接
 > 装进 `require-dev` 的话，本节自己推荐的 `composer install --no-dev` 部署会直接炸。
 > 本仓库 `engine/composer.json` 也是把它放在 `require` 里的。
 
-目标接入方式只需要在 `engine/composer.json` 的 `require` 里增加包版本约束，不需要声明
-`repositories`（Packagist 目标版本可解析后使用）：
+当前过渡期接入方式：先在 `engine/composer.json` 里声明 VCS 仓库，再把 dev 分支用别名
+装成稳定版本号：
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "^3.10"
+    "charsen/moo-scaffold": "dev-master as 3.999.0"
+},
+"repositories": {
+    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
 },
 "minimum-stability": "stable",
 "prefer-stable": true
@@ -61,27 +64,36 @@ Packagist 目标版本同步完成后，普通使用直接
 >     "php": "^8.2",
 >     "laravel/framework": "^12.0",
 >     "laravel/tinker": "^2.10",
->     "charsen/moo-scaffold": "^3.10"
+>     "charsen/moo-scaffold": "dev-master as 3.999.0"
+> },
+> "repositories": {
+>     "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
 > },
 > "minimum-stability": "stable",
 > "prefer-stable": true
 > ```
 > 
-> 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）。
+> 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）；
+> `"repositories"` 是**新增**的顶层键（与 `"require"` 平级）。
 >
-> 为什么是 `^3.10`？教程按目标 Packagist 稳定版编写；后续小版本升级可由 Composer
-> 在兼容范围内自动解析。
+> 为什么是 `dev-master as 3.999.0`？当前 Packagist 还没有 3.x 目标版本，过渡期用
+> VCS 拉 dev 分支，并用 `as 3.999.0` 满足 `minimum-stability: stable` 和其它包的版本约束。
 >
-> 当前过渡期若 Packagist 还没有 3.x 目标版本，可临时在 `repositories` 里配置
-> `git@gitee.com:charsen/moo-scaffold.git` 的 VCS 仓库；发布同步完成后删掉该配置。
+> Packagist 目标版本可解析后，改为 `"charsen/moo-scaffold": "^3.10"`，并删掉
+> `repositories.scaffold` 配置。
 
 声明好之后安装：
 
 ```bash
 cd engine
-composer require "charsen/moo-scaffold:^3.10" --with-all-dependencies
+composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
+composer require "charsen/moo-scaffold:dev-master as 3.999.0" --with-all-dependencies
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
+
+> 如果你没有按第 1.7 节先装 `moo-monitor-laravel`，这里还要先执行：
+> `composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git`。
+> composer 不会读取依赖包自己的 `repositories`，当前过渡期宿主项目必须自己声明 monitor 仓库。
 
 > **前置依赖自检**（避免后续 `moo:free` 报错）：
 > 
@@ -390,7 +402,7 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以 Packagist 稳定版接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数；
+- `moo-scaffold` 以当前过渡期 VCS 方式接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数；
   「20」是**刚做完本章**、只装了 moo-scaffold 时的数——第 7 章装上 moo-system 后会更多，
   在仓库终态执行这条命令数出超过 20 是正常的）；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；

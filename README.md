@@ -51,7 +51,7 @@
 composer create-project "laravel/laravel:^12.0" engine
 
 # 第 2 章：接入 moo-scaffold 代码生成器
-# （开源包，目标从 Packagist 安装）
+# （开源包；当前 VCS 过渡，目标从 Packagist 安装）
 
 # 第 3~6 章：JWT 认证 + ACL + 双守卫
 # 第 7 章：接入 moo-system（可选）
@@ -83,15 +83,15 @@ php -S 127.0.0.1:9999
 # 克隆本仓库
 git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
-# 目标状态下，只有接入 moo-system（第 7 章商业包）时，才需要配置 Gitee SSH 仓库访问权：
-# git@gitee.com:charsen/moo-system.git
+# 当前过渡期：composer 需要能读取 moo-scaffold / moo-monitor-laravel / moo-system 的 VCS 仓库。
+# 目标状态下：开源包从 Packagist 解析，只有 moo-system（第 7 章商业包）仍需 Gitee SSH 仓库访问权。
 ```
 
 | 包 | 定位 | 是否必装 | 说明 |
 |---|---|---|---|
 | `moo-scaffold` | 开源（MIT，发布到 Packagist） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
 | `moo-system` | 进阶 / 商业包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
-| `moo-monitor-laravel` | 开源（MIT） | 按需 | 监控采集 SDK（scaffold 3.9+ 自动依赖，单独用 Laravel 也可装） |
+| `moo-monitor-laravel` | 开源（MIT） | **必装** | 监控采集 SDK（教程第 1.7 节接入；scaffold 3.9+ 也会依赖它） |
 
 **为什么还要配置 VCS 仓库？**
 
@@ -126,8 +126,8 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
 > ⚠️ **前置**：
 > ① 需 **PHP 8.2+**；
-> ② 目标状态下开源包从 Packagist 安装；当前过渡期直接使用仓库最终态时，仍需确保 composer 能解析开源包；
->    同时还需配好 **moo-system** 的 Gitee SSH 仓库访问权；
+> ② 当前过渡期直接使用仓库最终态时，需确保 composer 能通过 VCS 解析 `moo-scaffold` /
+>    `moo-monitor-laravel`；同时还需配好 **moo-system** 的 Gitee SSH 仓库访问权；
 > ③ 仓库最终态已接入**商业包 moo-system**（第 7 章）——没有它的授权时
 >    `composer install` 会失败，请走方式 B 从第 1 章跟做，或联系作者获取授权；
 > ④ `cp .env.example .env` 后记得把 `DB_PASSWORD`（预填的是教程示例值 `7777`）改成
@@ -135,7 +135,7 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
 ```bash
 cd engine
-composer install                                   # 目标状态：开源包走 Packagist；moo-system 走 Gitee VCS
+composer install                                   # 当前过渡期：moo-* 走 VCS；目标状态：开源包走 Packagist、moo-system 走 VCS
 cp .env.example .env && php artisan key:generate   # .env 预填 MariaDB root/7777 + moo_skeleton，按本机改
 php artisan jwt:secret --force
 
@@ -168,9 +168,12 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 
 # 3. 配 .env 的数据库（DB_CONNECTION=mysql / DB_DATABASE=moo_skeleton / DB_USERNAME=root / DB_PASSWORD=7777）
 
-# 4. 接入 moo-scaffold（完整讲解见 docs 第 2 章；moo-system 见第 7 章）
-#    Packagist 目标版本可解析后，直接 require：
-composer require "charsen/moo-scaffold:^3.10" --with-all-dependencies
+# 4. 接入监控标准件 + moo-scaffold（完整讲解见 docs 第 1.7 / 2 章；moo-system 见第 7 章）
+#    当前过渡期用 VCS；Packagist 目标版本可解析后改为 require 稳定版本
+composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git
+composer require "charsen/moo-monitor-laravel:dev-master as 0.1.99"
+composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
+composer require "charsen/moo-scaffold:dev-master as 3.999.0" --with-all-dependencies
 php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force   # 发布 /scaffold 静态资源
 
 # 5. 迁移 + seed + 调试台账号
@@ -256,8 +259,9 @@ moo-engine-skeleton/
 
 ## 🔗 参考项目
 
-包自身的细节文档在对应私有仓库里；有仓库权限后可查看
-`moo-scaffold/docs/guide/` 与 `moo-system/docs/INTEGRATION.md`。
+包自身的细节文档在对应仓库里；当前过渡期有 VCS 权限后可查看
+`moo-scaffold/docs/guide/` 与 `moo-system/docs/INTEGRATION.md`。Packagist/GitHub 同步后，
+开源包文档也会随公开仓库发布。
 
 ## 🎯 目标
 
