@@ -3,10 +3,9 @@
 # 生效条件：
 # 1. 本仓库镜像/迁移到 GitHub 后自动启用；
 # 2. moo-* 包的获取：当前过渡期使用 engine/composer.json 里的三个 VCS 仓库，
-#    需要在仓库 Secrets 配一把只读部署私钥 MOO_PACKAGES_DEPLOY_KEY
-#    （对应公钥加到 Gitee 包仓库的部署公钥）。
+#    统一走 HTTPS，避免 GitHub Actions 依赖 Gitee SSH deploy key。
 #    Packagist 同步 moo-scaffold / moo-monitor-laravel 目标版本后，可改用
-#    composer.production.json，并把部署私钥范围收窄到 moo-system。
+#    composer.production.json，仅保留 moo-system 的 VCS 源。
 name: tests
 
 on:
@@ -28,11 +27,6 @@ jobs:
           php-version: '8.2'
           extensions: pdo_sqlite, mbstring, bcmath
           coverage: none
-
-      - name: 私有包 SSH 凭据（moo-* 走 VCS 时需要）
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.MOO_PACKAGES_DEPLOY_KEY }}
 
       - name: 安装依赖（当前 VCS 过渡配置）
         run: composer install --no-interaction --prefer-dist --no-progress

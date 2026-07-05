@@ -19,15 +19,15 @@
     "repositories": {
         "scaffold": {
             "type": "vcs",
-            "url": "git@gitee.com:charsen/moo-scaffold.git"
+            "url": "https://gitee.com/charsen/moo-scaffold.git"
         },
         "monitor": {
             "type": "vcs",
-            "url": "git@gitee.com:charsen/moo-monitor-laravel.git"
+            "url": "https://gitee.com/charsen/moo-monitor-laravel.git"
         },
         "system": {
             "type": "vcs",
-            "url": "git@gitee.com:charsen/moo-system.git"
+            "url": "https://gitee.com/charsen/moo-system.git"
         }
     },
     "require-dev": {
