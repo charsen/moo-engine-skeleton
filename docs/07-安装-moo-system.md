@@ -29,24 +29,24 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 
 没有访问权，下面的 `composer update` 第一步就会失败（Composer 拉不到 VCS 仓库）。
 
-把 `system` 仓库加进 `engine/composer.json` 的 `repositories`（第 2 章只声明了 scaffold）。
-下面片段只示意要**新增** `system` 这一项——第 1.7 节装好的 `charsen/moo-monitor-laravel`
-及其 `monitor` VCS 仓库要原样保留，别拿整块去覆盖（覆盖会把 monitor 依赖删掉）：
+把 `system` 仓库加进 `engine/composer.json` 的 `repositories`。下面片段只示意要**新增**
+`system` 这一项；`moo-scaffold` / `moo-monitor-laravel` 是开源包，继续从 Packagist 解析，
+不需要写进 `repositories`：
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "dev-master as 3.999.0",
+    "charsen/moo-scaffold": "^3.10",
     "charsen/moo-system": "dev-master as 1.999.0"
 },
 "repositories": {
-    "monitor":  { "type": "vcs", "url": "git@gitee.com:charsen/moo-monitor-laravel.git" },
-    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" },
-    "system":   { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
+    "system": { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
 }
 ```
 
-> composer **不会**读依赖包自带的 repositories 声明——moo-system 依赖 moo-scaffold，
-> host 必须把两个仓库都列出来。
+> composer **不会**读依赖包自带的 repositories 声明；但这里的开源依赖已经在 Packagist，
+> host 只需要额外声明 Packagist 找不到的商业包 `moo-system`。
+> 当前过渡期若 Packagist 尚未同步开源包目标版本，host 可临时保留 scaffold / monitor
+> 的 VCS 仓库配置；发布同步完成后删掉它们，只保留 `system`。
 
 安装（会自动带入 kalnoy/nestedset、maatwebsite/excel、jenssegers/agent 等依赖）：
 
