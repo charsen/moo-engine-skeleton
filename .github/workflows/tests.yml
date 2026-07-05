@@ -2,11 +2,13 @@
 #
 # 生效条件：
 # 1. 本仓库镜像/迁移到 GitHub 后自动启用；
-# 2. moo-* 包的获取：当前过渡期使用 engine/composer.json 里的三个 VCS 仓库，
-#    需要在仓库 Secrets 配一把只读部署私钥 MOO_PACKAGES_DEPLOY_KEY
-#    （对应公钥加到 Gitee 包仓库的部署公钥）。
+# 2. moo-* 包的获取：当前过渡期使用 engine/composer.json 里的三个 VCS 仓库。
+#    - moo-scaffold：公开 Gitee 仓库（HTTPS，无需凭据）
+#    - moo-monitor-laravel：公开 GitHub 仓库（HTTPS，无需凭据）
+#    - moo-system：私有 Gitee 仓库，需在仓库 Secrets 配 COMPOSER_AUTH
+#      （Gitee 个人访问令牌，格式见下方 env）。
 #    Packagist 同步 moo-scaffold / moo-monitor-laravel 目标版本后，可改用
-#    composer.production.json，并把部署私钥范围收窄到 moo-system。
+#    composer.production.json，届时仅 moo-system 需要凭据。
 name: tests
 
 on:
@@ -17,6 +19,14 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    env:
+      COMPOSER_PROCESS_TIMEOUT: 0
+      COMPOSER_NO_INTERACTION: 1
+      COMPOSER_NO_AUDIT: 1
+      # moo-system 私有 Gitee 包的 HTTPS 认证。
+      # 格式：{"http-basic":{"gitee.com":{"username":"<user>","password":"<token>"}}}
+      # 在仓库 Settings → Secrets → Actions 中配置 MOO_PACKAGES_GITEE_TOKEN。
+      COMPOSER_AUTH: ${{ secrets.MOO_PACKAGES_GITEE_TOKEN }}
     defaults:
       run:
         working-directory: engine
@@ -28,11 +38,7 @@ jobs:
           php-version: '8.2'
           extensions: pdo_sqlite, mbstring, bcmath
           coverage: none
-
-      - name: 私有包 SSH 凭据（moo-* 走 VCS 时需要）
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.MOO_PACKAGES_DEPLOY_KEY }}
+          ini-file: production
 
       - name: 安装依赖（当前 VCS 过渡配置）
         run: composer install --no-interaction --prefer-dist --no-progress
