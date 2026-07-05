@@ -52,15 +52,13 @@ brew services start mariadb        # 启动 MariaDB，监听 127.0.0.1:3306
 然后确认本机工具齐全（在仓库根目录执行）：
 
 ```bash
-php -v            # 8.2 起即可，本教程用 8.3.31（8.2 / 8.3 的区别见下方说明）
+php -v            # 8.2 起即可
 composer --version
 mysql --version   # MariaDB 12.x 客户端
 ```
 
-> **PHP 到底要 8.2 还是 8.3？** 从 0 跟教程搭（方式 B）时，`laravel/laravel`
-> 只要求 PHP `^8.2`，用 8.2 完全可行；**直接用本仓库（方式 A）才必须 8.3**——
-> 仓库 `engine/composer.lock` 是按 8.3 解析的（其中 `php-open-source-saver/jwt-auth`
-> 2.9 要求 PHP `^8.3`），在 8.2 上 `composer install` 装不上。
+> **PHP 版本说明**：Laravel 12 要求 PHP `^8.2`，本教程和仓库 lock 都按 PHP 8.2+
+> 作为可安装基线；直接用本仓库（方式 A）或从 0 跟教程搭（方式 B）都不需要强制 8.3。
 
 > `root / 7777` 是**本教程的示例凭据**——换成你自己的数据库账号密码即可，
 > 后续所有命令里的 `-p7777` 同步替换。
@@ -200,12 +198,12 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 ### 1.7.1 安装 moo-monitor-laravel
 
 这个包的定位：**headless 采集 SDK**（不提供本地页面，采集 + 缓冲 + 推送云端），
-MIT 协议，目标发布到 Packagist。但目前尚未公开发布，接入方式与第 2 章的
-`moo-scaffold` 类似——开发用 path 仓库、生产用 vcs。
+MIT 协议，目标发布到 Packagist。但目前尚未公开发布，**本节只能用线上 VCS 仓库接入**；
+不能直接裸跑 `composer require charsen/moo-monitor-laravel`。
 
-**前置条件**：包源码已克隆在与本仓库**同级**的目录（`../../moo-monitor-laravel`）。
-拿不到源码的读者，本节只能「读通」、跑不起来——包发布后一行
-`composer require charsen/moo-monitor-laravel` 即可。
+**前置条件**：你的 Gitee 账号已经有 `charsen/moo-monitor-laravel` 仓库访问权，
+本机 SSH key 也已加入 Gitee。拿不到仓库访问权的读者，本节只能「读通」、
+跑不起来——包发布到 Packagist 后才可以一行 `composer require charsen/moo-monitor-laravel`。
 
 编辑 `engine/composer.json`，在 `"require"` 块里追加（不是整段替换）：
 
@@ -219,12 +217,12 @@ MIT 协议，目标发布到 Packagist。但目前尚未公开发布，接入方
 
 ```json
 "repositories": {
-    "monitor": { "type": "path", "url": "../../moo-monitor-laravel" }
+    "monitor": { "type": "vcs", "url": "git@gitee.com:charsen/moo-monitor-laravel.git" }
 }
 ```
 
 > **包发布后**（正式上 Packagist），直接 `composer require charsen/moo-monitor-laravel`，
-> 不需要声明 repositories。生产环境的 vcs 接入参考第 2 章对 scaffold 的说明。
+> 不需要声明 repositories。
 
 安装：
 
