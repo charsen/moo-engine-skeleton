@@ -19,7 +19,7 @@
     "repositories": {
         "system": {
             "type": "vcs",
-            "url": "git@gitee.com:charsen/moo-system.git"
+            "url": "https://gitee.com/charsen/moo-system.git"
         }
     },
     "require-dev": {
