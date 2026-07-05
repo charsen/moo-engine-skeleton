@@ -11,21 +11,21 @@
 本项目把这套实践提炼为一个**从 0 开始的标准起点**，达成三个目标：
 
 1. **新项目脚手架**：备齐依赖后克隆即得一个可运行、可生成代码、带完整认证授权的后端底座；
-2. **新人教学载体**：`docs/` 下九章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
+2. **新人教学载体**：`docs/` 下十章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
 3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 27 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
 
 **教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
 
-> **跑通前的硬前置**（只读本篇容易忽略）：`engine/composer.json` 以 path 仓库指向同级目录的 `../../moo-scaffold` 与 `../../moo-system`，**只克隆本仓库直接 `composer install` 会失败**。moo-scaffold 开源（MIT）但尚未发布到 Packagist，moo-system 是商业包需授权——两者都要先取得源码并克隆到与本仓库同级的目录（获取方式与完整环境步骤见 `HANDOFF.md` §1~2 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要商业包，不等于"零前置"。
+> **跑通前的硬前置**（只读本篇容易忽略）：`engine/composer.json` 当前过渡期通过 Composer VCS 解析 `moo-scaffold` / `moo-monitor-laravel` / `moo-system`。`moo-scaffold`、`moo-monitor-laravel` 是开源包，目标发布到 Packagist；`moo-system` 是商业包，必须通过 VCS 授权分发。Packagist 同步目标版本前，只克隆本仓库且没有相应 VCS 权限时，`composer install` 仍会失败（完整环境步骤见 `HANDOFF.md` §1~3 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要商业包，不等于"零前置"。
 
 ## 二、技术栈与运行环境
 
 | 项 | 选型 | 说明 |
 |---|---|---|
-| 框架 | Laravel 12（PHP 8.3） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致。注意：`composer.json` 声明 `"php": "^8.2"`，但 `composer.lock` 实锁的 jwt-auth 2.9.2 要求 php ^8.3，实际请按 8.3 准备环境（`HANDOFF.md` §1 同此口径） |
+| 框架 | Laravel 12（PHP 8.2+） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致。当前 lock 已按 PHP 8.2 可安装版本解析 |
 | 数据库 | MariaDB 12 / MySQL 8 | 实测均可；骨架库名 `moo_skeleton` |
 | 认证 | php-open-source-saver/jwt-auth ^2.8 | tymon/jwt-auth 的维护分支，composer 直接依赖 |
-| 代码生成 | charsen/moo-scaffold（**开源 MIT**，path/vcs 双模式接入） | 仅开发期生效，不是运行时框架 |
+| 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
 | 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
 | 测试 | PHPUnit 11（无 Pest），`php artisan test` 43 passed | Feature 10 个文件共 43 个测试方法，覆盖双守卫认证、ACL、移动端全链路、增量开发回归与监控采集 |
@@ -62,12 +62,12 @@ Laravel 12 标准工程加生态约定的固化。
 
 | 功能点 | 介绍 |
 |---|---|
-| `engine/` 子目录工程布局 | 仓库根只放文档（部署内容也是文档：`docs/08-部署上线.md`，无部署脚本），与生态内全部项目统一，包的相对路径（`../../moo-scaffold`）因此可复用 |
+| `engine/` 子目录工程布局 | 仓库根只放文档（部署内容也是文档：`docs/08-部署上线.md`，无部署脚本），Laravel 应用本体集中在 `engine/` |
 | `bootstrap/app.php` 横切接线 | Laravel 12 无 Kernel.php，分片中间件挂载、全局异常分发、校验错误 render 重写集中于此 |
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
 | `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、批量删除 `destroyBatch`、回收站 `/trashed`（先于 `/{id}` 注册）、恢复 `restore`、`DELETE /forever/{id}` 永久删除；且**用反射检查控制器，action 真实存在且为 public 才注册对应路由**，杜绝"幻影路由"（声明了却 404 的路由） |
 | 通用 Model Traits | `UsingSnowFlakePrimaryKey`（雪花字符串主键）、`HasOperator`（操作人追踪）、`BaseFilter`（query string → 查询条件） |
-| moo-* 包双模式接入 | 开发期 path 仓库（同级目录 symlink，源码实时生效）；生产期 `composer.production.json` 切 VCS/Packagist，部署时一行 cp 切换 |
+| moo-* 包接入 | 当前过渡期 host 显式声明三个 VCS 仓库以保证可安装；目标状态为 `moo-scaffold` / `moo-monitor-laravel` 走 Packagist，只有 `moo-system` 保留 VCS |
 
 ### 模块 2：代码生成器接入（moo-scaffold）
 
@@ -169,13 +169,13 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 ## 五、交付现状、初始化与默认账号
 
-九章全部搭建完成并经真机验证，仓库代码为第 9 章最终态。
+十章全部搭建完成并经真机验证，仓库代码为第 9 章最终态；第 10 章是云端监控进阶文档，不改变代码最终态。
 
-**从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：moo-scaffold / moo-system 已克隆到同级目录，见第一节硬前置）：
+**从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：当前过渡期 composer 能读取三个 moo-* VCS 仓库，见第一节硬前置）：
 
 ```bash
 cd engine/
-composer install                  # 解析同级目录的 moo-* path 包
+composer install                  # 当前过渡期解析 moo-* VCS；目标状态开源包走 Packagist、moo-system 走 VCS
 cp .env.example .env              # 已预设 QUEUE_CONNECTION=sync 等
 php artisan key:generate
 php artisan jwt:secret --force

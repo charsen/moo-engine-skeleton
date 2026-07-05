@@ -42,8 +42,8 @@ cd moo-engine-skeleton
 | Node / npm | Node 26 / npm 11 | **整行可选**：教程第 1-10 章均不涉及前端资源构建（不执行任何 npm 命令），可完全不装；`engine/` 已自带 vite/tailwind 构建配置（`package.json` + `vite.config.js`），仅本教程用不到 |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | **无需 git-lfs**（本仓库不使用 LFS） |
-| moo-scaffold | ^3.10 | **第 2 章起必需**。开源包（MIT），目标通过 Packagist 安装：`composer require "charsen/moo-scaffold:^3.10"`。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
-| moo-monitor-laravel | ^0.1 | **非可选**：第 1.7 节目标通过 Packagist 安装：`composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
+| moo-scaffold | 当前 `dev-master as 3.999.0`，目标 `^3.10` | **第 2 章起必需**。开源包（MIT），当前过渡期通过 VCS 安装；Packagist 目标版本可解析后改为 `composer require "charsen/moo-scaffold:^3.10"`。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
+| moo-monitor-laravel | 当前 `dev-master as 0.1.99`，目标 `^0.1` | **非可选**：第 1.7 节当前过渡期通过 VCS 安装；Packagist 目标版本可解析后改为 `composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
 
 动手前先自检一遍（PHP 版本不对的话，先安装/切换到 8.2 或更高版本再继续）：
 
@@ -65,7 +65,8 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 
 Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档（部署相关内容在[第 8 章](./08-部署上线.md)文档里，根目录没有部署脚本）。
 这是作者所有项目统一的目录约定。
-目标状态下，开源包通过 Packagist 安装；只有商业包 moo-system 通过 Composer VCS 仓库接入。
+当前过渡期，宿主项目通过 VCS 解析 moo-scaffold / moo-monitor-laravel / moo-system；
+目标状态下，开源包通过 Packagist 安装，只有商业包 moo-system 继续通过 Composer VCS 仓库接入。
 这些包都不依赖本地同级目录；执行 composer 命令时仍统一在 **`engine/` 子目录**内执行。
 
 ```
@@ -79,8 +80,8 @@ moo-engine-skeleton/
 
 | 章节 | 内容 | 定位 |
 |---|---|---|
-| [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问、**1.7 接入监控（标准件·必装；需私有仓库访问权限）** | 基础 |
-| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器目标通过 Packagist 接入、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
+| [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问、**1.7 接入监控（标准件·必装；当前 VCS 过渡，目标 Packagist）** | 基础 |
+| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器当前 VCS 过渡 / 目标 Packagist、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
 | [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
 | [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |

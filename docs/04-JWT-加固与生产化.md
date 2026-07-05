@@ -255,7 +255,9 @@ RateLimiter::for('login', function (Request $r) {
   分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` 占位，
   删掉骨架用不到的 MAIL/AWS 等死键（如 MAIL_MAILER、AWS_* 等，保留 DB/CACHE/REDIS 相关）；
 - 新建 `composer.production.json`：开源包使用 Packagist 版本约束，`moo-system` 使用版本约束 + VCS 仓库。
-  部署时 `cp composer.production.json composer.json && composer install --no-dev`。
+  这是目标生产样例；当前过渡期若 Packagist 还没同步 scaffold / monitor 目标版本，部署 composer
+  仍要临时保留这两个开源包的 VCS 仓库配置。目标版本可解析后，再执行
+  `cp composer.production.json composer.json && composer install --no-dev`。
   （📦 仓库版里有 moo-system 的内容——没装第 7 章的包就先删掉**两处**：
   `require` 里的 `"charsen/moo-system"` 一行，和 `repositories` 里的 `system` 块。
   另外注意 `moo-system` 的 VCS 地址是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好

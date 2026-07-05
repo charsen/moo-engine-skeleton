@@ -2,6 +2,9 @@
 
 > 写给后续执行者（人或 AI 会话）的完整交接计划。**动手前先通读本文档 + 仓库根 CLAUDE.md**。
 > 制定于 2026-06-12，作者与 AI 讨论定稿；若 moo-monitor-laravel 此后又有演进，以包的当前源码为准，本文档只锁定「编排与定位」决策。
+> 2026-07 同步：本文是历史执行计划，旧文中的本地 path / 同级目录说法已不再作为安装口径。
+> 当前过渡期通过 Composer VCS 获取 `moo-monitor-laravel` / `moo-scaffold` / `moo-system`；
+> 目标状态为 monitor / scaffold 发布到 Packagist，只有 `moo-system` 保留 VCS 授权。
 
 ## 0. 一句话任务
 
@@ -11,7 +14,7 @@
 
 本计划制定当天，作者已用 `018e7c7` + `4f7cfb8` 两个提交完成了一部分：
 
-- **已完成**：§3 表的 #6（骨架接入：engine 显式 require monitor 包 + path 仓库；§4 的 4 处遗留全清，bootstrap 已无 ExceptionDispatcher）、#3（docs/04 §4.5 已改写）、#4（docs/08 §8.2/§8.5 已改写）、#7 的 README 部分（配套包表已提 push/mcp/migrate 三命令）。
+- **已完成**：§3 表的 #6（骨架接入：engine 显式 require monitor 包；当前过渡期通过 VCS 解析；§4 的 4 处遗留全清，bootstrap 已无 ExceptionDispatcher）、#3（docs/04 §4.5 已改写）、#4（docs/08 §8.2/§8.5 已改写）、#7 的 README 部分（配套包表已提 push/mcp/migrate 三命令）。
 - **作废**：#2（docs/03/04 内联 bootstrap 补 reportable 行）——MonitorProvider **自动注册** reportable 钩子，宿主一行都不用写，1.7 节也因此更简单（装包 + env 即生效）。
 - **剩余待做**：#1（docs/01 新增 1.7 节——注意 monitor 同时是 scaffold 的传递依赖，第 1 章单独装与第 2 章装 scaffold 不冲突，composer 会去重）、#5（第 10 章云端进阶）、#7 其余（docs/README 章节表、引导器 CHAPTERS、CLAUDE.md 定位句、HANDOFF）、#8（沿途引线）、监控 Feature 测试。
 - 验收③ 调整为：全仓 grep `ExceptionDispatcher|SCAFFOLD_SQL_SLOW|SCAFFOLD_RUNTIME|SCAFFOLD_CLOUD` 已清零（仅允许出现在本文档），保持即可。
@@ -19,7 +22,7 @@
 ## 1. 背景（前情，缺这段会误判）
 
 1. **2026-06-12，moo-scaffold 3.9.0**（commit `1103c11`）把监控链路整体拆给了新包
-   **`charsen/moo-monitor-laravel`**（同级目录 `../../moo-monitor-laravel`，MIT，目标发 Packagist）：
+   **`charsen/moo-monitor-laravel`**（MIT，当前 VCS 过渡，目标发 Packagist）：
    - headless 采集 SDK：运行时异常 + 慢 SQL，hash 聚合、敏感字段脱敏；
    - 本地缓冲优先：落盘 `storage/moo-monitor/`（不连云也完整可用）；
    - 命名空间 `Mooeen\Monitor`，provider `MonitorProvider`，config `moo-monitor.php`，env 前缀 `MOO_MONITOR_*`；
@@ -42,7 +45,7 @@
 
 | # | 位置 | 内容 | 性质 |
 |---|---|---|---|
-| 1 | **docs/01 新增 1.7「接入监控（本骨架标准件）」** | 装包（Packagist 主线 `composer require charsen/moo-monitor-laravel`；未发布前用 path `../../moo-monitor-laravel` 兜底，叙事方式参考 2.1 的双轨写法）→ bootstrap 上报接线（一行 reportable，**真实类名/接法以包 README+源码为准，别凭记忆写**）→ cloud 注册项目拿 token → `.env` 配 `MOO_MONITOR_*` + cloud token → **故意 throw 一个异常** → 看 `storage/moo-monitor/` 落盘 → `moo:cloud:push` → 云端面板看到它。闭环 ≤15 分钟，主题句：「从此报错有地方看」 | 新增 |
+| 1 | **docs/01 新增 1.7「接入监控（本骨架标准件）」** | 装包（当前过渡期先声明 `git@gitee.com:charsen/moo-monitor-laravel.git` VCS，再 `composer require "charsen/moo-monitor-laravel:dev-master as 0.1.99"`；Packagist 目标版本可解析后改为 `composer require "charsen/moo-monitor-laravel:^0.1"`）→ `.env` 配 `MOO_MONITOR_*` + cloud token → **故意 throw 一个异常** → 看 `storage/moo-monitor/` 落盘 → `moo:cloud:push` → 云端面板看到它。闭环 ≤15 分钟，主题句：「从此报错有地方看」 | 新增 |
 | 2 | docs/03、docs/04 内联的 bootstrap/app.php 代码段 | 必须带上 1.7 加的 reportable 行（读者跟做第 3/4 章会整段重写 bootstrap，不带就抄丢了——历史上 ch6 的 TestCase 微调就踩过同类断点） | 改写 |
 | 3 | docs/04 §4.5「异常采集与节流」 | 重写：监控已在 1.7 上岗，本节只讲 dontReport / throttle 与监控的边界关系 | 改写 |
 | 4 | docs/08 §8.2 写权限段 + §8.5 慢SQL段 | 落盘目录 `scaffold/` → `storage/moo-monitor/`；env 改 `MOO_MONITOR_SQL_SLOW_*`；生产 www-data 写权限说明同步 | 改写 |

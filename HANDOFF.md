@@ -3,10 +3,10 @@
 > 本文件随仓库分发，已按脱敏守则编写（不含生产项目名与真实凭据）。
 > 机器私有信息在 `CLAUDE.local.md`（gitignored，见第 4 节模板自行重建）。
 
-## 0. 一句话现状（2026-06-12）
+## 0. 一句话现状（2026-06-12 历史批次，2026-07 已同步包来源口径）
 
 生态四仓库（moo-engine-skeleton / moo-scaffold / moo-system / moo-scaffold-cloud）
-**全部干净、全部已推送**，无任何未提交工作。
+在 2026-06-12 批次收口时全部干净、全部已推送；当前以本文件后续的 2026-07 包来源说明为准。
 
 最近批次（06-11 晚 ~ 06-12 晚，已全部入 master）：
 
@@ -16,7 +16,7 @@
   加字段 / moo:adder / 移动端只读 Food + 守卫隔离实证 / FoodResource 链式字段控制。
   测试 21 → **43 passed**，踩坑表扩到 **27 条**（含 3 个本批实测新挖的生成器坑 #25~#27）。
 - **`cbc171e`（06-12 早）教程前半大修（README + docs 01-05）**：README 删 git-lfs
-  虚假前置（docs/README 已明写「无需 git-lfs」）；01 拆解 PHP 8.2/8.3 矛盾；
+  虚假前置（docs/README 已明写「无需 git-lfs」）；01 曾拆解 PHP 8.2/8.3 矛盾（2026-07 已降回 PHP 8.2+ 口径）；
   03 修 5 处事实错；05 开篇声明「适用代码状态」、Gate 伪代码补成可照抄实现并标注快照错位。
 - **`018e7c7` + `4f7cfb8`（06-12）监控标准件接入（部分）**：scaffold 3.9.0 拆分留下的
   4 处遗留全清（ExceptionDispatcher 引用、死 env、死 config、docs/04/08 过时段）；
@@ -36,46 +36,38 @@
 
 | 仓库 | 状态 | 备注 |
 |---|---|---|
-| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后已积一大批提交（见上） | 九章教程 + 网页引导器 + CI workflow，41 测试全绿 |
-| moo-scaffold | tag 至 `3.8.x`，LICENSE(MIT) 已补 | **已定开源**，待发布 Packagist |
+| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后已积一大批提交（见上） | 十章教程 + 网页引导器 + CI workflow，43 测试全绿 |
+| moo-scaffold | 3.x 开发中，LICENSE(MIT) 已补 | **开源包**，目标发布 Packagist；当前过渡期仍可用 VCS |
 | moo-system | tag 至 `1.6.12` | **商业包**（proprietary）；1.6.12 含 guard claim 动态化 |
 | moo-scaffold-cloud | 干净、已推送 | 云端监控面板，本交接按需克隆 |
 
 ## 1. 新机环境
 
 ```bash
-# PHP：直接用本仓库（README「方式 A」）必须 8.3 —— composer.lock 按 8.3 解析
-# （其中 jwt-auth 2.9 要求 php ^8.3），8.2 上 composer install 装不上。
-# engine/composer.json 写的 "php": "^8.2" 只对从零跟教程搭（方式 B）成立，
-# 这对矛盾的完整拆解见 docs/01-安装-laravel.md「PHP 到底要 8.2 还是 8.3」。
-brew install php@8.3 composer node mariadb
+# PHP：当前仓库按 PHP 8.2+ 可安装版本解析。
+brew install php composer node mariadb
 brew services start mariadb
-# ⚠ 若机器同时装了 php@8.2 且默认 php 指向它，每次先：
-export PATH=/opt/homebrew/opt/php@8.3/bin:$PATH
 
 # 数据库：brew 装的 MariaDB 初始 root 无密码（走 unix_socket），先设密码再建库：
 mysql_secure_installation        # 按提示设 root 密码（教程示例值 7777）
 mysql -uroot -p -e "CREATE DATABASE moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-**仓库访问权是前置**：三个 Gitee 仓库当前均私有，先联系作者把你的 Gitee 账号
-加为仓库成员/协作者，否则第 2 节克隆直接被拒（配 SSH key 只解决认证、不解决授权；
-HTTPS 克隆则无需 SSH key）。
+**仓库访问权是前置**：当前过渡期 `moo-scaffold` / `moo-monitor-laravel` 仍可通过 VCS 解析，
+`moo-system` 必须通过 VCS 授权分发。先联系作者把你的 Gitee 账号加为相应仓库成员/协作者；
+Packagist 同步开源包目标版本后，开源包将不再需要 Gitee 权限。
 
-## 2. 克隆（目录结构必须同级——path 仓库依赖 `../../` 相对路径）
+## 2. 克隆
 
 ```bash
 mkdir wwwroot && cd wwwroot
-git clone https://gitee.com/charsen/moo-scaffold.git
-git clone https://gitee.com/charsen/moo-system.git        # 商业包，硬前置（见下）
 git clone https://gitee.com/charsen/moo-engine-skeleton.git
 # 按需：moo-scaffold-cloud
 ```
 
-> ⚠ **moo-scaffold 与 moo-system 都是硬前置**：`engine/composer.json` 无条件
-> path 依赖 `../../moo-scaffold` 与 `../../moo-system`，两者都未发 Packagist，
-> **唯一获取途径是联系作者要授权/源码**（分发凭证机制未建，见待办 #3）。
-> 缺任何一个，第 3 节 `composer install` 第一步即失败，没有绕行分支。
+> ⚠ **依赖获取方式**：`engine/composer.json` 当前通过 VCS 解析三个 moo-* 包，不再依赖本地同级 path。
+> `moo-system` 是商业包，缺授权时第 3 节 `composer install` 会失败。开源包目标走 Packagist；
+> 在 Packagist 同步目标版本前，若 VCS 无权限也会安装失败。
 
 ## 3. skeleton 初始化（同 README「方式 A」）
 
@@ -113,15 +105,16 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 
 ```markdown
 # CLAUDE.local.md —— 本机私有注记（不随仓库分发）
-- php 多版本：命令前 export PATH=/opt/homebrew/opt/php@8.3/bin:$PATH（若有 8.2 共存）
+- php：PHP 8.2+ 即可
 - 数据库真实凭据：root / <你的密码>
 - Git 远程：https://gitee.com/charsen/moo-engine-skeleton.git（当前私有）
-- 同级目录：moo-scaffold（开源 MIT）、moo-system（商业）、moo-scaffold-cloud
+- 包访问：当前过渡期 scaffold/monitor 可用 VCS；moo-system 必须有授权；cloud 按需
 ```
 
 ## 5. 关键决策与守则（新会话必读，CLAUDE.md 有完整版）
 
-1. **包定位**：moo-scaffold 开源（MIT，规划发 Packagist）；moo-system 商业（proprietary）。
+1. **包定位**：moo-scaffold / moo-monitor-laravel 开源（MIT，目标发 Packagist）；
+   moo-system 商业（proprietary，必须 VCS 授权）。
    教程第 1~6 章零付费依赖是核心卖点。
 2. **脱敏守则**：本仓库一切资料不得出现作者具体生产项目名称（统一"作者生产项目"指代）。
    工作树已全量脱敏；**历史提交信息未清**（见待办 #2）。
@@ -137,7 +130,7 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 
 | # | 事项 | 等什么 |
 |---|---|---|
-| 1 | moo-scaffold 公开：Gitee 设公开/GitHub 镜像 → 提交 Packagist → 教程第 2 章切 `composer require` 主线（文档已预留措辞） | 作者操作 |
+| 1 | 开源包发布同步：moo-scaffold 3.x 与 moo-monitor-laravel 0.1.x 在 Packagist 可解析后，删除 `engine/composer.json` / docs 里的 scaffold+monitor VCS 过渡配置，只保留 moo-system VCS | 作者操作 |
 | 2 | 本仓库公开时的历史脱敏：历史压缩 vs 推新公开仓库，二选一 | 作者决策 |
 | 3 | moo-system 商业化：LICENSE 授权条款、分发凭证机制（现状只能找作者人肉给源码，见第 2 节）。原列的「`--tag=moo-system-stubs` 修复」经核疑为过时待办——该 tag 已存在且可用（`MooeenSystemServiceProvider` 发布 6 个契约 stub，`Doctor` 仍引导使用），需作者确认已完成或补最小复现后再派工 | 作者决策 |
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |
