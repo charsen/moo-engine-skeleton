@@ -2,10 +2,11 @@
 #
 # 生效条件：
 # 1. 本仓库镜像/迁移到 GitHub 后自动启用；
-# 2. moo-* 包的获取：moo-scaffold 发布到 Packagist 前、以及商业包 moo-system，
-#    都走 composer.production.json 的 VCS 仓库——需要在仓库 Secrets 配一把
-#    只读部署私钥 MOO_PACKAGES_DEPLOY_KEY（对应公钥加到 Gitee 包仓库的部署公钥）。
-#    moo-scaffold 上 Packagist 后可去掉 ssh-agent 步骤并简化 require。
+# 2. moo-* 包的获取：当前过渡期使用 engine/composer.json 里的三个 VCS 仓库，
+#    需要在仓库 Secrets 配一把只读部署私钥 MOO_PACKAGES_DEPLOY_KEY
+#    （对应公钥加到 Gitee 包仓库的部署公钥）。
+#    Packagist 同步 moo-scaffold / moo-monitor-laravel 目标版本后，可改用
+#    composer.production.json，并把部署私钥范围收窄到 moo-system。
 name: tests
 
 on:
@@ -24,7 +25,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.2'
           extensions: pdo_sqlite, mbstring, bcmath
           coverage: none
 
@@ -33,15 +34,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.MOO_PACKAGES_DEPLOY_KEY }}
 
-      - name: 安装依赖（生产轨 composer，path 仓库在 CI 不可用）
-        run: |
-          cp composer.production.json composer.json
-          composer install --no-interaction --prefer-dist --no-progress
+      - name: 安装依赖（当前 VCS 过渡配置）
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: 准备应用
         run: |
           cp .env.example .env
           php artisan key:generate
 
-      - name: 测试（21 个，sqlite :memory:）
+      - name: 测试（43 个，sqlite :memory:）
         run: php artisan test
