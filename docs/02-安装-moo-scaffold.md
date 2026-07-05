@@ -325,7 +325,8 @@ php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i
 生成的目录结构：
 ```
 app/Models/Food/{Food.php, Filters/FoodFilter.php, Traits/FoodTrait.php, Enums/{FoodCategory,FoodStatus}.php}
-app/Models/Traits/UsingSnowFlakePrimaryKey.php   # 雪花 ID 约定 trait（自动生成；HasOperator.php 仅当表含 creator_id/updater_id 时才生成，本章 Food.yaml 没有这两字段，故不会出现）
+app/Models/Traits/UsingSnowFlakePrimaryKey.php   # 雪花 ID 约定 trait
+app/Models/Traits/HasOperator.php                # 当前生成器会一并生成；本章 Food.yaml 没有 creator_id/updater_id，所以业务里暂时用不上
 app/Admin/Controllers/Food/{FoodController.php, Traits/FoodTrait.php}
 app/Admin/Requests/Food/Food/{Index,Store,Update,Create,Edit,DestroyBatch}Request.php
 app/Admin/Requests/Food/Food/FoodRequestTrait.php   # 各 Request 共用的表名/枚举值 trait（也是生成的）
@@ -352,7 +353,8 @@ database/migrations/*_create_foods_table.php
    （这俩也是 `moo-system` 的依赖，提前装好后面不冲突。）
 
 2. **`moo:free` 不会创建共享的 `BaseActionTrait`**（它只在独立命令 `moo:controller` 里创建）。
-   报 `Trait "App\Admin\Controllers\Traits\BaseActionTrait" not found` 时，跑一次：
+   生成完建议直接补跑一次，幂等；否则后面 `route:list` / `moo:api` / curl 首次加载
+   `FoodController` 时会报 `Trait "App\Admin\Controllers\Traits\BaseActionTrait" not found`：
    ```bash
    php artisan moo:controller Food -f
    ```
@@ -369,6 +371,11 @@ database/migrations/*_create_foods_table.php
    PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
    ```
    （必须带 `--no-reload`，否则 Laravel 只起单 worker。）
+
+5. **`moo:test` 生成的是 Pest 风格测试骨架**：全新 Laravel 12 项目默认只带 PHPUnit，
+   直接跑 `php artisan test tests/Feature/Admin/Food` 会报 `Call to undefined function it()`。
+   本教程正式的自动化测试从第 4 章开始手写 PHPUnit 测试；第 2 章这里把生成的文件当
+   「路由契约草稿」即可。若你想立刻跑它，需先按 Pest 官方方式安装 Pest。
 
 生成的 `foods` 表（注意 `id` 是非自增 bigint，留给雪花算法赋值。
 `-p7777` / `moo_skeleton` 来自**第 1 章** `.env` 里的 `DB_PASSWORD` / `DB_DATABASE`，

@@ -92,13 +92,16 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
   "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-## 1.4 配置 .env 连接数据库（取消注释，不要追加）
+## 1.4 配置 .env 连接数据库（替换 SQLite，不要追加）
 
 `create-project` 已经自动生成了 `engine/.env`（`APP_KEY` 也已自动填好，不用再
 `key:generate`），但它默认用 SQLite，要改成连本机数据库。注意一个容易疑惑的点：
 **本机装的是 MariaDB，但 `DB_CONNECTION` 写的是 `mysql`**——MariaDB 与 MySQL
 协议完全兼容，用 `mysql` 驱动连 MariaDB 是惯例写法（本机若装的是 MySQL 8 则更不用改）。
-编辑 `engine/.env`，改成下面这样：
+编辑 `engine/.env`，把默认的 `DB_CONNECTION=sqlite` 替换为下面这组 MySQL 配置。
+近期 Laravel 12 模板里通常只有一行 `DB_CONNECTION=sqlite`，没有现成的
+`DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD`；如果你的模板里
+这些行是被 `#` 注释掉的，就取消注释并改成同样的值。
 
 ```dotenv
 APP_NAME=moo-engine-skeleton
@@ -112,10 +115,10 @@ DB_USERNAME=root
 DB_PASSWORD=7777
 ```
 
-> **别在文件末尾追加！** 默认 `.env` 里 `DB_CONNECTION=sqlite`，而
-> `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` 这几行
-> 是被 `#` 注释掉的——请找到这几行，**取消注释并改成上面的值**。
-> 若只在末尾追加新值，文件里会同时留着注释掉的旧行，日后排查容易看花眼。
+> **别只在文件末尾追加！** 要确保文件里最后生效的是 `DB_CONNECTION=mysql`。
+> 如果原来的 `DB_CONNECTION=sqlite` 还留着，Laravel 会继续连 SQLite，后面
+> `php artisan migrate` 看似成功但表会建到 `database/database.sqlite`，不是
+> `moo_skeleton`。
 
 > 端口为什么是 8088？最初只是因为作者本机 8000 端口被其它项目占用（见 1.6），
 > 但 8088 现在已是**本仓库的约定端口**——`engine/.env`、根 README、第 2 章起的
@@ -268,7 +271,9 @@ php artisan config:clear
 ### 1.7.3 自动挂钩：零代码上报
 
 **MonitorProvider 自动注册 reportable 钩子**，宿主项目不需要写任何异常采集代码。
-`engine/bootstrap/app.php` 已经有注释说明这一点（第 47-48 行）：
+从零创建的 Laravel 项目不会自动多出任何注释，这是正常的；装包 + 配 `.env`
+就已经生效。成品仓库的 `engine/bootstrap/app.php` 里额外留了两行说明，方便日后维护者
+理解为什么这里没有手写异常采集代码：
 
 ```php
 // 运行时异常采集:scaffold 3.9.0 起由 moo-monitor-laravel 的 MonitorProvider
