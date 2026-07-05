@@ -363,7 +363,7 @@ php artisan test
 
 > 这个「9 passed」只对**跟到本章为止的你本地**成立。仓库是全书最终态，
 > `tests/Feature/` 下已有 9 个测试文件，在仓库里直接跑会得到
-> `Tests: 43 passed (139 assertions)`——数字对不上不代表你做错了。
+> `Tests: 45 passed (146 assertions)`——数字对不上不代表你做错了。
 
 > ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的服务链是单例
 > （payload 工厂的 claim 残留、auth 适配器绑死首个守卫），跨守卫/跨请求断言会

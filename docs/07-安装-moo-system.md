@@ -71,17 +71,28 @@ composer update charsen/moo-system --with-all-dependencies
 完整的 `register()` 方法代码（约 60 行）见本仓库 `engine/app/Providers/AppServiceProvider.php`
 （`register()` 里就是完整的宏实现，注释写明了每条规则的原因）。
 
-## 7.2 提供 host 端契约（5 个文件 + 1 个全局函数）
+## 7.2 提供 host 端契约（6 个文件 + 1 个全局函数）
 
 moo-system 的控制器/模型会 `use` host 侧的几个 trait 和类（叫「host 契约」）。
-需要提供以下 5 个文件：
+需要提供以下 6 个文件：
 
 ```
+engine/app/Admin/Controllers/UploadController.php          ← 最小上传端点，供头像/附件表单控件使用
 engine/app/Admin/Controllers/Traits/BaseActionTrait.php   ← 覆盖第 2 章 scaffold 生成的精简版
 engine/app/Admin/Controllers/Traits/UploaderTrait.php
 engine/app/Models/Traits/MediaSynchronous.php
 engine/app/Models/Notification.php
 engine/app/Notifications/SendBlessMessage.php
+```
+
+`UploaderTrait::getUploadImageControl()` 会把头像控件的上传地址指向
+`api/admin/upload/image?field=avatar`；因此还要在 `routes/admin.php` 的登录保护组内注册：
+
+```php
+use App\Admin\Controllers\UploadController;
+
+Route::post('upload/image', [UploadController::class, 'image'])->name('upload.image');
+Route::post('upload/file', [UploadController::class, 'file'])->name('upload.file');
 ```
 
 > 注意第一个是**覆盖**而非新增。7.4 的 `moo-system check` 只验证这些 trait/class
@@ -342,8 +353,8 @@ token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关
 ```bash
 php artisan test
 # 按章节顺序做到本章：Tests: 37 passed
-# （最终态仓库是 43 passed——多出的 6 个是第 9 章新增的 FoodIncrementalTest 1 个
-#   + ApiFoodTest 5 个。此刻跑出 37 就是对的，不是你做错了。）
+# （最终态仓库是 45 passed——多出的 8 个是第 9 章新增的 FoodIncrementalTest 1 个
+#   + ApiFoodTest 5 个，以及上传端点 UploadTest 2 个。此刻跑出 37 就是对的，不是你做错了。）
 ```
 
 `FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，

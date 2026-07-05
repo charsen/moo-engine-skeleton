@@ -42,5 +42,5 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
-      - name: 测试（43 个，sqlite :memory:）
+      - name: 测试（45 个，sqlite :memory:）
         run: php artisan test
