@@ -19,8 +19,8 @@
 > 是为了让监控在「裸 Laravel」这个最简单的时点先上岗——新手先建立「出错去哪看」的心智模型。
 
 先把这个包的身份说清楚：`moo-scaffold` 采用 **MIT 协议**，目标发布到 Packagist。
-Packagist 目标版本同步完成后，届时普通使用直接
-`composer require "charsen/moo-scaffold:^3.10"` 即可。
+生产环境当前稳定基线直接使用
+`composer require "charsen/moo-scaffold:^2.1.3"`。
 
 > 注意将来也**不是** `--dev`：在这套架构里 scaffold 是**运行时依赖**，不是纯开发工具——
 > 生成的控制器直接继承 / 返回包里的类（`Mooeen\Scaffold\Foundation\{Controller, BaseResource, ...}`），
@@ -34,7 +34,7 @@ Packagist 目标版本同步完成后，届时普通使用直接
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "dev-master as 3.999.0"
+    "charsen/moo-scaffold": "dev-master as 2.99.99"
 },
 "repositories": {
     "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
@@ -64,7 +64,7 @@ Packagist 目标版本同步完成后，届时普通使用直接
 >     "php": "^8.2",
 >     "laravel/framework": "^12.0",
 >     "laravel/tinker": "^2.10",
->     "charsen/moo-scaffold": "dev-master as 3.999.0"
+>     "charsen/moo-scaffold": "dev-master as 2.99.99"
 > },
 > "repositories": {
 >     "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
@@ -76,18 +76,17 @@ Packagist 目标版本同步完成后，届时普通使用直接
 > 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）；
 > `"repositories"` 是**新增**的顶层键（与 `"require"` 平级）。
 >
-> 为什么是 `dev-master as 3.999.0`？当前 Packagist 还没有 3.x 目标版本，过渡期用
-> VCS 拉 dev 分支，并用 `as 3.999.0` 满足 `minimum-stability: stable` 和其它包的版本约束。
+> 为什么本地是 `dev-master as 2.99.99`？开发环境可跟随 scaffold 主分支，同时用
+> 2.x alias 满足扩展包对稳定 2.x 公共 API 的版本约束。
 >
-> Packagist 目标版本可解析后，改为 `"charsen/moo-scaffold": "^3.10"`，并删掉
-> `repositories.scaffold` 配置。
+> 生产环境改为 `"charsen/moo-scaffold": "^2.1.3"`，从稳定 tag 安装。
 
 声明好之后安装：
 
 ```bash
 cd engine
 composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
-composer require "charsen/moo-scaffold:dev-master as 3.999.0" --with-all-dependencies
+composer require "charsen/moo-scaffold:dev-master as 2.99.99" --with-all-dependencies
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
 
