@@ -17,6 +17,10 @@
         "tucker-eric/eloquentfilter": "^3.0"
     },
     "repositories": {
+        "scaffold": {
+            "type": "vcs",
+            "url": "https://gitee.com/charsen/moo-scaffold.git"
+        },
         "system": {
             "type": "vcs",
             "url": "https://gitee.com/charsen/moo-system.git"
