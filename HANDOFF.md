@@ -23,7 +23,7 @@
   engine 显式 require moo-monitor-laravel；docs/04 §4.5 改写、docs/08 §8.2/§8.5 改写；
   README 配套包表已提 push/mcp/migrate 三命令。
 - **本次（06-12 晚）监控接入收尾**：docs/01 新增 1.7 节（装包 + 配 .env + 故意抛异常 +
-  本地缓冲 + 推送云端，token `moo_5a8f9d8a03...` 已可用）；docs/10 新增第 10 章
+  本地缓冲 + 推送云端，token `moo_5a8f9d8a03…` 已可用）；docs/10 新增第 10 章
   「云端监控进阶」（聚合告警 / **AI 辅助处理 MCP 接入**全教程独有亮点 / ≤3.8 迁移 / 多项目管理）；
   docs/README、docs/index.html、根 README、CLAUDE.md 同步更新章节表与进度。
   **测试 43 passed**（新增 MonitorTest 2 个：runtime_exception_is_recorded_to_local_buffer + 
@@ -139,7 +139,7 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |
 | 5 | Gitee Pages：仓库公开后，服务 → Pages → 部署目录 `docs/` | 公开后 |
 | 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9 章 + 守护测试 + 教程前半大修 + 监控接入 + 包来源修订 + 上传端点，21→45 passed），建议打 `0.3.0` | 作者决策 |
-| 7 | **监控标准件接入**（monitor+cloud）：完整执行计划见 `plans/monitor-cloud-integration.md` §0.5。**已完成**：#1（docs/01 新增 1.7 节）、#5（docs/10 新增第 10 章）、#7 其余（docs/README、引导器 CHAPTERS、根 README、CLAUDE.md 同步）、#3/#4/#6（018e7c7 / 4f7cfb8 已清四处遗留）、#8（沿途引线 2 处：坑 #6 / #26）、监控 Feature 测试（MonitorTest 2 个方法，43 passed）。cloud token = `moo_5a8f9d8a03273ff0715ae232a660c0ba7bc2f325` 可用（作者提供）。**本待办已完成** | 已完成 ✅ |
+| 7 | **监控标准件接入**（monitor+cloud）：完整执行计划见 `plans/monitor-cloud-integration.md` §0.5。**已完成**：#1（docs/01 新增 1.7 节）、#5（docs/10 新增第 10 章）、#7 其余（docs/README、引导器 CHAPTERS、根 README、CLAUDE.md 同步）、#3/#4/#6（018e7c7 / 4f7cfb8 已清四处遗留）、#8（沿途引线 2 处：坑 #6 / #26）、监控 Feature 测试（MonitorTest 2 个方法，43 passed）。cloud token = `moo_5a8f9d8a03…（完整值不入仓，见私有渠道）` 可用（作者提供）。**本待办已完成** | 已完成 ✅ |
 | 8 | 剩余工程活（可委托 AI）：移动端 `PUT app/me/password` 改密码（零付费 track 的账号自管理）。最小 UploaderController 已在骨架补齐，头像表单上传不再 404 | 作者决策 |
 
 ## 7. 已知局限备忘
@@ -153,3 +153,23 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
   persistent_claims+sub+iat，`guard` 在 persistent_claims 里所以存活、`prv` 不在）。
   当前跨守卫混用仍被 guard claim 校验 + 两套主键空间兜住（有 `RegressionTest` 守护，
   见 docs 第 7 章 07:196），但别把 `lock_subject=true` 当作长效保证。
+
+## 8. 防回退清单（骨架已领先生产项目，维护中严禁向生产项目"对齐"回去）
+
+这 7 项骨架反而领先两个存量生产项目——是审查沉淀出来的框架卫生高地。将来做「骨架 ↔ 生产双向回灌」时
+只能生产向骨架看齐，**严禁**因为「生产项目没这么写」就把骨架改回去：
+
+1. **中间件组注册在 `AppServiceProvider::boot()`**（而非 bootstrap/app.php）——保证 console 内核也能看见
+   admin/user/moo-system 三个中间件组。
+2. **`RateLimiter::for('login')` 登录专用限流**——防暴力撞库，独立于后台 300/min 的通用限流。
+3. **`JWTGuardAuth` 校验过期 token 的 guard claim**——防跨守卫续签越权（admin token 续签成 user 越权等）。
+4. **`OperationLog` 用 `REQUEST_TIME_FLOAT` 计时 + 响应内容 60000 字符截断**——避免大响应体撑爆日志表 /
+   计时口径错。
+5. **`tests/TestCase.php` 的 JWT 跨进程测试脚手架**（`adminLogin` / `freshJwtProcess` / `makeExpiredToken`）
+   **+ `phpunit.xml` 显式注入 `JWT_SECRET`**——迁到 Pest 后**完整保留**，别退回裸 PHPUnit / 删脚手架。
+6. **`config/jwt.php` 的 `(int)` 强转**——ttl 等数值配置强类型，防 env 字符串比较坑。
+7. **helpers 最小化原则**：只收「有消费者」的函数（`getUserId`/`getUser`/`logAuth`/`logDev` 等），
+   无调用点的工具函数（`makeArray`/`br2nl`/`dda` 之类）不进 —— 后续扩充也守这条门槛。
+
+> 这 7 项的代码位置在 overview.md 的架构说明与 docs 各章都有交叉印证；出处背景来自 v0.3 三仓审查
+> 沉淀（审查计划文件在作者私有仓，不随骨架分发）。
