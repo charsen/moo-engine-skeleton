@@ -8,6 +8,7 @@ use App\Http\Middleware\JWTAssignGuard;
 use App\Http\Middleware\JWTAuthOrRefresh;
 use App\Http\Middleware\JWTGuardAuth;
 use App\Http\Middleware\OperationLog;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -43,38 +44,41 @@ class AppServiceProvider extends ServiceProvider
             };
 
             if ($hasAction('index')) {
-                Route::get($name, [$controller, 'index'])->name($name.'.index');
+                Route::get($name, [$controller, 'index'])->name($name . '.index');
             }
             if ($hasAction('create')) {
-                Route::get($name.'/create', [$controller, 'create'])->name($name.'.create');
+                Route::get($name . '/create', [$controller, 'create'])->name($name . '.create');
             }
             if ($hasAction('store')) {
-                Route::post($name, [$controller, 'store'])->name($name.'.store');
+                Route::post($name, [$controller, 'store'])->name($name . '.store');
             }
             if ($hasAction('trashed')) {
                 // 固定段 /trashed 必须先于 show 的 /{id} 注册，否则会被 /{id} 抢匹配（当成 show('trashed')）
-                Route::get($name.'/trashed', [$controller, 'trashed'])->name($name.'.trashed');
+                Route::get($name . '/trashed', [$controller, 'trashed'])->name($name . '.trashed');
             }
             if ($hasAction('show')) {
-                Route::get($name.'/{id}', [$controller, 'show'])->name($name.'.show');
+                Route::get($name . '/{id}', [$controller, 'show'])->name($name . '.show');
             }
             if ($hasAction('edit')) {
-                Route::get($name.'/{id}/edit', [$controller, 'edit'])->name($name.'.edit');
+                Route::get($name . '/{id}/edit', [$controller, 'edit'])->name($name . '.edit');
             }
             if ($hasAction('update')) {
-                Route::put($name.'/{id}', [$controller, 'update'])->name($name.'.update');
+                Route::put($name . '/{id}', [$controller, 'update'])->name($name . '.update');
             }
-            if ($hasAction('destroy')) {
-                Route::delete($name.'/{id}', [$controller, 'destroy'])->name($name.'.destroy');
-            }
+            // 固定段 DELETE 路由（/forever/{id}、/batch）必须先于 destroy 的 /{id} 注册，
+            // 否则 `DELETE {name}/batch` 会被 /{id} 抢匹配成 destroy('batch')，destroyBatch 永不命中
+            // （坑 0-1：审查复现的路由顺序 bug；另有 boot() 里的 Route::pattern('id',...) 做第二道保险）。
             if ($hasAction('forceDestroy')) {
-                Route::delete($name.'/forever/{id}', [$controller, 'forceDestroy'])->name($name.'.forceDestroy');
+                Route::delete($name . '/forever/{id}', [$controller, 'forceDestroy'])->name($name . '.forceDestroy');
             }
             if ($hasAction('destroyBatch')) {
-                Route::delete($name.'/batch', [$controller, 'destroyBatch'])->name($name.'.destroyBatch');
+                Route::delete($name . '/batch', [$controller, 'destroyBatch'])->name($name . '.destroyBatch');
+            }
+            if ($hasAction('destroy')) {
+                Route::delete($name . '/{id}', [$controller, 'destroy'])->name($name . '.destroy');
             }
             if ($hasAction('restore')) {
-                Route::patch($name.'/restore', [$controller, 'restore'])->name($name.'.restore');
+                Route::patch($name . '/restore', [$controller, 'restore'])->name($name . '.restore');
             }
         });
     }
@@ -86,6 +90,11 @@ class AppServiceProvider extends ServiceProvider
     {
         /** @var Router $router */
         $router = $this->app['router'];
+
+        // 全局把 {id} 路由参数钉成正整数（雪花/自增主键都满足）。第二道保险：即便 iResource 宏
+        // 的注册顺序被改回旧法，`{name}/batch`、`{name}/forever/x` 也不会被 destroy 的 /{id} 抢匹配
+        // （'batch' 不匹配 [1-9][0-9]*）。副作用可控：本生态所有 {id} 均为正整数主键（坑 0-1）。
+        Route::pattern('id', '[1-9][0-9]*');
 
         // 接口限流（生产实践值：登录在内的后台接口 300 次/分钟，移动端 1000 次/分钟；
         // 已登录按用户 ID 计数，未登录按 IP）
@@ -101,13 +110,16 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function (Request $request) {
             $account = (string) ($request->input('account') ?: $request->input('email') ?: '');
 
-            return Limit::perMinute(5)->by(sha1($account.'|'.$request->ip()));
+            return Limit::perMinute(5)->by(sha1($account . '|' . $request->ip()));
         });
 
         // JWT 中间件别名
         $router->aliasMiddleware('jwt.assign.guard', JWTAssignGuard::class);
         $router->aliasMiddleware('jwt.guard.auth', JWTGuardAuth::class);
         $router->aliasMiddleware('jwt.auth.refresh', JWTAuthOrRefresh::class);
+
+        // 本地化：按请求头切 app locale（各业务组都挂，见下）
+        $router->aliasMiddleware('set.locale', SetLocale::class);
 
         // 中间件组在这里注册（而非只写在 bootstrap/app.php 的 withMiddleware）。
         // 原因：withMiddleware 的组只有在「HTTP 内核」实例化时才同步到 router；artisan 命令
@@ -118,6 +130,7 @@ class AppServiceProvider extends ServiceProvider
         $router->middlewareGroup('admin', [
             'jwt.assign.guard:admin',
             'throttle:admin',
+            'set.locale',
             SubstituteBindings::class,
             OperationLog::class,
         ]);
@@ -126,6 +139,7 @@ class AppServiceProvider extends ServiceProvider
         $router->middlewareGroup('client', [
             'jwt.assign.guard:user',
             'throttle:client',
+            'set.locale',
             SubstituteBindings::class,
         ]);
 
@@ -136,6 +150,7 @@ class AppServiceProvider extends ServiceProvider
             'jwt.guard.auth:admin',
             'jwt.auth.refresh',
             'throttle:admin',
+            'set.locale',
             SubstituteBindings::class,
             OperationLog::class,
         ]);
