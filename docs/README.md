@@ -42,7 +42,7 @@ cd moo-engine-skeleton
 | Node / npm | Node 26 / npm 11 | **整行可选**：教程第 1-10 章均不涉及前端资源构建（不执行任何 npm 命令），可完全不装；`engine/` 已自带 vite/tailwind 构建配置（`package.json` + `vite.config.js`），仅本教程用不到 |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | **无需 git-lfs**（本仓库不使用 LFS） |
-| moo-scaffold | 当前 `dev-master as 3.999.0`，目标 `^3.10` | **第 2 章起必需**。开源包（MIT），当前过渡期通过 VCS 安装；Packagist 目标版本可解析后改为 `composer require "charsen/moo-scaffold:^3.10"`。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
+| moo-scaffold | 本地 `dev-master as 2.99.99`，生产 `^2.1.3` | **第 2 章起必需**。开源包（MIT）；本地可跟随开发分支，生产必须使用包含共享身份契约的稳定版本。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
 | moo-monitor-laravel | 当前 `dev-master as 0.1.99`，目标 `^0.1` | **非可选**：第 1.7 节当前过渡期通过 VCS 安装；Packagist 目标版本可解析后改为 `composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
 
 动手前先自检一遍（PHP 版本不对的话，先安装/切换到 8.2 或更高版本再继续）：
@@ -90,6 +90,7 @@ moo-engine-skeleton/
 | [第 8 章 部署上线](./08-部署上线.md) | Composer / Packagist 部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
 | [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
 | [第 10 章 云端监控进阶](./10-云端监控进阶.md) | moo-scaffold-cloud 聚合告警、**AI 辅助处理（MCP 接入，全教程独有亮点）**、≤3.8 迁移、多项目管理 | 进阶 |
+| [第 11 章 操作人身份契约](./11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义、队列身份快照与扩展包边界 | 进阶 |
 
 > **包定位**：moo-scaffold / moo-monitor-laravel 是开源包，目标发布到 Packagist；
 > moo-system 是商业包，需要联系作者授权并通过 VCS 仓库安装。

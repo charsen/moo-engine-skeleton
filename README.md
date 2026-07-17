@@ -173,7 +173,7 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git
 composer require "charsen/moo-monitor-laravel:dev-master as 0.1.99"
 composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
-composer require "charsen/moo-scaffold:dev-master as 3.999.0" --with-all-dependencies
+composer require "charsen/moo-scaffold:dev-master as 2.99.99" --with-all-dependencies
 php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force   # 发布 /scaffold 静态资源
 
 # 5. 迁移 + seed + 调试台账号
@@ -236,6 +236,8 @@ moo-engine-skeleton/
 | [第 7 章 安装 moo-system（进阶）](./docs/07-安装-moo-system.md) | 完整系统管理：host 契约、主体切换 User→Personnel、角色授权、操作日志、调试器联调 |
 | [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | Composer / Packagist 部署、Redis、nginx、supervisor、清缓存坑 |
 | [第 9 章 日常增量开发：改表与加接口](./docs/09-增量开发工作流.md) | 加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、专属 Resource 链式字段控制 |
+| [第 10 章 云端监控进阶](./docs/10-云端监控进阶.md) | 聚合告警、AI 辅助处理、MCP 与多项目管理 |
+| [第 11 章 操作人身份契约](./docs/11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义与扩展包接入 |
 
 教程目录页还附了一张**「踩过的坑」速查表**（27 条新手高频问题）：[docs/README.md](./docs/README.md)。
 

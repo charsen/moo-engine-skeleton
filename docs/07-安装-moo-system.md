@@ -35,7 +35,7 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "dev-master as 3.999.0",
+    "charsen/moo-scaffold": "dev-master as 2.99.99",
     "charsen/moo-monitor-laravel": "dev-master as 0.1.99",
     "charsen/moo-system": "dev-master as 1.999.0"
 },
