@@ -33,7 +33,7 @@ class JWTGuardAuth
             // 若就此放行，「只挂本中间件」的 refresh 端点就能被另一守卫的过期 token 续签
             // （refresh 本身不区分守卫）。改用底层 provider 裸解码——验签名、不验 exp。
             try {
-                $claims = $this->auth->manager()->getJWTProvider()->decode((string) $request->bearerToken());
+                $claims      = $this->auth->manager()->getJWTProvider()->decode((string) $request->bearerToken());
                 $token_guard = $claims['guard'] ?? null;
             } catch (JWTException $e) {
                 return $next($request);

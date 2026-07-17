@@ -26,7 +26,7 @@ trait MediaSynchronous
         // 支持「disk::path」写法（如七牛云）
         if (str_contains($field_txt, '::')) {
             [$disk, $field_txt] = explode('::', $field_txt);
-            $disk = config('filesystems.qiniu_to_browse') ? $disk : 'public';
+            $disk               = config('filesystems.qiniu_to_browse') ? $disk : 'public';
         }
 
         // 本地开发环境直接走 public 盘

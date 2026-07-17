@@ -48,7 +48,7 @@ class AuthServiceProvider extends ServiceProvider
             // 白名单动作（config/actions.php，moo:acl 生成时维护）人人可用
             $apps = config('scaffold.controller');
             foreach ($apps as $app => $config) {
-                $whitelist = config('actions.'.$app.'.whitelist');
+                $whitelist = config('actions.' . $app . '.whitelist');
                 if (isset($whitelist[0]) && in_array($acl_key, $whitelist, true)) {
                     return true;
                 }

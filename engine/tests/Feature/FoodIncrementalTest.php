@@ -23,16 +23,16 @@ class FoodIncrementalTest extends TestCase
 
     public function test_stock_field_and_toggle_status_round_trip(): void
     {
-        $token = $this->adminLogin();
+        $token   = $this->adminLogin();
         $headers = ['Authorization' => "Bearer {$token}"];
 
         // 创建带 stock 的食品（stock 是增量字段：迁移 + fillable + 校验规则）
         $id = $this->postJson('api/admin/food', [
-            'food_name' => '增量苹果',
+            'food_name'     => '增量苹果',
             'food_category' => 1,
-            'price' => 100,
-            'stock' => 50,
-            'food_status' => 1,
+            'price'         => 100,
+            'stock'         => 50,
+            'food_status'   => 1,
         ], $headers)->assertCreated()->json('data.id');
 
         $this->assertDatabaseHas('foods', ['id' => $id, 'stock' => 50, 'food_status' => 1]);

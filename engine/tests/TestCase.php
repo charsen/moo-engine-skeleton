@@ -16,7 +16,7 @@ abstract class TestCase extends BaseTestCase
     protected function adminLogin(string $account = '13800000000', string $password = 'admin888'): string
     {
         return $this->postJson('api/admin/authenticate', [
-            'account' => $account,
+            'account'  => $account,
             'password' => $password,
         ])->assertOk()->json('data.token');
     }
@@ -27,7 +27,7 @@ abstract class TestCase extends BaseTestCase
     protected function appLogin(string $email = 'admin@example.com', string $password = 'password'): string
     {
         return $this->postJson('app/authenticate', [
-            'email' => $email,
+            'email'    => $email,
             'password' => $password,
         ])->assertOk()->json('data.token');
     }
@@ -62,8 +62,8 @@ abstract class TestCase extends BaseTestCase
      *
      * 不能用 auth()->login() 配负数 ttl 造：签发后包内自检会直接抛 TokenExpiredException。
      *
-     * @param  int|null  $iat_ago  签发时刻距今多少秒（默认 7200 = 仍在续期窗口内；
-     *                             传大于 refresh_ttl*60 的值可造「超出续期窗口」的 token）
+     * @param int|null $iat_ago 签发时刻距今多少秒（默认 7200 = 仍在续期窗口内；
+     *                          传大于 refresh_ttl*60 的值可造「超出续期窗口」的 token）
      */
     protected function makeExpiredToken(string $guard = 'admin', ?int $iat_ago = null): string
     {
@@ -72,18 +72,18 @@ abstract class TestCase extends BaseTestCase
             ? User::where('email', 'admin@example.com')->firstOrFail()
             : Personnel::where('mobile', '13800000000')->firstOrFail();
 
-        $b64 = static fn (string $d): string => rtrim(strtr(base64_encode($d), '+/', '-_'), '=');
+        $b64    = static fn (string $d): string => rtrim(strtr(base64_encode($d), '+/', '-_'), '=');
         $header = $b64(json_encode(['typ' => 'JWT', 'alg' => 'HS256']));
-        $now = time();
+        $now    = time();
         $iat_ago ??= 7200;
         $payload = $b64(json_encode([
-            'iss' => 'http://localhost/api/admin/authenticate',
-            'iat' => $now - $iat_ago,
-            'exp' => $now - ($iat_ago - 3600), // 签发 1 小时后过期
-            'nbf' => $now - $iat_ago,
-            'jti' => bin2hex(random_bytes(8)),
-            'sub' => (string) $user->id,
-            'prv' => sha1($guard === 'user' ? User::class : Personnel::class), // lock_subject 模型哈希
+            'iss'   => 'http://localhost/api/admin/authenticate',
+            'iat'   => $now - $iat_ago,
+            'exp'   => $now - ($iat_ago - 3600), // 签发 1 小时后过期
+            'nbf'   => $now - $iat_ago,
+            'jti'   => bin2hex(random_bytes(8)),
+            'sub'   => (string) $user->id,
+            'prv'   => sha1($guard === 'user' ? User::class : Personnel::class), // lock_subject 模型哈希
             'guard' => $guard,
         ]));
         $signature = $b64(hash_hmac('sha256', "{$header}.{$payload}", (string) config('jwt.secret'), true));

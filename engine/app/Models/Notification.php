@@ -27,8 +27,8 @@ class Notification extends DatabaseNotification
      * @var array
      */
     protected $casts = [
-        'id' => 'string',
-        'data' => 'json',
+        'id'      => 'string',
+        'data'    => 'json',
         'read_at' => 'datetime',
     ];
 

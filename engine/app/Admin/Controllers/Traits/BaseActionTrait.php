@@ -41,7 +41,7 @@ trait BaseActionTrait
         $validated = $request->validated();
         $model_ids = is_array($validated['ids']) ? $validated['ids'] : [$validated['ids']];
 
-        $data = $this->model->whereKey($model_ids)->get();
+        $data   = $this->model->whereKey($model_ids)->get();
         $result = $data->map(function ($item) use ($afterDelete) {
             if ($item->delete()) {
                 if ($afterDelete) {
@@ -80,7 +80,7 @@ trait BaseActionTrait
         $validated = $request->validated();
         $model_ids = is_array($validated['ids']) ? $validated['ids'] : [$validated['ids']];
 
-        $data = $this->model->onlyTrashed()->whereKey($model_ids)->get();
+        $data   = $this->model->onlyTrashed()->whereKey($model_ids)->get();
         $result = $data->map(function ($item) {
             if ($item->restore()) {
                 return $item;
@@ -104,10 +104,10 @@ trait BaseActionTrait
             : $model->toArray();
 
         $res = [
-            'type' => 'select',
+            'type'     => 'select',
             'multiple' => $multiple,
-            'options' => $data,
-            'filter' => ['label-value', 'id', $field],
+            'options'  => $data,
+            'filter'   => ['label-value', 'id', $field],
         ];
 
         if ($control !== null) {
@@ -127,13 +127,13 @@ trait BaseActionTrait
             : $model->toTree()->toArray();
 
         $res = [
-            'type' => 'cascader',
+            'type'     => 'cascader',
             'multiple' => $multiple,
             'strictly' => $strictly,
-            'options' => $data,
-            'array' => $array,
-            'tip' => $tip,
-            'filter' => ['label-value', 'id', $field],
+            'options'  => $data,
+            'array'    => $array,
+            'tip'      => $tip,
+            'filter'   => ['label-value', 'id', $field],
         ];
 
         if ($control !== null) {
@@ -150,18 +150,18 @@ trait BaseActionTrait
     {
         if ($model === null) {
             $departments = Department::defaultOrder();
-            $model = $departments->with(['personnels' => function ($query) {
+            $model       = $departments->with(['personnels' => function ($query) {
                 $query->where('system_personnels.staff_status', StaffStatus::ON_JOB->value);
             }])->get();
         }
 
         return [
-            'type' => 'cascader',
+            'type'     => 'cascader',
             'multiple' => $multiple,
             'strictly' => $strictly,
-            'array' => $array,
-            'options' => $model->toTree()->toArray(),
-            'filter' => ['label-value', 'id', 'department_name', '', ['personnels', 'id', 'real_name', '@']],
+            'array'    => $array,
+            'options'  => $model->toTree()->toArray(),
+            'filter'   => ['label-value', 'id', 'department_name', '', ['personnels', 'id', 'real_name', '@']],
         ];
     }
 
@@ -193,12 +193,12 @@ trait BaseActionTrait
         });
 
         return [
-            'type' => 'cascader',
+            'type'     => 'cascader',
             'multiple' => $multiple,
             'strictly' => $strictly,
-            'array' => $array,
-            'options' => $model->toTree()->toArray(),
-            'filter' => ['label-value', 'id', 'display_name', '', ['positions', 'id', 'position_name']],
+            'array'    => $array,
+            'options'  => $model->toTree()->toArray(),
+            'filter'   => ['label-value', 'id', 'display_name', '', ['positions', 'id', 'position_name']],
         ];
     }
 }

@@ -36,7 +36,7 @@ class AuthController
     public function authenticate(Request $request): JsonResponse
     {
         $params = $request->validate([
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
@@ -57,11 +57,11 @@ class AuthController
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
+                    'id'    => $user->id,
+                    'name'  => $user->name,
                     'email' => $user->email,
                 ],
-                'token' => $token,
+                'token'      => $token,
                 'expires_in' => Auth::guard('user')->factory()->getTTL() * 60,
             ],
         ]);
@@ -77,8 +77,8 @@ class AuthController
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
+                    'id'    => $user->id,
+                    'name'  => $user->name,
                     'email' => $user->email,
                 ],
             ],
@@ -104,7 +104,7 @@ class AuthController
 
         return response()->json([
             'data' => [
-                'token' => $token,
+                'token'      => $token,
                 'expires_in' => Auth::guard('user')->factory()->getTTL() * 60,
             ],
         ]);

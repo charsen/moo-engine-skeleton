@@ -13,13 +13,13 @@ enum FoodStatus: int
 {
     use EnumExtend;
 
-    case ON_SHELF = 1;
+    case ON_SHELF  = 1;
     case OFF_SHELF = 2;
 
     public static function getLabel(self $value): string
     {
         return match ($value) {
-            self::ON_SHELF => __('model.food_status_on_shelf'),
+            self::ON_SHELF  => __('model.food_status_on_shelf'),
             self::OFF_SHELF => __('model.food_status_off_shelf'),
         };
     }

@@ -26,17 +26,17 @@ class IndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'food_name' => ['nullable', 'string', 'max:128'],
-            'description' => ['nullable', 'string', 'max:255'],
-            'price' => ['nullable', 'integer', 'min:0'],
-            'calories' => ['nullable', 'integer', 'min:0'],
+            'food_name'     => ['nullable', 'string', 'max:128'],
+            'description'   => ['nullable', 'string', 'max:255'],
+            'price'         => ['nullable', 'integer', 'min:0'],
+            'calories'      => ['nullable', 'integer', 'min:0'],
             'food_category' => ['nullable', 'integer', $this->getInEnums($this->getValues('food_category'))],
-            'food_status' => ['nullable', 'integer', $this->getInEnums($this->getValues('food_status'))],
-            'created_at' => ['nullable', 'date'],
-            'updated_at' => ['nullable', 'date'],
-            'deleted_at' => ['nullable', 'date'],
-            'page' => ['required', 'integer', 'min:1'],
-            'page_limit' => ['required', 'integer', 'min:1', 'max:200'],
+            'food_status'   => ['nullable', 'integer', $this->getInEnums($this->getValues('food_status'))],
+            'created_at'    => ['nullable', 'date'],
+            'updated_at'    => ['nullable', 'date'],
+            'deleted_at'    => ['nullable', 'date'],
+            'page'          => ['required', 'integer', 'min:1'],
+            'page_limit'    => ['required', 'integer', 'min:1', 'max:200'],
         ];
     }
 }

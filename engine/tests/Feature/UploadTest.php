@@ -32,7 +32,7 @@ class UploadTest extends TestCase
         $response = $this->post('api/admin/upload/image?field=avatar', [
             'file' => UploadedFile::fake()->image('avatar.jpg', 64, 64),
         ], [
-            'Accept' => 'application/json',
+            'Accept'        => 'application/json',
             'Authorization' => "Bearer {$token}",
         ])->assertOk();
 

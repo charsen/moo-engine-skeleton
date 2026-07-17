@@ -24,16 +24,16 @@ class PersonnelSeeder extends Seeder
     public function run(): void
     {
         $department = Department::where('department_name', '技术部')->first();
-        $position = Position::where('position_name', '后端工程师')->first();
-        $role = Role::where('role_name', '系统管理员')->first();
+        $position   = Position::where('position_name', '后端工程师')->first();
+        $role       = Role::where('role_name', '系统管理员')->first();
 
-        $admin = Personnel::firstOrNew(['mobile' => '13800000000']);
-        $admin->real_name = '管理员';
-        $admin->department_id = $department?->id;
-        $admin->position_id = $position?->id;
-        $admin->staff_status = 7; // 在职
-        $admin->account_status = 7; // 正常
-        $admin->password = 'admin888'; // 明文，mutator 自动 hash
+        $admin                     = Personnel::firstOrNew(['mobile' => '13800000000']);
+        $admin->real_name          = '管理员';
+        $admin->department_id      = $department?->id;
+        $admin->position_id        = $position?->id;
+        $admin->staff_status       = 7; // 在职
+        $admin->account_status     = 7; // 正常
+        $admin->password           = 'admin888'; // 明文，mutator 自动 hash
         $admin->created_account_at = now();
         $admin->save();
 

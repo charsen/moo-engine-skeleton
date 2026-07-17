@@ -23,8 +23,8 @@ trait UploaderTrait
     protected function getUploadImageControl(string $field, int $width = 320, int $height = 320): array
     {
         return [
-            'type' => 'upload-image',
-            'width' => $width,
+            'type'   => 'upload-image',
+            'width'  => $width,
             'height' => $height,
             'upload' => $this->uploadUrl($field),
         ];
@@ -36,10 +36,10 @@ trait UploaderTrait
     protected function getUploadFileControl(string $upload_field = 'file_path', string $field = 'file_path', string $label = '附件文件', bool $drag = true): array
     {
         return [
-            'field' => $field,
-            'label' => $label,
-            'type' => 'upload-file',
-            'drag' => $drag,
+            'field'  => $field,
+            'label'  => $label,
+            'type'   => 'upload-file',
+            'drag'   => $drag,
             'upload' => $this->uploadUrl($upload_field, 'file'),
         ];
     }
@@ -49,7 +49,7 @@ trait UploaderTrait
      */
     protected function uploadUrl(string $field, string $action = 'image'): string
     {
-        return 'api/admin/upload/'.$action.'?field='.$field;
+        return 'api/admin/upload/' . $action . '?field=' . $field;
     }
 
     /**
@@ -68,12 +68,12 @@ trait UploaderTrait
         $disk = Storage::disk('public');
 
         // 已经在正式目录下，无需移动
-        if (str_starts_with($temp, $folder.'/')) {
+        if (str_starts_with($temp, $folder . '/')) {
             return;
         }
 
         if ($disk->exists($temp)) {
-            $target = $folder.'/'.basename($temp);
+            $target = $folder . '/' . basename($temp);
             $disk->makeDirectory($folder);
             $disk->move($temp, $target);
             $model->forceFill([$field => $target])->saveQuietly();
@@ -99,12 +99,12 @@ trait UploaderTrait
      */
     protected function getUploadFileInfo(string $file_path): array
     {
-        $path = Storage::disk('public')->path($file_path);
+        $path      = Storage::disk('public')->path($file_path);
         $extension = File::extension($path);
 
         return [
-            'file_size' => File::size($path),
-            'mime_type' => File::mimeType($path),
+            'file_size'   => File::size($path),
+            'mime_type'   => File::mimeType($path),
             'format_name' => $extension,
         ];
     }

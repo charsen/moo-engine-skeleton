@@ -27,7 +27,7 @@ class AuthTest extends TestCase
     public function test_authenticate_with_valid_credentials_returns_token(): void
     {
         $response = $this->postJson('api/admin/authenticate', [
-            'account' => '13800000000',
+            'account'  => '13800000000',
             'password' => 'admin888',
         ])->assertOk();
 
@@ -39,7 +39,7 @@ class AuthTest extends TestCase
     public function test_authenticate_with_wrong_password_returns_422(): void
     {
         $this->postJson('api/admin/authenticate', [
-            'account' => '13800000000',
+            'account'  => '13800000000',
             'password' => 'wrong-password',
         ])->assertStatus(422)->assertJsonStructure(['message', 'errors']);
     }
@@ -50,7 +50,7 @@ class AuthTest extends TestCase
             ->update(['account_status' => AccountStatus::FORBIDDEN->value]);
 
         $this->postJson('api/admin/authenticate', [
-            'account' => '13800000000',
+            'account'  => '13800000000',
             'password' => 'admin888',
         ])->assertStatus(422);
     }

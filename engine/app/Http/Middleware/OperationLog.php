@@ -51,7 +51,7 @@ class OperationLog
             return;
         }
 
-        $user_id = 0;
+        $user_id   = 0;
         $user_name = '';
 
         if (Auth::guard('admin')->check()) {
@@ -62,7 +62,7 @@ class OperationLog
                 return;
             }
 
-            $user_id = $user->id;
+            $user_id   = $user->id;
             $user_name = $user->real_name;
         }
 
@@ -79,21 +79,21 @@ class OperationLog
 
         $response_log = [
             'executed_time' => (microtime(true) - $started_at) * 1000,
-            'status_code' => $response->getStatusCode(),
-            'content' => $content,
+            'status_code'   => $response->getStatusCode(),
+            'content'       => $content,
         ];
 
         $request_log = [
-            'user_id' => $user_id,
-            'user_name' => $user_name,
-            'uri' => $request->path(),
-            'url_path' => $request->decodedPath(),
-            'method' => $request->method(),
+            'user_id'    => $user_id,
+            'user_name'  => $user_name,
+            'uri'        => $request->path(),
+            'url_path'   => $request->decodedPath(),
+            'method'     => $request->method(),
             'user_agent' => $request->userAgent(),
-            'ip' => $request->ip(),
-            'input' => $this->sanitizeInput($request->all()),
+            'ip'         => $request->ip(),
+            'input'      => $this->sanitizeInput($request->all()),
             'request_at' => now(),
-            'language' => app()->getLocale(),
+            'language'   => app()->getLocale(),
         ];
 
         try {

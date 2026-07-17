@@ -25,11 +25,11 @@ class ApiFoodTest extends TestCase
     private function makeFood(string $name = '测试苹果'): Food
     {
         return Food::create([
-            'food_name' => $name,
+            'food_name'     => $name,
             'food_category' => 1,
-            'price' => 350,
-            'stock' => 10,
-            'food_status' => 1,
+            'price'         => 350,
+            'stock'         => 10,
+            'food_status'   => 1,
         ]);
     }
 
@@ -54,7 +54,7 @@ class ApiFoodTest extends TestCase
 
     public function test_admin_token_cannot_access_app_food(): void
     {
-        $food = $this->makeFood();
+        $food        = $this->makeFood();
         $admin_token = $this->adminLogin();
 
         // admin token（guard=admin）调移动端接口 → 401 守卫隔离
@@ -68,7 +68,7 @@ class ApiFoodTest extends TestCase
 
     public function test_app_food_show_returns_whitelisted_fields(): void
     {
-        $food = $this->makeFood('白名单苹果');
+        $food  = $this->makeFood('白名单苹果');
         $token = $this->appLogin();
 
         $this->getJson("app/food/{$food->id}", ['Authorization' => "Bearer {$token}"])
@@ -86,8 +86,8 @@ class ApiFoodTest extends TestCase
 
     public function test_app_food_write_routes_do_not_exist(): void
     {
-        $food = $this->makeFood();
-        $token = $this->appLogin();
+        $food    = $this->makeFood();
+        $token   = $this->appLogin();
         $headers = ['Authorization' => "Bearer {$token}"];
 
         // 控制器删掉写方法后，iResource 按方法注册 → 写路由根本不存在（405 Method Not Allowed）

@@ -24,17 +24,17 @@ use Mooeen\Scaffold\Concerns\Optional;
 /**
  * Food Model
  *
- * @property int $id 编号
- * @property string $food_name 名称
- * @property int $food_category 分类
- * @property int $price 价格
- * @property int $stock 库存
- * @property int $calories 热量
- * @property int $food_status 状态
- * @property string $description 描述
- * @property Carbon|null $deleted_at 删除于
- * @property Carbon|null $created_at 创建于
- * @property Carbon|null $updated_at 更新于
+ * @property int         $id            编号
+ * @property string      $food_name     名称
+ * @property int         $food_category 分类
+ * @property int         $price         价格
+ * @property int         $stock         库存
+ * @property int         $calories      热量
+ * @property int         $food_status   状态
+ * @property string      $description   描述
+ * @property Carbon|null $deleted_at    删除于
+ * @property Carbon|null $created_at    创建于
+ * @property Carbon|null $updated_at    更新于
  *
  * @method select(array $fields)
  * @method query()
@@ -63,10 +63,10 @@ class Food extends Model
      */
     protected $attributes = [
         'food_category' => 1,
-        'price' => 0,
-        'stock' => 0,
-        'calories' => 0,
-        'food_status' => 1,
+        'price'         => 0,
+        'stock'         => 0,
+        'calories'      => 0,
+        'food_status'   => 1,
     ];
 
     /**
