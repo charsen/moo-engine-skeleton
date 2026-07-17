@@ -14,12 +14,17 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "php-open-source-saver/jwt-auth": "^2.8",
+        "predis/predis": "^3.5",
         "tucker-eric/eloquentfilter": "^3.0"
     },
     "repositories": {
         "scaffold": {
             "type": "vcs",
             "url": "https://gitee.com/charsen/moo-scaffold.git"
+        },
+        "monitor": {
+            "type": "vcs",
+            "url": "https://gitee.com/charsen/moo-monitor-laravel.git"
         },
         "system": {
             "type": "vcs",
@@ -74,7 +79,27 @@
     "extra": {
         "laravel": {
             "dont-discover": []
-        }
+        },
+        "moo-private-packages": [
+            {
+                "name": "charsen/moo-scaffold",
+                "repo-key": "scaffold",
+                "provider-rel": "src/ScaffoldProvider.php",
+                "publish-tag": "public"
+            },
+            {
+                "name": "charsen/moo-monitor-laravel",
+                "repo-key": "monitor",
+                "provider-rel": "src/MonitorProvider.php",
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-system",
+                "repo-key": "system",
+                "provider-rel": "src/MooeenSystemServiceProvider.php",
+                "publish-tag": null
+            }
+        ]
     },
     "config": {
         "optimize-autoloader": true,

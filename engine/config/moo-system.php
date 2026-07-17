@@ -26,29 +26,15 @@ return [
      */
     'admin' => [
         'prefix' => 'api/admin',
-        'name' => 'admin.',
+        'name'   => 'admin.',
         // 指向 bootstrap/app.php 里自建的 'moo-system' 组（含完整 JWT 强制认证链：
         // jwt.assign.guard:admin + jwt.guard.auth:admin + jwt.auth.refresh）。
         'middleware' => 'moo-system',
     ],
 
     /*
-     * 雪花算法主键生成参数
-     *
-     * 唯一性两层保障：
-     *   1. 跨机：多机部署时 data_center_id / worker_id 必须区分，否则会撞 ID。
-     *   2. 机内：同一毫秒内的多个 ID 靠序列号区分，计数器存在 Cache 里（LaravelSequenceResolver）。
-     *      => 生产环境必须用【跨进程共享的 cache store（如 Redis）】；array / 进程内驱动在多 worker
-     *         并发下不防撞，可能同毫秒重号。
-     *
-     * host 在 .env 设置以下变量即可：
-     *   SNOW_FLAKE_DATA_CENTER_ID
-     *   SNOW_FLAKE_WORKER_ID
-     *   SNOW_FLAKE_START_TIME
+     * 雪花算法主键参数已抽到独立文件 config/snowflake.php（1-3）——三条生产血泪注释在那边。
+     * 实际消费方是 moo-scaffold 的 scaffold.snowflake 单例（复用 SNOW_FLAKE_* env），与本包无耦合。
+     * host 只需在 .env 设 SNOW_FLAKE_DATA_CENTER_ID / SNOW_FLAKE_WORKER_ID / SNOW_FLAKE_START_TIME。
      */
-    'snowflake' => [
-        'data_center_id' => env('SNOW_FLAKE_DATA_CENTER_ID', 1),
-        'worker_id' => env('SNOW_FLAKE_WORKER_ID', 1),
-        'start_time' => env('SNOW_FLAKE_START_TIME', '2021-10-10'),
-    ],
 ];
