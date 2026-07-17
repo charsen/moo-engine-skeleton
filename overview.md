@@ -167,6 +167,21 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |
 
+### 防回退清单（骨架已领先生产项目的框架卫生高地）
+
+以下 7 项是三仓审查沉淀出的、骨架**反超**存量生产项目的框架卫生点。做「骨架 ↔ 生产双向回灌」时
+只能生产向骨架看齐，严禁因「生产项目没这么写」把骨架改回去：
+
+1. 中间件组注册在 `AppServiceProvider::boot()`（保证 console 内核可见性）；
+2. `RateLimiter::for('login')` 登录专用防爆破限流；
+3. `JWTGuardAuth` 校验过期 token 的 guard claim（防跨守卫续签越权）；
+4. `OperationLog` 用 `REQUEST_TIME_FLOAT` 计时 + 响应内容 60000 字符截断；
+5. `tests/TestCase.php` 的 JWT 跨进程测试脚手架 + `phpunit.xml` 显式 `JWT_SECRET`（迁 Pest 后完整保留）；
+6. `config/jwt.php` 的 `(int)` 强转；
+7. helpers「有消费者」最小化门槛（无调用点的工具函数不进）。
+
+> 逐条背景见 `HANDOFF.md` §8。
+
 ## 五、交付现状、初始化与默认账号
 
 十章全部搭建完成并经真机验证，仓库代码为第 9 章最终态；第 10 章是云端监控进阶文档，不改变代码最终态。

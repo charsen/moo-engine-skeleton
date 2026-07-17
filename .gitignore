@@ -2,3 +2,9 @@
 # browser MCP scratch
 .playwright-mcp/
 CLAUDE.local.md
+
+# db-yaml-drift-probe.php 的生成报告（含 host 库表结构，按需本地生成，不入仓）
+tools/db-yaml-drift.md
+
+# macOS
+.DS_Store
