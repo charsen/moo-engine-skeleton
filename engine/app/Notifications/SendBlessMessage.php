@@ -34,7 +34,7 @@ class SendBlessMessage extends Notification
     public function toArray(mixed $notifiable): array
     {
         return [
-            'type' => 'text',
+            'type'    => 'text',
             'content' => '愿你被这个世界温柔以待。',
         ];
     }

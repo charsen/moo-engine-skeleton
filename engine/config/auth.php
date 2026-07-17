@@ -15,7 +15,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'admin'),
+        'guard'     => env('AUTH_GUARD', 'admin'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -30,21 +30,21 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver'   => 'session',
             'provider' => 'users',
         ],
 
         'admin' => [
-            'driver' => 'jwt',
+            'driver'   => 'jwt',
             'provider' => 'personnels',
-            'hash' => false,
+            'hash'     => false,
         ],
 
         // 移动端 API，与 admin 平行；主体是自建 User（不依赖 moo-system）
         'user' => [
-            'driver' => 'jwt',
+            'driver'   => 'jwt',
             'provider' => 'users',
-            'hash' => false,
+            'hash'     => false,
         ],
     ],
 
@@ -58,12 +58,12 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
+            'model'  => env('AUTH_MODEL', User::class),
         ],
 
         'personnels' => [
             'driver' => 'eloquent',
-            'model' => Personnel::class,
+            'model'  => Personnel::class,
         ],
     ],
 
@@ -76,8 +76,8 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            'table'    => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire'   => 60,
             'throttle' => 60,
         ],
     ],

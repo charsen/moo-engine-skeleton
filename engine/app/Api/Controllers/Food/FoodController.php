@@ -24,9 +24,7 @@ use Mooeen\Scaffold\Foundation\Controller;
  * ACL
  *
  * @package_name {zh-CN: 客户端接口 | en: Api}
- *
  * @module_name {zh-CN: 食品管理 | en: Food}
- *
  * @controller_name {zh-CN: 食品 | en: Management Food}
  */
 class FoodController extends Controller

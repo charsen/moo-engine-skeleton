@@ -20,7 +20,7 @@ class PositionSeeder extends Seeder
 {
     public function run(): void
     {
-        $tech = Department::where('department_name', '技术部')->first();
+        $tech   = Department::where('department_name', '技术部')->first();
         $market = Department::where('department_name', '市场部')->first();
 
         // [岗位名, 所属部门]

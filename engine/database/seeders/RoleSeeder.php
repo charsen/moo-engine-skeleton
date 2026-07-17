@@ -27,7 +27,7 @@ class RoleSeeder extends Seeder
         }
 
         // 超级权限（role_actions 的 mutator 会写到 role_next_actions 列）
-        $admin_role = Role::where('role_name', '系统管理员')->first();
+        $admin_role               = Role::where('role_name', '系统管理员')->first();
         $admin_role->role_actions = ['is_root'];
         $admin_role->save();
 

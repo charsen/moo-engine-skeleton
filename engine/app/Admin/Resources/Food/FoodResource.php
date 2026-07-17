@@ -28,20 +28,20 @@ class FoodResource extends BaseResource
     public function toArray(Request $request): array
     {
         $data = collect([
-            'id' => $this->id,
-            'food_name' => $this->food_name,
-            'food_category' => $this->whenHas('food_category'),
+            'id'                => $this->id,
+            'food_name'         => $this->food_name,
+            'food_category'     => $this->whenHas('food_category'),
             'food_category_txt' => $this->whenAppended('food_category_txt'),
-            'price' => $this->whenHas('price'),
-            'stock' => $this->whenHas('stock'),
-            'calories' => $this->whenHas('calories'),
-            'food_status' => $this->whenHas('food_status'),
-            'food_status_txt' => $this->whenAppended('food_status_txt'),
-            'description' => $this->whenHas('description'),
-            'deleted_at' => $this->whenTrashed($this->deleted_at?->format('Y-m-d H:i')),
-            'created_at' => $this->whenDate('created_at', 'Y-m-d H:i'),
-            'updated_at' => $this->whenHas('updated_at'),
-            'options' => $this->whenAppended('options'),
+            'price'             => $this->whenHas('price'),
+            'stock'             => $this->whenHas('stock'),
+            'calories'          => $this->whenHas('calories'),
+            'food_status'       => $this->whenHas('food_status'),
+            'food_status_txt'   => $this->whenAppended('food_status_txt'),
+            'description'       => $this->whenHas('description'),
+            'deleted_at'        => $this->whenTrashed($this->deleted_at?->format('Y-m-d H:i')),
+            'created_at'        => $this->whenDate('created_at', 'Y-m-d H:i'),
+            'updated_at'        => $this->whenHas('updated_at'),
+            'options'           => $this->whenAppended('options'),
         ]);
 
         // 最后过 filterFields()，调用方仍可链 ->show('id,food_name') / ->hide('price') 二次裁剪

@@ -29,7 +29,7 @@ class AuthController
     public function authenticate(Request $request): JsonResponse
     {
         $params = $request->validate([
-            'account' => ['required', 'string'],
+            'account'  => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
@@ -56,7 +56,7 @@ class AuthController
         $token = Auth::guard('admin')->login($user);
 
         $user->forceFill([
-            'login_times' => (int) $user->login_times + 1,
+            'login_times'   => (int) $user->login_times + 1,
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
         ])->saveQuietly();
@@ -64,12 +64,12 @@ class AuthController
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => (string) $user->id,
-                    'real_name' => $user->real_name,
-                    'avatar' => $user->avatar_url ?? null,
+                    'id'          => (string) $user->id,
+                    'real_name'   => $user->real_name,
+                    'avatar'      => $user->avatar_url ?? null,
                     'login_times' => $user->login_times,
                 ],
-                'token' => $token,
+                'token'      => $token,
                 'expires_in' => Auth::guard('admin')->factory()->getTTL() * 60,
             ],
         ]);
@@ -85,10 +85,10 @@ class AuthController
         return response()->json([
             'data' => [
                 'user' => [
-                    'id' => (string) $user->id,
+                    'id'        => (string) $user->id,
                     'real_name' => $user->real_name,
-                    'mobile' => $user->mobile,
-                    'avatar' => $user->avatar_url ?? null,
+                    'mobile'    => $user->mobile,
+                    'avatar'    => $user->avatar_url ?? null,
                 ],
             ],
         ]);
@@ -121,7 +121,7 @@ class AuthController
 
         return response()->json([
             'data' => [
-                'token' => $token,
+                'token'      => $token,
                 'expires_in' => Auth::guard('admin')->factory()->getTTL() * 60,
             ],
         ]);

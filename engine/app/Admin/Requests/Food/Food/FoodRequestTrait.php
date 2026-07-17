@@ -18,7 +18,7 @@ trait FoodRequestTrait
     {
         $values = [
             'food_category' => FoodCategory::values(),
-            'food_status' => FoodStatus::values(),
+            'food_status'   => FoodStatus::values(),
         ];
 
         return $values[$field] ?? [];
@@ -31,7 +31,7 @@ trait FoodRequestTrait
     {
         $options = [
             'food_category' => FoodCategory::valueLabels(),
-            'food_status' => FoodStatus::valueLabels(),
+            'food_status'   => FoodStatus::valueLabels(),
         ];
 
         return $options[$field] ?? [];

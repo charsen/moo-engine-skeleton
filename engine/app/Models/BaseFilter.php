@@ -35,7 +35,8 @@ class BaseFilter extends ModelFilter
      *
      * Remove empty strings from the input array.
      *
-     * @param  array  $input
+     * @param array $input
+     *
      * @return array
      */
     public function removeEmptyInput($input)

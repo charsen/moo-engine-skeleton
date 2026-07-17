@@ -19,10 +19,10 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::firstOrNew(['email' => 'admin@example.com']);
-        $user->name = '管理员';
-        $user->password = 'password';            // casts 里 'password' => 'hashed' 自动加密
-        $user->actions = ['is_root'];            // 超级权限（ACL Gate 第三优先级，见第 5 章）
+        $user                    = User::firstOrNew(['email' => 'admin@example.com']);
+        $user->name              = '管理员';
+        $user->password          = 'password';            // casts 里 'password' => 'hashed' 自动加密
+        $user->actions           = ['is_root'];            // 超级权限（ACL Gate 第三优先级，见第 5 章）
         $user->email_verified_at = now();
         $user->save();
 

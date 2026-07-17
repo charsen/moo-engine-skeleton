@@ -23,11 +23,11 @@ class IndexRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'food_name' => ['nullable', 'string', 'max:128'],
+            'food_name'     => ['nullable', 'string', 'max:128'],
             'food_category' => ['nullable', 'integer', $this->getInEnums($this->getValues('food_category'))],
-            'food_status' => ['nullable', 'integer', $this->getInEnums($this->getValues('food_status'))],
-            'page' => ['required', 'integer', 'min:1'],
-            'page_limit' => ['required', 'integer', 'min:1'],
+            'food_status'   => ['nullable', 'integer', $this->getInEnums($this->getValues('food_status'))],
+            'page'          => ['required', 'integer', 'min:1'],
+            'page_limit'    => ['required', 'integer', 'min:1'],
         ];
     }
 }

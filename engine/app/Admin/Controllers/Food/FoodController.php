@@ -33,9 +33,7 @@ use Mooeen\Scaffold\Foundation\FormWidgetCollection;
  * ACL
  *
  * @package_name {zh-CN: 后台管理 | en: Admin}
- *
  * @module_name {zh-CN: 食品管理 | en: Food}
- *
  * @controller_name {zh-CN: 食品管理 | en: Management Food}
  */
 class FoodController extends Controller
@@ -83,7 +81,7 @@ class FoodController extends Controller
 
         return BaseResource::collection($result)
             ->additional([
-                'columns' => $this->getListColumns(),
+                'columns'      => $this->getListColumns(),
                 'form_widgets' => $this->getListFormWidgets($request),
             ]);
     }
@@ -108,7 +106,7 @@ class FoodController extends Controller
         return FoodResource::collection($result)
             ->trashed()
             ->additional([
-                'columns' => $this->getListColumns('trashed'),
+                'columns'      => $this->getListColumns('trashed'),
                 'form_widgets' => $this->getListFormWidgets($request, 'trashed'),
             ]);
     }
@@ -217,7 +215,7 @@ class FoodController extends Controller
      */
     public function toggleStatus(int|string $id): BaseResource
     {
-        $result = $this->model->findOrFail($id);
+        $result              = $this->model->findOrFail($id);
         $result->food_status = $result->food_status === FoodStatus::ON_SHELF->value
             ? FoodStatus::OFF_SHELF->value
             : FoodStatus::ON_SHELF->value;

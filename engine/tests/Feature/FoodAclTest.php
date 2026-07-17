@@ -27,7 +27,7 @@ class FoodAclTest extends TestCase
     /** food.index 的 ACL key：明文 key 是否做 md5 取中段，跟随 scaffold.authorization.md5 开关 */
     private function foodIndexAclKey(): string
     {
-        $plain = Controller::aclPlainKey(FoodController::class.'::index');
+        $plain = Controller::aclPlainKey(FoodController::class . '::index');
 
         return config('scaffold.authorization.md5') ? substr(md5($plain), 8, 16) : $plain;
     }
@@ -35,11 +35,11 @@ class FoodAclTest extends TestCase
     /** 造一个挂「编辑员」角色（无任何授权动作）的人员 */
     private function makeEditor(): Personnel
     {
-        $editor = Personnel::firstOrNew(['mobile' => '13900000000']);
-        $editor->real_name = '编辑小王';
-        $editor->staff_status = 7;
-        $editor->account_status = 7;
-        $editor->password = 'editor888';
+        $editor                     = Personnel::firstOrNew(['mobile' => '13900000000']);
+        $editor->real_name          = '编辑小王';
+        $editor->staff_status       = 7;
+        $editor->account_status     = 7;
+        $editor->password           = 'editor888';
         $editor->created_account_at = now();
         $editor->save();
         $editor->roles()->syncWithoutDetaching([Role::where('role_name', '编辑员')->first()->id]);
@@ -107,7 +107,7 @@ class FoodAclTest extends TestCase
             ->assertStatus(403);
 
         // 给「编辑员」角色授 food.index（与后台「授权」模块勾选动作等效）
-        $role = Role::where('role_name', '编辑员')->first();
+        $role               = Role::where('role_name', '编辑员')->first();
         $role->role_actions = [$this->foodIndexAclKey()];
         $role->save();
 

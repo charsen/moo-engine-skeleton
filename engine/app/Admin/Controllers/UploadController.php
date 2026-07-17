@@ -27,7 +27,7 @@ class UploadController
      * The returned path is intentionally temporary; UploaderTrait::saveUploadFile()
      * moves it into the target business folder when the form is submitted.
      *
-     * @param  array<int, string>  $rules
+     * @param array<int, string> $rules
      */
     private function store(Request $request, string $folder, array $rules): JsonResponse
     {
@@ -40,19 +40,19 @@ class UploadController
             $field = 'file';
         }
 
-        $file = $request->file('file');
+        $file      = $request->file('file');
         $extension = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin';
-        $path = $file->storeAs('tmp/'.$folder, (string) Str::uuid().'.'.$extension, 'public');
+        $path      = $file->storeAs('tmp/' . $folder, (string) Str::uuid() . '.' . $extension, 'public');
 
         return response()->json([
             'data' => [
-                'field' => $field,
-                'path' => $path,
-                'value' => $path,
-                'url' => Storage::disk('public')->url($path),
+                'field'         => $field,
+                'path'          => $path,
+                'value'         => $path,
+                'url'           => Storage::disk('public')->url($path),
                 'original_name' => $file->getClientOriginalName(),
-                'size' => $file->getSize(),
-                'mime_type' => $file->getMimeType(),
+                'size'          => $file->getSize(),
+                'mime_type'     => $file->getMimeType(),
             ],
         ]);
     }
