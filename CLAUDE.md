@@ -361,3 +361,7 @@ Scaffold 开发 UI `charsen` / `skeleton2026`。
 `php artisan test` 全绿。**注意仓库代码是第 9 章完成后的最终态**：教程第 3~5 章的
 中间态代码（User 版 Admin/AuthController、users 双守卫 auth.php、User 版 AuthTest）
 以完整代码形式内联在对应章节文档里。
+
+## 项目惯例
+
+- 根目录 `notes.md` 记录本项目踩过的坑（症状/根因/解法/日期），踩坑随手记；排查问题和做升级迁移前先读它。
