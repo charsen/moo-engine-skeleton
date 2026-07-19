@@ -365,7 +365,7 @@
             "source": {
                 "type": "git",
                 "url": "https://gitee.com/charsen/moo-system.git",
-                "reference": "90ec90e1cd68ea1a585249956f47f4d976d79da9"
+                "reference": "e679f1ae333f8ef1b1033449b206ed9a8436b064"
             },
             "require": {
                 "charsen/moo-scaffold": "^2.1.3",
@@ -448,7 +448,7 @@
                 "issues": "https://gitee.com/charsen/moo-system/issues",
                 "source": "https://gitee.com/charsen/moo-system"
             },
-            "time": "2026-07-17T04:38:14+00:00"
+            "time": "2026-07-18T14:51:58+00:00"
         },
         {
             "name": "composer/pcre",
