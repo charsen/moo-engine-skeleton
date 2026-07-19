@@ -122,4 +122,15 @@ class AuthTest extends TestCase
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$token}"])
             ->assertStatus(401);
     }
+
+    /**
+     * 黑名单执行开关默认必须为 true（坑 #28）：为 false 时被拉黑的 token 会被
+     * 静默放行——moo-system 撤销会话 / 改密踢人「看似成功、实际无效」。低成本
+     * 断言默认值，防止精简配置时漏键或误关。
+     */
+    public function test_blacklist_exception_defaults_true(): void
+    {
+        $this->assertTrue(config('jwt.blacklist_enabled'), 'blacklist_enabled 必须开，否则登出形同虚设');
+        $this->assertTrue(config('jwt.show_black_list_exception'), 'show_black_list_exception 默认必须为 true，否则拉黑静默失效');
+    }
 }
