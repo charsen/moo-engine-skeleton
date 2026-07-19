@@ -239,7 +239,7 @@ moo-engine-skeleton/
 | [第 10 章 云端监控进阶](./docs/10-云端监控进阶.md) | 聚合告警、AI 辅助处理、MCP 与多项目管理 |
 | [第 11 章 操作人身份契约](./docs/11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义与扩展包接入 |
 
-教程目录页还附了一张**「踩过的坑」速查表**（27 条新手高频问题）：[docs/README.md](./docs/README.md)。
+教程目录页还附了一张**「踩过的坑」速查表**（29 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
 

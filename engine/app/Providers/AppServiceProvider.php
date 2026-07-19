@@ -9,10 +9,12 @@ use App\Http\Middleware\JWTAuthOrRefresh;
 use App\Http\Middleware\JWTGuardAuth;
 use App\Http\Middleware\OperationLog;
 use App\Http\Middleware\SetLocale;
+use Exception;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -90,6 +92,42 @@ class AppServiceProvider extends ServiceProvider
     {
         /** @var Router $router */
         $router = $this->app['router'];
+
+        // Collection 表单宏三件套：moo-scaffold 的 getFormConfig / moo-system 包控制器
+        // 构建 form_widgets 时会在 Collection 上调 putMore/default/forgetMore —— 这是
+        // host 侧必须注册的宏契约，缺了则 departments/create、personnels/{id}/edit 等
+        // 表单端点直接 500「Collection::putMore does not exist」（坑 #29，冒烟三件套实测暴露）。
+        // 语义：putMore 按点号路径写入（最多三段）；default 是 putMore 的 default 快捷；
+        // forgetMore 按点号路径批量移除。
+        Collection::macro('putMore', function (string $key, $value) {
+            if (count(explode('.', $key)) > 3) {
+                throw new Exception('Collection putMore $key error');
+            }
+
+            data_set($this->items, $key, $value);
+
+            return $this;
+        });
+
+        Collection::macro('default', function (string $field, $value) {
+            return $this->putMore("{$field}.default", $value);
+        });
+
+        Collection::macro('forgetMore', function ($keys) {
+            if (! is_array($keys)) {
+                $keys = array_map('trim', explode(',', $keys));
+            }
+
+            foreach ($keys as $key) {
+                if (count(explode('.', $key)) > 3) {
+                    throw new Exception('Collection forgetMore $keys error');
+                }
+
+                data_forget($this->items, $key);
+            }
+
+            return $this;
+        });
 
         // 全局把 {id} 路由参数钉成正整数（雪花/自增主键都满足）。第二道保险：即便 iResource 宏
         // 的注册顺序被改回旧法，`{name}/batch`、`{name}/forever/x` 也不会被 destroy 的 /{id} 抢匹配
