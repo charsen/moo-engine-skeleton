@@ -91,6 +91,7 @@ moo-engine-skeleton/
 | [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
 | [第 10 章 云端监控进阶](./10-云端监控进阶.md) | moo-scaffold-cloud 聚合告警、**AI 辅助处理（MCP 接入，全教程独有亮点）**、≤3.8 迁移、多项目管理 | 进阶 |
 | [第 11 章 操作人身份契约](./11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义、队列身份快照与扩展包边界 | 进阶 |
+| [第 12 章 从骨架起手新项目](./12-从骨架起手新项目.md) | **方式 A 正式版**：clone→改名→配 env→跑通 checklist；改名/密钥/双 composer/外部接线四组动作、首次冒烟五命令、教学样例 Food 去留两选（真机验证） | 实用 |
 
 > **包定位**：moo-scaffold / moo-monitor-laravel 是开源包，目标发布到 Packagist；
 > moo-system 是商业包，需要联系作者授权并通过 VCS 仓库安装。
@@ -132,3 +133,5 @@ moo-engine-skeleton/
 | 27 | `moo:resource Food` 报 SUCCESS 却一个文件不生成 | 生成器只为 yaml `controller.resource` 声明过的分片产文件（坑 #26 的另一面），Food.yaml 只写了 `controller.app` → resource 数组为空 → 0 个目标也算"成功"；yaml 补 `resource: ['admin']` + `moo:fresh` 后再生成 | 9 |
 | 28 | moo-system 撤销会话 / 改密踢人接口回 200 却踢不掉，旧会话照常操作 | `config/jwt.php` 的 `show_black_list_exception` 被关（或精简配置漏了键，包源码兜底值是 `false`）→ 被 `forceForever` 拉黑的 token 在 `decode` 阶段被静默放行，撤销「看似成功、实际无效」，无报错线索排查成本极高；骨架锁成 `env('JWT_SHOW_BLACKLIST_EXCEPTION', true)` 默认 true，AuthTest 有守护断言 | 4 |
 | 29 | moo-system 的部门/人员 create、edit 表单端点 500：`Collection::putMore does not exist` | scaffold/moo-system 构建 `form_widgets` 时会在 Collection 上调 `putMore/default/forgetMore`——这是 **host 侧必须注册的宏契约**（各宿主项目在 AppServiceProvider 注册），骨架此前缺失；已在 `AppServiceProvider::boot()` 补齐三件套并注明语义。新建 host 项目照抄这段宏注册 | 7 |
+| 30 | 起手改了 `composer.json` 的 `name` 后 `composer validate` 报 `composer.lock is not up to date` | Composer 的 lock 内容哈希把 `name` 也算进去（不只 `require`），改名后哈希对不上，但依赖没变。解法 `composer update --lock`（只刷新哈希、不升级包）再 validate。另：`name` 手改那一行，别用脚本读写整份 JSON（会重排版徒增 diff） | 12 |
+| 31 | 起手删教学样例 Food 时只删 3 个专属测试文件，跑测试仍红 | Food 不是完全孤立——共享的 `RegressionTest` 里有 3 个方法**借 `api/admin/food` 端点**做通用回归守护（幻影路由/page_limit 上限/筛选对齐），删 Food 的源码就会红。删 Food 时要连这 3 个方法一并处理（并建议改指向自己的模块重新立起），详见第 12 章 12.8 第 4 步 | 12 |
