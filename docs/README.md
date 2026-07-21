@@ -16,13 +16,13 @@ cd moo-engine-skeleton
      猜错的锚点比现在的裸链更糟（裸链至少落在文件顶部、非死链）。本注释由 renderMd 跳过、不在引导器里显示。 -->
 教程有两种走法，定义在[仓库根 README 的「快速开始」](../README.md)：
 
-- **方式 A：直接用本仓库**——`engine/` 已是最终成品，装好依赖即可运行（需 PHP 8.2+；且最终态接入了商业包 moo-system，拿不到其授权时 `composer install` 会失败）；
+- **方式 A：初始化成自己的项目**——运行根目录 `./init-project --name=<vendor/project>`，自动改名、准备 SQLite、安装依赖、生成密钥、默认移除 Food、重建 ACL 并完成验证；
 - **方式 B：从 0 跟教程搭**——从第 1 章起一步步自己搭，**推荐新手**。
 
 后文出现的「方式 A / 方式 B」均指这里。
 
 > 🎯 **推荐的阅读方式**：本目录自带一个零依赖的网页引导器（`docs/index.html`，
-> 单文件含全部 CSS/JS），支持分步模式、进度记忆、代码一键复制：
+> 单文件含全部 CSS/JS），支持分步模式、准确恢复上次位置、代码一键复制和移动端章节抽屉：
 > ```bash
 > cd docs && php -S 127.0.0.1:9999     # 或 python3 -m http.server 9999
 > # 浏览器打开 http://127.0.0.1:9999
@@ -63,7 +63,7 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 
 ## 目录结构约定（重要）
 
-Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放文档（部署相关内容在[第 8 章](./08-部署上线.md)文档里，根目录没有部署脚本）。
+Laravel 应用放在仓库的 **`engine/`** 子目录里；仓库根目录放教程、初始化器和部署运维脚本，具体上线流程见[第 8 章](./08-部署上线.md)。
 这是作者所有项目统一的目录约定。
 当前过渡期，宿主项目通过 VCS 解析 moo-scaffold / moo-monitor-laravel / moo-system；
 目标状态下，开源包通过 Packagist 安装，只有商业包 moo-system 继续通过 Composer VCS 仓库接入。
@@ -71,7 +71,8 @@ Laravel 应用放在仓库的 **`engine/`** 子目录里，仓库根目录只放
 
 ```
 moo-engine-skeleton/
-├── README.md  CLAUDE.md          # 说明文档（根目录另有 HANDOFF.md、overview.md 等开发随档）
+├── README.md  init-project       # 仓库说明与正式项目初始化入口
+├── pull.sh  release-check.sh     # 部署与发布门禁
 ├── docs/                         # 就是你正在看的这套教程
 └── engine/                       # ← Laravel 12 应用本体（composer 命令都在这里执行）
 ```
@@ -91,7 +92,7 @@ moo-engine-skeleton/
 | [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
 | [第 10 章 云端监控进阶](./10-云端监控进阶.md) | moo-scaffold-cloud 聚合告警、**AI 辅助处理（MCP 接入，全教程独有亮点）**、≤3.8 迁移、多项目管理 | 进阶 |
 | [第 11 章 操作人身份契约](./11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义、队列身份快照与扩展包边界 | 进阶 |
-| [第 12 章 从骨架起手新项目](./12-从骨架起手新项目.md) | **方式 A 正式版**：clone→改名→配 env→跑通 checklist；改名/密钥/双 composer/外部接线四组动作、首次冒烟五命令、教学样例 Food 去留两选（真机验证） | 实用 |
+| [第 12 章 从骨架起手新项目](./12-从骨架起手新项目.md) | **方式 A 正式版**：`./init-project` 一次完成身份、密钥、依赖、ACL、样例清理、验证与独立 Git 历史 | 实用 |
 
 > **包定位**：moo-scaffold / moo-monitor-laravel 是开源包，目标发布到 Packagist；
 > moo-system 是商业包，需要联系作者授权并通过 VCS 仓库安装。

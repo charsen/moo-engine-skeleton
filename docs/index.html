@@ -62,6 +62,8 @@ button { font-family: inherit; cursor: pointer; }
   flex: none; display: none; align-items: center; gap: 12px; padding: 10px 20px;
   background: var(--panel); border-top: 1px solid var(--line);
 }
+#mobile-menu { display: none; }
+#sidebar-backdrop { display: none; }
 
 /* ===== 侧栏 ===== */
 .side-head { padding: 18px 18px 12px; border-bottom: 1px solid var(--line); }
@@ -181,6 +183,34 @@ button { font-family: inherit; cursor: pointer; }
   #steps-nav { display: none !important; }
   #content { padding: 20px 18px 80px; }
 }
+@media (max-width: 720px) {
+  #sidebar {
+    position: fixed; inset: 0 auto 0 0; z-index: 30; width: min(300px, 84vw);
+    transform: translateX(-102%); box-shadow: 18px 0 48px rgba(10, 28, 36, .18);
+    transition: transform .22s ease;
+  }
+  body.sidebar-open #sidebar { transform: translateX(0); }
+  #sidebar-backdrop {
+    position: fixed; inset: 0; z-index: 20; border: 0; background: rgba(9, 21, 28, .42);
+    backdrop-filter: blur(2px);
+  }
+  body.sidebar-open #sidebar-backdrop { display: block; }
+  #mobile-menu {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 34px; height: 32px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--panel); color: var(--ink); font-size: 1rem;
+  }
+  #topbar { height: 54px; padding: 0 10px; gap: 8px; }
+  #topbar .crumb { font-size: .82rem; }
+  .mode-switch button { padding: 6px 9px; }
+  .theme-switch button { width: 30px; }
+  #content { padding: 18px 16px 118px; }
+  #stepbar { flex-wrap: wrap; gap: 7px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  #stepbar .progress { order: -1; flex-basis: 100%; }
+  #stepbar > .btn { flex: 1 1 auto; padding: 7px 9px; font-size: .76rem; }
+  .md table { display: block; overflow-x: auto; }
+  .md pre { font-size: .78rem; }
+}
 </style>
 </head>
 <body>
@@ -194,8 +224,10 @@ button { font-family: inherit; cursor: pointer; }
     <nav id="chapter-list"></nav>
     <div class="side-foot">进度保存在浏览器本地。<br><a href="javascript:;" id="reset-progress">清空全部进度</a></div>
   </aside>
+  <button id="sidebar-backdrop" type="button" aria-label="关闭章节目录"></button>
   <div id="main">
     <header id="topbar">
+      <button id="mobile-menu" type="button" aria-label="打开章节目录" aria-expanded="false">☰</button>
       <div class="crumb" id="crumb">加载中…</div>
       <div class="mode-switch" id="mode-switch" style="display:none">
         <button id="mode-read">通读</button>
@@ -237,8 +269,10 @@ const CHAPTERS = [
   { id: 'ch11',   file: '11-操作人身份契约.md',          title: '第 11 章 操作人身份契约', sub: 'OperatorResolver · HasOperator · null 语义' },
   { id: 'ch12',   file: '12-从骨架起手新项目.md',        title: '第 12 章 从骨架起手新项目', sub: 'clone→改名→配 env→跑通 · 双 composer · Food 去留 · 真机验证' },
 ];
-const LS_KEY = 'moo-skeleton-tutorial-v2';   // 2026-06 章节重排后步序全变，升版重置旧进度
+const LS_KEY = 'moo-skeleton-tutorial-v3';   // 分步切分规则升级后步序变化，升版重置旧进度
+const LAST_CHAPTER_KEY = 'moo-skeleton-tutorial-last-chapter';
 const THEME_KEY = 'moo-skeleton-theme';
+const STEP_SPLIT_THRESHOLD = 3000;
 
 /* ================= 状态 ================= */
 const state = {
@@ -356,20 +390,39 @@ function renderMd(md) {
   return out.join('\n');
 }
 
-/* ================= 分步切分：按 "## " 切，前言算第 0 步 ================= */
+/* ================= 分步切分：默认按 H2，过长小节再按 H3 拆 ================= */
 function splitSteps(md) {
   const lines = md.split('\n');
-  const steps = [];
+  const sections = [];
   let cur = { title: '本章目标', buf: [] };
   let inCode = false;
   for (const line of lines) {
     if (/^```/.test(line)) inCode = !inCode;
     if (!inCode && /^## /.test(line)) {
-      if (cur.buf.join('').trim()) steps.push({ title: cur.title, md: cur.buf.join('\n') });
+      if (cur.buf.join('').trim()) sections.push({ title: cur.title, md: cur.buf.join('\n') });
       cur = { title: line.replace(/^## /, ''), buf: [line] };
     } else cur.buf.push(line);
   }
-  if (cur.buf.join('').trim()) steps.push({ title: cur.title, md: cur.buf.join('\n') });
+  if (cur.buf.join('').trim()) sections.push({ title: cur.title, md: cur.buf.join('\n') });
+
+  const steps = [];
+  for (const section of sections) {
+    if (section.md.length <= STEP_SPLIT_THRESHOLD || !/^### /m.test(section.md)) {
+      steps.push(section);
+      continue;
+    }
+
+    let sub = { title: section.title, buf: [] };
+    inCode = false;
+    for (const line of section.md.split('\n')) {
+      if (/^```/.test(line)) inCode = !inCode;
+      if (!inCode && /^### /.test(line)) {
+        if (sub.buf.join('').trim()) steps.push({ title: sub.title, md: sub.buf.join('\n') });
+        sub = { title: line.replace(/^### /, ''), buf: [line] };
+      } else sub.buf.push(line);
+    }
+    if (sub.buf.join('').trim()) steps.push({ title: sub.title, md: sub.buf.join('\n') });
+  }
   return steps;
 }
 
@@ -411,10 +464,13 @@ function renderSidebar() {
 
 function renderStepsNav(ch, steps) {
   const p = prog(ch.id);
-  $('#steps-nav').innerHTML = steps.map((s, idx) =>
-    `<button class="step-item${idx === state.stepIdx ? ' cur' : ''}${p.doneSteps.includes(idx) ? ' done' : ''}" data-idx="${idx}">
-      <span class="dot">✓</span><span>${inline(escapeHtml(s.title))}</span>
-    </button>`).join('');
+  $('#steps-nav').innerHTML = steps.map((s, idx) => {
+    const done = p.doneSteps.includes(idx);
+    const label = `${done ? '已完成：' : ''}${s.title}`;
+    return `<button class="step-item${idx === state.stepIdx ? ' cur' : ''}${done ? ' done' : ''}" data-idx="${idx}" aria-label="${escapeHtml(label)}">
+      <span class="dot" aria-hidden="true">✓</span><span>${inline(escapeHtml(s.title))}</span>
+    </button>`;
+  }).join('');
 }
 
 function bindCopyButtons() {
@@ -433,6 +489,7 @@ let renderEpoch = 0;
 async function show(chapterId, opts = {}) {
   const epoch = ++renderEpoch;            // 连点保护：只允许最后一次调用落地渲染
   const ch = CHAPTERS.find(c => c.id === chapterId);
+  if (!ch) return;
   state.cur = chapterId;
   $('#crumb').textContent = ch.title;
   $('#inner').innerHTML = '<p style="color:var(--ink-3)">加载中…</p>';
@@ -443,6 +500,7 @@ async function show(chapterId, opts = {}) {
   if (epoch !== renderEpoch) return;      // 已有更新的渲染请求，本次作废
 
   const p = prog(ch.id);
+  try { localStorage.setItem(LAST_CHAPTER_KEY, ch.id); } catch {}
   state.mode = ch.steppable === false ? 'read' : (opts.mode || p.mode || 'read');
   state.stepIdx = Math.min(opts.stepIdx ?? p.stepIdx ?? 0, data.steps.length - 1);
   p.mode = state.mode; p.stepIdx = state.stepIdx; save();
@@ -462,8 +520,23 @@ async function show(chapterId, opts = {}) {
       (doneThis ? `<div class="step-done-tip">✓ 这一步你已标记完成。可随时回看，或继续下一步。</div>` : '');
     renderStepsNav(ch, data.steps);
     $('#btn-prev').disabled = state.stepIdx === 0;
-    $('#btn-next').textContent = state.stepIdx === data.steps.length - 1 ? '本章完成 ✓' : '下一步 →';
-    $('#btn-done').textContent = doneThis ? '✓ 已完成' : '✓ 标记完成';
+    const lastStep = state.stepIdx === data.steps.length - 1;
+    const lastChapter = CHAPTERS.findIndex(item => item.id === ch.id) === CHAPTERS.length - 1;
+    const completesChapter = data.steps.every((_, idx) => idx === state.stepIdx || p.doneSteps.includes(idx));
+    const completesTutorial = completesChapter && CHAPTERS.every(item => {
+      if (item.steppable === false || item.id === ch.id) return true;
+      const itemSteps = state.cache[item.id]?.steps || [];
+      const itemDone = state.progress[item.id]?.doneSteps || [];
+      return itemSteps.length > 0 && itemSteps.every((_, idx) => itemDone.includes(idx));
+    });
+    $('#btn-next').textContent = doneThis
+      ? (lastStep ? (lastChapter ? '回到本章全文' : '进入下一章 →') : '下一步 →')
+      : (lastStep
+        ? (lastChapter
+          ? (completesTutorial ? '完成教程 ✓' : '完成此步并回到全文')
+          : (completesChapter ? '完成本章并进入下一章 →' : '完成此步并进入下一章 →'))
+        : '完成并下一步 →');
+    $('#btn-done').textContent = doneThis ? '↶ 取消完成' : '✓ 仅标记完成';
     $('#step-bar').style.width = Math.round((state.stepIdx + 1) / data.steps.length * 100) + '%';
     $('#step-txt').textContent = `第 ${state.stepIdx + 1} / ${data.steps.length} 步`;
   } else {
@@ -484,7 +557,7 @@ function showFetchError(e) {
          <pre>cd docs
 php -S 127.0.0.1:9999        # 或 python3 -m http.server 9999</pre>
          <p>然后访问 <a href="http://127.0.0.1:9999">http://127.0.0.1:9999</a>。</p>`
-      : `<p>请确认本页和 README 及 01~10 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
+      : `<p>请确认本页和 README 及 01~12 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
   </div>`;
 }
 
@@ -517,7 +590,7 @@ $('#content').addEventListener('click', e => {
 
   const [path, frag] = decodeURIComponent(href.replace(/^\.\//, '')).split('#');
   const ch = CHAPTERS.find(c => c.file === path);
-  if (ch) { e.preventDefault(); show(ch.id, { anchor: frag }); return; }
+  if (ch) { e.preventDefault(); show(ch.id, { mode: 'read', anchor: frag }); return; }
 
   // 站内相对链接但不对应任何一章（如 ../README.md 指向仓库根）：别让浏览器顺着
   // href 跳走——会跳出 docs/ 服务根、脱出引导器（404）。拦下并提示去仓库看。
@@ -528,7 +601,8 @@ $('#content').addEventListener('click', e => {
 });
 
 $('#chapter-list').addEventListener('click', e => {
-  const btn = e.target.closest('.chap'); if (btn) show(btn.dataset.id);
+  const btn = e.target.closest('.chap');
+  if (btn) { closeSidebar(); show(btn.dataset.id); }
 });
 $('#steps-nav').addEventListener('click', e => {
   const btn = e.target.closest('.step-item'); if (btn) show(state.cur, { mode: 'step', stepIdx: +btn.dataset.idx });
@@ -537,6 +611,16 @@ $('#mode-read').onclick = () => show(state.cur, { mode: 'read' });
 $('#mode-step').onclick = () => show(state.cur, { mode: 'step' });
 $('#theme-sun').onclick = () => applyTheme('sun');
 $('#theme-moon').onclick = () => applyTheme('moon');
+function openSidebar() {
+  document.body.classList.add('sidebar-open');
+  $('#mobile-menu').setAttribute('aria-expanded', 'true');
+}
+function closeSidebar() {
+  document.body.classList.remove('sidebar-open');
+  $('#mobile-menu').setAttribute('aria-expanded', 'false');
+}
+$('#mobile-menu').onclick = () => document.body.classList.contains('sidebar-open') ? closeSidebar() : openSidebar();
+$('#sidebar-backdrop').onclick = closeSidebar;
 $('#btn-prev').onclick = () => {
   state.stepIdx = Math.max(0, state.stepIdx - 1);
   show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
@@ -561,6 +645,7 @@ $('#btn-next').onclick = () => {
   }
 };
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('sidebar-open')) { closeSidebar(); return; }
   if (state.mode !== 'step' || /input|textarea/i.test(e.target.tagName)) return;
   if (e.key === 'ArrowLeft' && state.stepIdx > 0) $('#btn-prev').click();
   if (e.key === 'ArrowRight') $('#btn-next').click();
@@ -573,9 +658,13 @@ applyTheme(document.documentElement.dataset.theme);
 /* ================= 启动：预取全部章节以计算总进度，再进入上次位置 ================= */
 (async () => {
   try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { return showFetchError(e); }
-  // 从有进度的最后一章继续，否则从总览开始
-  let entry = 'readme';
-  for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;
+  // 优先回到最后访问章节；旧数据没有该记录时，再从有进度的最后一章推断。
+  let entry = null;
+  try { entry = localStorage.getItem(LAST_CHAPTER_KEY); } catch {}
+  if (!CHAPTERS.some(ch => ch.id === entry)) {
+    entry = 'readme';
+    for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;
+  }
   show(entry);
 })();
 </script>
