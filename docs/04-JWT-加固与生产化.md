@@ -265,7 +265,8 @@ RateLimiter::for('login', function (Request $r) {
 - 新建 `composer.production.json`：开源包使用 Packagist 版本约束，`moo-system` 使用版本约束 + VCS 仓库。
   这是目标生产样例；当前过渡期若 Packagist 还没同步 scaffold / monitor 目标版本，部署 composer
   仍要临时保留这两个开源包的 VCS 仓库配置。目标版本可解析后，再执行
-  `cp composer.production.json composer.json && composer install --no-dev`。
+  `COMPOSER=composer.production.json composer install --no-dev`；生产配置使用独立的
+  `composer.production.lock`，不覆盖开发用 `composer.json` / `composer.lock`。
   （📦 仓库版里有 moo-system 的内容——没装第 7 章的包就先删掉**两处**：
   `require` 里的 `"charsen/moo-system"` 一行，和 `repositories` 里的 `system` 块。
   另外注意 `moo-system` 的 VCS 地址是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好
@@ -371,7 +372,8 @@ php artisan test
 
 > 这个「9 passed」只对**跟到本章为止的你本地**成立。仓库是全书最终态，
 > `tests/Feature/` 下已有 9 个测试文件，在仓库里直接跑会得到
-> `Tests: 45 passed (146 assertions)`——数字对不上不代表你做错了。
+> 这是本章历史实录 `Tests: 45 passed (146 assertions)`；当前最终态会因后续章节增加守护测试而更多，
+> 以仓库 README 记录的当前基线为准。
 
 > ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的服务链是单例
 > （payload 工厂的 claim 残留、auth 适配器绑死首个守卫），跨守卫/跨请求断言会

@@ -3,7 +3,7 @@
 > 本文件随仓库分发，已按脱敏守则编写（不含生产项目名与真实凭据）。
 > 机器私有信息在 `CLAUDE.local.md`（gitignored，见第 4 节模板自行重建）。
 
-## 0. 一句话现状（2026-06-12 历史批次，2026-07 已同步包来源口径）
+## 0. 一句话现状（2026-07-21）
 
 生态四仓库（moo-engine-skeleton / moo-scaffold / moo-system / moo-scaffold-cloud）
 在 2026-06-12 批次收口时全部干净、全部已推送；当前以本文件后续的 2026-07 包来源说明为准。
@@ -30,7 +30,10 @@
   base_exception_is_not_reported）。
 - **2026-07-05 包来源/示例修订**：开源包当前 VCS 过渡、目标 Packagist；`composer.production.json`
   改为目标生产样例；CI 改用当前 VCS 配置；补最小 `UploadController` 与上传路由，头像表单不再 404。
-  **测试 45 passed**。
+  **测试 45 passed**（历史批次记录；当前基线见下）。
+
+当前骨架已增加正式项目初始化器 `./init-project`，默认产出移除 Food 与教程资料的干净业务项目；
+开发/生产 Composer 使用独立配置与独立 lock，不再通过复制文件切换。原始骨架当前测试基线为 **57 passed**。
 
 > 术语速查（本节与第 7 节的黑话都有出处）：「iResource 幻影路由」→ docs 第 2 章
 > （02:172 附近的「幻影路由」说明）；「跨守卫过期续签」等审查修复项 → docs 第 7 章
@@ -39,7 +42,7 @@
 
 | 仓库 | 状态 | 备注 |
 |---|---|---|
-| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后已积一大批提交（见上） | 十章教程 + 网页引导器 + CI workflow，45 测试全绿 |
+| moo-engine-skeleton | tag `0.1.0` / `0.2.0`，之后已积一大批提交（见上） | 十二章教程 + 项目初始化器 + 网页引导器 + CI workflow，57 测试全绿 |
 | moo-scaffold | 3.x 开发中，LICENSE(MIT) 已补 | **开源包**，目标发布 Packagist；当前过渡期仍可用 VCS |
 | moo-system | tag 至 `1.6.12` | **商业包**（proprietary）；1.6.12 含 guard claim 动态化 |
 | moo-scaffold-cloud | 干净、已推送 | 云端监控面板，本交接按需克隆 |
@@ -75,16 +78,17 @@ git clone https://gitee.com/charsen/moo-engine-skeleton.git
 ## 3. skeleton 初始化（同 README「方式 A」）
 
 ```bash
-cd moo-engine-skeleton/engine
-composer install
-cp .env.example .env && php artisan key:generate     # .env 预填 moo_skeleton/root/7777，通常只需改 DB_PASSWORD
-php artisan jwt:secret --force
-php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force
-php artisan migrate --seed       # 种子账号两个，归属与验证见下方「首登自检」
-php artisan moo:account:add charsen --password=skeleton2026 --role=admin
-PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                 # ✅ 应 45 passed —— 环境一切正常的硬指标
+cd moo-engine-skeleton
+./init-project \
+  --name=acme/orders \
+  --app-name="Orders" \
+  --scaffold-user=developer \
+  --fresh-git
 ```
+
+初始化器会准备 SQLite、安装依赖、生成 APP/JWT 密钥、默认移除 Food、重建 ACL、迁移/seed、
+发布 scaffold 静态资源、创建 scaffold 账号并跑完整验证。保留教学样例加 `--keep-demo`；
+保留教程与计划资料加 `--keep-tutorial`。完整参数见 `./init-project --help`。
 
 **首登自检**（两个种子账号分属两个守卫、两个登录入口，各自拿到 token 即装好了）：
 
@@ -138,7 +142,7 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 | 3 | moo-system 商业化：LICENSE 授权条款、分发凭证机制（现状只能找作者人肉给源码，见第 2 节）。原列的「`--tag=moo-system-stubs` 修复」经核疑为过时待办——该 tag 已存在且可用（`MooeenSystemServiceProvider` 发布 6 个契约 stub，`Doctor` 仍引导使用），需作者确认已完成或补最小复现后再派工 | 作者决策 |
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |
 | 5 | Gitee Pages：仓库公开后，服务 → Pages → 部署目录 `docs/` | 公开后 |
-| 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9 章 + 守护测试 + 教程前半大修 + 监控接入 + 包来源修订 + 上传端点，21→45 passed），建议打 `0.3.0` | 作者决策 |
+| 6 | 版本：`0.2.0` 后已积一大批提交（审查修复加固 + 第 9~12 章 + 守护测试 + 监控接入 + 正式初始化器，当前 57 passed），建议在初始化器 clean-room 验证后评估新 tag | 作者决策 |
 | 7 | **监控标准件接入**（monitor+cloud）：完整执行计划见 `plans/monitor-cloud-integration.md` §0.5。**已完成**：#1（docs/01 新增 1.7 节）、#5（docs/10 新增第 10 章）、#7 其余（docs/README、引导器 CHAPTERS、根 README、CLAUDE.md 同步）、#3/#4/#6（018e7c7 / 4f7cfb8 已清四处遗留）、#8（沿途引线 2 处：坑 #6 / #26）、监控 Feature 测试（MonitorTest 2 个方法，43 passed）。cloud token = `moo_5a8f9d8a03…（完整值不入仓，见私有渠道）` 可用（作者提供）。**本待办已完成** | 已完成 ✅ |
 | 8 | 剩余工程活（可委托 AI）：移动端 `PUT app/me/password` 改密码（零付费 track 的账号自管理）。最小 UploaderController 已在骨架补齐，头像表单上传不再 404 | 作者决策 |
 

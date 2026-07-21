@@ -353,8 +353,8 @@ token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关
 ```bash
 php artisan test
 # 按章节顺序做到本章：Tests: 37 passed
-# （最终态仓库是 45 passed——多出的 8 个是第 9 章新增的 FoodIncrementalTest 1 个
-#   + ApiFoodTest 5 个，以及上传端点 UploadTest 2 个。此刻跑出 37 就是对的，不是你做错了。）
+# （当前最终态仓库是 57 passed；后续章节继续增加了增量开发、监控、上传等守护测试。
+#   此刻跑出 37 就是对的，不是你做错了。）
 ```
 
 `FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，

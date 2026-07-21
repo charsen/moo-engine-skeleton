@@ -34,13 +34,21 @@
 - 部署上线（nginx + supervisor + Redis）
 - 日常增量开发（改表 / 加接口 / 同步 ACL）
 
-教程共 10 章，前 6 章零商业依赖、全程可跑；第 7 章接入商业包 moo-system（可选）；第 8 章部署指引；第 9 章增量开发演练；第 10 章云端监控进阶。
+教程共 12 章：前 6 章讲零商业依赖的基础能力，第 7 章接入 moo-system，第 8~11 章覆盖部署、增量开发、监控与身份契约，第 12 章提供正式的新项目起手入口。
 
 ## 两种使用方式
 
 ### 方式 A：直接用现成骨架（适合急着上手的）
 
-克隆本仓库，`engine/` 目录就是最终成品：
+克隆后运行初始化器。它会先准备 SQLite，再安装依赖、生成密钥、移除 Food 演示、重建 ACL、发布 scaffold 静态资源、创建开发账号并跑完整验证：
+
+```bash
+git clone git@gitee.com:charsen/moo-engine-skeleton.git orders
+cd orders
+./init-project --name=acme/orders --app-name="Orders" --scaffold-user=developer --fresh-git
+```
+
+默认输出是干净业务项目；需要保留 Food 教学样例时加 `--keep-demo`，需要连教程一起保留时加 `--keep-tutorial`。完整参数见 `./init-project --help`。
 
 ### 方式 B：从零跟教程搭（适合想深入学习的）
 
@@ -111,16 +119,13 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 |---|---|---|
 | PHP | 8.2+ | Laravel 12 要求 `^8.2`；当前 lock 已按 PHP 8.2 可安装版本解析 |
 | Composer | 2.9 | |
-| Node | 26 | **整行可选**：只有 `engine/` 的前端资源构建（vite / tailwind，`npm install && npm run build`）才用到；本页快速开始 A/B 与九章后端教程全程不执行任何 npm 命令，可以不装 |
+| Node | 26 | 可选；只有传 `--with-frontend` 或自行构建 Vite 资源时需要 |
 | npm | 11 | 同上 |
-| MariaDB / MySQL | MariaDB 12 | 本机 `127.0.0.1:3306` |
+| 数据库 | SQLite / MariaDB 12 / MySQL 8 | 起手默认 SQLite 零依赖；投产前切 MySQL/MariaDB |
 
 ## 🚀 快速开始
 
-> 先理清教程的「章」与「主线」：教程共 **10 章**——**第 1~7 章是主线**（其中**第 1~6 章
-> 零商业依赖、全程可跑**，第 7 章接入商业包 moo-system），**第 8 章是部署指引**，
-> **第 9 章是增量开发演练**，**第 10 章是云端监控进阶**。下文「主线七章 + 部署指引 + 
-> 第 9 章 + 第 10 章」即指这 10 章。
+> 教程共 **12 章**：第 1~7 章搭建主线，第 8~11 章讲部署、增量开发、云端监控和操作人身份契约；第 12 章把这些成果收敛为可自动验证的新项目起手流程。
 
 > 🧭 **两条路，按需选**：
 > - **从骨架直接起手**（本仓库就是起点）——`clone → 改名 → 配 env → 直接跑`，几分钟起一个干净新项目。
@@ -128,7 +133,7 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 >   **[第 12 章 从骨架起手新项目](./docs/12-从骨架起手新项目.md)**。
 > - **跟教程从零搭**——从空目录一步步搭出这套骨架，理解每一块怎么来的（下面「方式 B」/ 第 1~11 章，推荐新手）。
 
-**方式 A：直接用本仓库**（最终态，即 9 章全部做完后的成品）：
+**方式 A：初始化成自己的项目**（推荐）：
 
 > ⚠️ **前置**：
 > ① 需 **PHP 8.2+**；
@@ -136,27 +141,21 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 >    `moo-monitor-laravel`；同时还需配好 **moo-system** 的 Gitee SSH 仓库访问权；
 > ③ 仓库最终态已接入**商业包 moo-system**（第 7 章）——没有它的授权时
 >    `composer install` 会失败，请走方式 B 从第 1 章跟做，或联系作者获取授权；
-> ④ `cp .env.example .env` 后记得把 `DB_PASSWORD`（预填的是教程示例值 `7777`）改成
->    你本机 MariaDB 的真实密码。
+> ④ 初始化默认使用 SQLite；投产前再按项目实际情况切 MySQL/MariaDB 和 Redis。
 
 ```bash
-cd engine
-composer install                                   # 当前过渡期：moo-* 走 VCS；目标状态：开源包走 Packagist、moo-system 走 VCS
-cp .env.example .env && php artisan key:generate   # .env 预填 MariaDB root/7777 + moo_skeleton，按本机改
-php artisan jwt:secret --force
-
-# 建库（示例密码 7777，换成你自己的）
-mysql -uroot -p7777 -h127.0.0.1 -e \
-  "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force
-php artisan migrate --seed                          # 自建用户 + 角色/部门树/岗位/管理员
-php artisan moo:account:add <用户名> --password=<密码> --role=admin   # scaffold 调试台账号（自定，seed 不创建）
-PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-php artisan test                                    # 45 passed（用 sqlite 内存库，见下方说明）
+git clone git@gitee.com:charsen/moo-engine-skeleton.git orders
+cd orders
+./init-project \
+  --name=acme/orders \
+  --app-name="Orders" \
+  --scaffold-user=developer \
+  --fresh-git
 ```
 
-> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，
+初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和两份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
+
+> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，当前最终态为 **57 passed / 164 assertions**。
 > 完全不碰本机 MariaDB——所以 MariaDB 没装/没建库测试照样全绿，反过来测试通过也
 > **不代表** `.env` 的数据库配好了，两者别互相误判。仓库还自带 GitHub Actions CI
 > （`.github/workflows/tests.yml`），push 后自动跑同一套测试。

@@ -12,7 +12,7 @@
 
 | 脚本 | 用途 | 典型场景 |
 | --- | --- | --- |
-| [`pull.sh`](#pullsh) | git pull + 验证私包权限 + 切 `composer.production.json` + 强制 update 私包 + 调 cache.sh | **生产部署主入口** |
+| [`pull.sh`](#pullsh) | git pull + 验证私包权限 + 使用生产 Composer 配置/独立 lock + 强制 update 私包 + 调 cache.sh | **生产部署主入口** |
 | [`cache.sh`](#cachesh) | Laravel `optimize:clear`+`optimize` + 目录权限 + 预建 daily log + 清旧 log | 本地刷缓存 / 报权限错 / 每晚 cron |
 | [`backup.sh`](#backupsh) | mysqldump 全库 → `engine/storage/app/db/`，bz2 压缩，按天清理 | 每天 cron 备份 |
 | [`opcache.sh`](#opcachesh) | 按 git diff 精准失效变更 `.php` 的 OPcache（不全量 reset） | 热更后让 CLI OPcache 生效 |
@@ -36,7 +36,7 @@
 1. 校验主仓工作区干净（脏则停；`--force-reset` 丢弃）
 2. 版本选择（`--tag` 锚定 / `--latest` 或非交互追 master / 终端交互列近 5 个 tag 选）+ `git pull`
 3. 验证私包拉取权限（`ssh` 联通 + 逐包 `git ls-remote` fail-fast）
-4. 按 `.env APP_ENV=production` 守卫切换 `composer.production.json` → `composer.json`（本地开发不切）
+4. 按 `.env APP_ENV=production` 守卫设置 `COMPOSER=composer.production.json`，配对使用 `composer.production.lock`（不覆盖开发文件）
 5. `composer install` 兜底（含 vendor Provider 缺失自愈）+ 强制 `composer update <私包>` 拉最新
 6. （5.5）`php artisan vendor:publish` 刷私包前端资源副本
 7. 调 [`cache.sh`](#cachesh) 收尾（缓存清理 + 权限）；（6.5）检测 pending 迁移（只报不跑）
@@ -134,7 +134,7 @@ sh opcache.sh HEAD~3..HEAD    # 自定义提交范围
 ## `release-check.sh`
 
 **功能**：发布门禁，任一步失败即非零退出。检查项：全部 `*.sh` 语法（`sh -n` / `bash -n` 按 shebang 分流）+
-`db-yaml-drift-probe.php` `php -l` → `composer validate composer.production.json` → `composer audit` →
+`db-yaml-drift-probe.php` 与初始化器 `php -l` → 两套 Composer 配置 `validate` / `audit` →
 `composer dump-autoload --classmap-authoritative` → `php artisan about` / `route:list` → `composer test`（全量测试）→
 `git diff --check`（改动无空白错误）。
 
