@@ -238,7 +238,7 @@ ACL key 的命名空间反查、接口文档、调试器联调都依赖这一步
 
 ```bash
 php artisan migrate              # 建 system_* 共 10 张表
-php artisan moo-system check    # 应 6/6 全绿
+php artisan moo-system check    # 当前应 5/5 全绿
 ```
 
 ```
@@ -406,7 +406,7 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
 
 ## 本章产出
 
-- moo-system 接入：10 张 `system_*` 表、`moo-system check` 6/6；
+- moo-system 接入：10 张 `system_*` 表、`moo-system check` 5/5；
 - 后台主体 User → Personnel **只改了两个文件**：`config/auth.php`
   （`admin` 守卫的 provider 改一行 + `providers` 新增 `personnels` 一项）
   + `AuthController.php` 整个换掉；中间件 / 路由 / Gate / 移动端零改动——

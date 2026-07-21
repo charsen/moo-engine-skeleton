@@ -4,12 +4,11 @@
 `moo_skeleton`，并在真实浏览器里打开它的欢迎页。
 
 > **先分清你走哪条路。** 仓库根 [README](../README.md) 定义了两种用法：
-> **方式 A = 直接用本仓库**（克隆下来，`engine/` 已是最终成品）；
+> **方式 A = 用本仓库初始化自己的项目**（克隆后运行根目录 `./init-project`）；
 > **方式 B = 从 0 跟教程一步步搭**。本章及后续教程面向**方式 B**。
-> 如果你是克隆仓库的方式 A 读者：根目录已经存在 `engine/`，1.2 的
-> `composer create-project` 会因目录非空直接报错；而且 `engine/.env.example`
-> 已预填好 1.4 的全部配置，只需 `cp .env.example .env && php artisan key:generate`，
-> 1.2–1.4 可整体跳过——请直接按根 README 的「快速开始（方式 A）」操作。
+> 方式 A 不要执行本章的 `composer create-project`：克隆后直接按根 README 运行
+> `./init-project --name=<vendor/project>`。初始化器会准备 SQLite、安装依赖、生成密钥、
+> 默认移除 Food、重建 ACL 并完成验证；完整说明见第 12 章。
 
 ---
 
@@ -58,7 +57,7 @@ mysql --version   # MariaDB 12.x 客户端
 ```
 
 > **PHP 版本说明**：Laravel 12 要求 PHP `^8.2`，本教程和仓库 lock 都按 PHP 8.2+
-> 作为可安装基线；直接用本仓库（方式 A）或从 0 跟教程搭（方式 B）都不需要强制 8.3。
+> 作为可安装基线；用初始化器起手（方式 A）或从 0 跟教程搭（方式 B）都不需要强制 8.3。
 
 > `root / 7777` 是**本教程的示例凭据**——换成你自己的数据库账号密码即可，
 > 后续所有命令里的 `-p7777` 同步替换。
@@ -240,7 +239,7 @@ MOO_MONITOR_CLOUD_TOKEN=moo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 > 复制接入 token。**没有 token 也不影响本地采集**——下面故意触发的异常仍然会落盘
 > `storage/moo-monitor/`，只是暂时推不到云端；拿到 token 后补配即可。
 >
-> **方式 A 读者注意**：成品 `engine/.env.example` 默认只含 `MOO_MONITOR_SQL_SLOW_*` 两行，
+> **方式 A 读者注意**：初始化后的 `engine/.env.example` 默认只含 `MOO_MONITOR_SQL_SLOW_*` 两行，
 > **不含**上面的 `MOO_MONITOR_CLOUD_ENABLED` / `MOO_MONITOR_CLOUD_TOKEN`——这是有意的：
 > `config/moo-monitor.php` 里 `cloud.enabled` 默认 `false`，不配也能本地落盘。你在
 > `.env.example` 里找不到这两项不是漏配，按需自己加即可。
