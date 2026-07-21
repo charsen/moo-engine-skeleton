@@ -75,7 +75,7 @@ _（本次上线高风险项：______________________ ；无则显式写"无"）
   git remote -v   # 期望 git@... 不是 https://...
   ```
 - [ ] **不要先手动 `composer install`**：pull.sh Step 5 自动判 vendor/ 存在性 → 缺则 install、有则
-  update 私包。手动容易装错引号 / dev 依赖 / 不切 production.json。
+  update 私包。手动容易带入 dev 依赖，或忘记 `COMPOSER=composer.production.json` 而装到开发 lock。
 - [ ] **建 `.env`**（pull.sh 的 `is_production` 守卫依赖它）
   ```bash
   cp engine/.env.example engine/.env

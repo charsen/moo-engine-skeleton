@@ -59,10 +59,13 @@
     },
     "scripts": {
         "setup": [
-            "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "composer install",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
+            "@php artisan jwt:secret --force",
+            "@php artisan migrate --seed --force",
+            "@php artisan vendor:publish --provider='Mooeen\\Scaffold\\ScaffoldProvider' --tag=public --force",
             "npm install",
             "npm run build"
         ],
@@ -86,8 +89,9 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
-            "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan key:generate --ansi",
+            "@php artisan jwt:secret --force",
             "@php artisan migrate --graceful --ansi"
         ],
         "pre-package-uninstall": [

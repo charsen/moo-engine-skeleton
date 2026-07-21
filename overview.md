@@ -12,7 +12,7 @@
 
 1. **新项目脚手架**：备齐依赖后克隆即得一个可运行、可生成代码、带完整认证授权的后端底座；
 2. **新人教学载体**：`docs/` 下十章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
-3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 27 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
+3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 31 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
 
 **教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
 
@@ -28,13 +28,14 @@
 | 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
 | 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
-| 测试 | PHPUnit 11（无 Pest），`php artisan test` 45 passed | Feature 11 个文件共 44 个测试方法 + Unit 1 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
+| 测试 | Pest 3 + PHPUnit 11，`php artisan test` 57 passed / 164 assertions | Feature 14 个文件 + Unit 1 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
 
 ## 三、总体架构
 
 ```
 moo-engine-skeleton/
-├── docs/                      # 九章从零教程 + 网页引导器 + 27 条踩坑速查
+├── init-project               # 新项目初始化入口：改名、去样例、装依赖、建库、验证、重开 Git
+├── docs/                      # 十二章教程 + 网页引导器 + 踩坑速查
 ├── README.md / HANDOFF.md     # 快速开始 / 环境搭建与交接说明
 ├── CLAUDE.md / CLAUDE.local.md# AI 协作工程说明（local 为本机文件，已 gitignore，新克隆没有）
 └── engine/                    # Laravel 12 应用本体
@@ -62,7 +63,7 @@ Laravel 12 标准工程加生态约定的固化。
 
 | 功能点 | 介绍 |
 |---|---|
-| `engine/` 子目录工程布局 | 仓库根只放文档（部署内容也是文档：`docs/08-部署上线.md`，无部署脚本），Laravel 应用本体集中在 `engine/` |
+| `engine/` 子目录工程布局 | Laravel 应用本体集中在 `engine/`；仓库根提供初始化器、部署脚本、核对单与教程 |
 | `bootstrap/app.php` 横切接线 | Laravel 12 无 Kernel.php，分片中间件挂载、全局异常分发、校验错误 render 重写集中于此 |
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
 | `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、批量删除 `destroyBatch`、回收站 `/trashed`（先于 `/{id}` 注册）、恢复 `restore`、`DELETE /forever/{id}` 永久删除；且**用反射检查控制器，action 真实存在且为 public 才注册对应路由**，杜绝"幻影路由"（声明了却 404 的路由） |
@@ -150,10 +151,10 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| 九章从零教程 | 安装 Laravel → 接入 scaffold → JWT 自建用户 → JWT 生产化 → ACL 闭环 → 移动端分片 → moo-system → 部署上线 → 增量开发工作流，每章照实记录命令与真机结果 |
+| 十二章教程 | 安装 Laravel → scaffold → JWT → ACL → 移动端 → moo-system → 部署 → 增量开发 → 云端监控 → 身份契约 → 新项目起手，每章照实记录命令与真机结果 |
 | 零依赖网页引导器 | `docs/index.html` 单文件（内联全部 CSS/JS），支持分步模式、进度记忆、代码一键复制，`php -S` 即可启动 |
-| 27 条踩坑速查表 | `docs/README.md`「踩过的坑速查」，现象 → 原因 → 解决 → 所在章节，全部来自真实搭建与生产回灌（JWT 丢 claim、孤儿 token、nestedset 静默、枚举比较死代码等） |
-| 中间态代码内联 | 仓库代码为第 9 章最终态（含第 9 章增量演练的 Food 增量产物与测试），第 3~5 章的中间态代码（User 版 AuthController 等）以完整代码内联在章节文档中，保证任意章节可独立复现 |
+| 31 条踩坑速查表 | `docs/README.md`「踩过的坑速查」，现象 → 原因 → 解决 → 所在章节，全部来自真实搭建与生产回灌 |
+| 中间态代码内联 | 教程仓保留 Food 参考实现；`init-project` 默认移除演示与教程历史，输出业务项目自己的干净工作树 |
 | cleanroom 验证 | 主线七章经过"从零重做"的洁净环境终极验证，修复全部卡点后定稿；第 8~9 章为后续增补 |
 
 ### 模块 8：测试与质量保障
@@ -162,7 +163,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| Feature 测试（11 文件 44 方法） | `AuthTest`（Personnel 后台认证）、`ApiAuthTest`（User 移动端认证）、`FoodAclTest`（角色制 ACL）、`JwtAutoRefreshTest`（无感续签）、`RegressionTest`（回归集）、`SeederIntegrityTest`（种子数据完整性）、`FoodIncrementalTest` / `ApiFoodTest`（第 9 章增量产物）、`MonitorTest`（监控采集，第 1.7 节）、`UploadTest`（头像/附件上传端点）、`ExampleTest`；`php artisan test` 45 passed 全绿 |
+| Feature 测试（14 文件） | `AuthTest`、`ApiAuthTest`、`FoodAclTest`、`JwtAutoRefreshTest`、`RegressionTest`、`SeederIntegrityTest`、`FoodIncrementalTest` / `ApiFoodTest`、`MonitorTest`、`OperatorResolverTest`、`RouteMacroTest`、`HelpersTest`、`UploadTest`、`ExampleTest`；`php artisan test` 57 passed 全绿 |
 | 跨进程行为模拟 | 测试基类 `tests/TestCase.php` 的 `freshJwtProcess()` 用 `forgetInstance` 重置整条 jwt 服务链单例（`tymon.jwt.*` + `auth.driver`），使同进程测试能复现真实跨进程的续签丢 claim 问题 |
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |
@@ -184,7 +185,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 ## 五、交付现状、初始化与默认账号
 
-十章全部搭建完成并经真机验证，仓库代码为第 9 章最终态；第 10 章是云端监控进阶文档，不改变代码最终态。
+十二章全部搭建完成并经真机验证；仓库同时保留教程参考态与可由 `init-project` 导出的干净业务起点。
 
 **从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：当前过渡期 composer 能读取三个 moo-* VCS 仓库，见第一节硬前置）：
 
@@ -211,6 +212,6 @@ PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-rel
 ## 六、预期收益
 
 - **新项目启动成本**：从"按生产仓库考古搭建底座（数天）"降为"克隆骨架 + 改库名（小时级）"；
-- **新人培养**：九章教程 + 引导器使新人可独立完成从空目录到带认证授权后端的全过程，建立与团队生产代码一致的心智模型；
-- **质量基线**：27 条生产级踩坑以代码形式固化，新项目天然规避；双向回灌机制（骨架 ↔ 生产仓库）持续提升存量项目质量；
+- **新人培养**：十二章教程 + 引导器使新人可独立完成从空目录到带认证授权后端的全过程，建立与团队生产代码一致的心智模型；
+- **质量基线**：31 条生产级踩坑以代码形式固化，新项目天然规避；双向回灌机制（骨架 ↔ 生产仓库）持续提升存量项目质量；
 - **商业弹性**：前六章可独立开源引流，第 7 章商业包形成付费转化路径。

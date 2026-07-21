@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -28,11 +29,8 @@ class MonitorTest extends TestCase
         }
     }
 
-    /**
-     * 测试异常被自动记录到本地缓冲
-     *
-     * @test
-     */
+    /** 测试异常被自动记录到本地缓冲 */
+    #[Test]
     public function runtime_exception_is_recorded_to_local_buffer(): void
     {
         // 断言：监控目录一开始是空的
@@ -64,11 +62,8 @@ class MonitorTest extends TestCase
         $this->assertStringContainsString('MonitorTest HTTP', $content, 'yaml 应含测试异常的标识');
     }
 
-    /**
-     * 测试 BaseException 不被记录（在 dontReport 列表里）
-     *
-     * @test
-     */
+    /** 测试 BaseException 不被记录（在 dontReport 列表里） */
+    #[Test]
     public function base_exception_is_not_reported(): void
     {
         $runtimesDir = storage_path('moo-monitor/runtimes/open');

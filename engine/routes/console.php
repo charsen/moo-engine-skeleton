@@ -39,10 +39,18 @@ Schedule::command('queue:retry all')->everyTenMinutes()->withoutOverlapping();
 //   ① 测试用 sqlite :memory:，进程起来时还没 migrate；
 //   ② 新部署首次 `artisan migrate` 之前，表还不存在；
 //   ③ DB 临时不可达（重启/网络）时。
-// hasTable() 命不中就整段跳过，调度缺一轮无伤，但 artisan 不会因此瘫痪。
+// hasTable() 只能处理「连接正常但表不存在」；数据库文件尚未创建或服务不可达时它自己也会抛错。
+// 因此探表必须再包一层异常兜底，确保 composer package:discover / 首次 artisan 命令不会瘫痪。
 //
 // 示范（把 'schedule_rules' 换成你的表；此表不存在时下面整段静默跳过）：
-if (Schema::hasTable('schedule_rules')) {
+$hasScheduleRulesTable = false;
+try {
+    $hasScheduleRulesTable = Schema::hasTable('schedule_rules');
+} catch (\Throwable) {
+    // 首次安装、测试内存库尚未迁移、数据库临时不可达：本轮不注册动态调度。
+}
+
+if ($hasScheduleRulesTable) {
     // foreach (\App\Models\ScheduleRule::query()->where('enabled', true)->get() as $rule) {
     //     Schedule::call(fn () => /* dispatch your job */ null)
     //         ->cron($rule->cron)

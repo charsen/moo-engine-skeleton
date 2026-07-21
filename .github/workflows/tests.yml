@@ -1,4 +1,4 @@
-# CI：跑 engine/ 的全量测试（sqlite 内存库，无需外部服务）。
+# CI：同时守住教程最终态与“从空克隆起手新项目”两条路径。
 #
 # 生效条件：
 # 1. 本仓库镜像/迁移到 GitHub 后自动启用；
@@ -28,13 +28,45 @@ jobs:
           extensions: pdo_sqlite, mbstring, bcmath
           coverage: none
 
-      - name: 安装依赖（当前 VCS 过渡配置）
-        run: composer install --no-interaction --prefer-dist --no-progress
-
       - name: 准备应用
         run: |
           cp .env.example .env
-          php artisan key:generate
+          touch database/database.sqlite
 
-      - name: 测试（45 个，sqlite :memory:）
+      - name: 安装依赖（当前 VCS 过渡配置）
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: 准备密钥与数据库
+        run: |
+          php artisan key:generate
+          php artisan jwt:secret --force
+          php artisan migrate --seed --force
+
+      - name: 测试（57 个，sqlite :memory:）
         run: php artisan test
+
+      - name: 代码规范与依赖审计
+        run: |
+          ./vendor/bin/pint --test
+          composer audit --locked
+
+  fresh-start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, mbstring, bcmath
+          coverage: none
+
+      - name: 从干净克隆初始化无 Food 的业务项目
+        run: >-
+          ./init-project
+          --name=acme/ci-smoke
+          --app-name="CI Smoke"
+          --scaffold-user=ci
+          --scaffold-password=ci-only-password
+          --fresh-git
+          --no-commit
