@@ -14,11 +14,19 @@
 
 ## 1.1 准备环境
 
-还没有项目目录的话先建一个——它就是后文一直说的「仓库根目录」：
+方式 B 要在一个**独立的空工作目录**里操作，不要在正在提供本教程网页的
+`moo-engine-skeleton` 仓库里再建一层同名目录。如果你是在已克隆的教程仓库根目录启动网页引导器，
+新开终端后先回到它的父目录，再建教程工作目录：
 
 ```bash
-mkdir moo-engine-skeleton && cd moo-engine-skeleton    # git init 可选
+# 当前在已克隆的 moo-engine-skeleton/ 教程仓库根目录
+cd ..
+mkdir moo-engine-from-zero && cd moo-engine-from-zero  # 后文的「项目根目录」
+git init                                                   # 后续章节要用 git diff / git add
 ```
+
+> 如果你看的是线上教程，没有克隆本仓库，也可以在任意位置新建一个空目录；
+> 关键是里面不能已经存在 `engine/`。
 
 本教程在 macOS 上用 [Homebrew](https://brew.sh) 安装基础工具（已装好的请跳过）：
 
@@ -73,6 +81,11 @@ mysql --version   # MariaDB 12.x 客户端
 # 在仓库根目录 moo-engine-skeleton/ 下执行
 composer create-project "laravel/laravel:^12.0" engine --no-interaction
 ```
+
+> **看到 SQLite 迁移成功不是走错了。** 当前 Laravel 12 模板会在 `create-project` 末尾自动生成
+> `.env` / `APP_KEY`、创建 `database/database.sqlite` 并先跑一次 SQLite migration。这只是 Laravel
+> 的零配置默认初始化；1.3–1.5 会创建独立 MariaDB 库、把 `.env` 切到 `mysql` 驱动，
+> 然后把同一批基础表真正建到 MariaDB 中。
 
 > 如果这里报 `copy(): ... errno=28 No space left on device`，先清理磁盘空间
 > （常见是 Composer 缓存、旧 `vendor/`、Docker 镜像或下载目录占满）。这类失败通常已经留下
@@ -230,14 +243,15 @@ php artisan list | grep "moo:cloud"
 # 监控（moo-monitor-laravel，第 1.7 节接入）
 MOO_MONITOR_SQL_SLOW_ENABLED=true
 MOO_MONITOR_SQL_SLOW_THRESHOLD_MS=100
-MOO_MONITOR_CLOUD_ENABLED=true
-MOO_MONITOR_CLOUD_TOKEN=moo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+MOO_MONITOR_CLOUD_ENABLED=false
+# MOO_MONITOR_CLOUD_TOKEN=moo_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 > `MOO_MONITOR_CLOUD_TOKEN` 需要在 moo-scaffold-cloud（`https://c.mooeen.com`）
 > 注册项目后获得。免费档支持 ≤3 个项目，注册流程：登录 → 新建项目 →
 > 复制接入 token。**没有 token 也不影响本地采集**——下面故意触发的异常仍然会落盘
-> `storage/moo-monitor/`，只是暂时推不到云端；拿到 token 后补配即可。
+> `storage/moo-monitor/`。没有真实 token 时保持 `MOO_MONITOR_CLOUD_ENABLED=false`，**不要填一个假 token**；
+> 拿到 token 后再把开关改成 `true`，并取消 `MOO_MONITOR_CLOUD_TOKEN` 的注释、换成真实值。
 >
 > **方式 A 读者注意**：初始化后的 `engine/.env.example` 默认只含 `MOO_MONITOR_SQL_SLOW_*` 两行，
 > **不含**上面的 `MOO_MONITOR_CLOUD_ENABLED` / `MOO_MONITOR_CLOUD_TOKEN`——这是有意的：

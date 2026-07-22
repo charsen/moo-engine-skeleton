@@ -48,52 +48,91 @@ public function boot(): void
 
 ## 5.2 启用 ACL（三步）
 
-**第 1 步：写 Gate。** 新建 `app/Providers/AuthServiceProvider.php`，核心就是下面这个
-判定顺序——这段是**完整的闭包实现**（Gate 是多态的，第 7 章换成 Personnel
-后一行不用改）：
+**第 1 步：写 Gate。** 新建 `app/Providers/AuthServiceProvider.php`，不要只粘贴一段
+`Gate::define()` 闭包；下面是包含命名空间、use 和 Provider 类的**完整文件**，可直接照抄。
+Gate 是多态的，第 7 章换成 Personnel 后判定主体的代码不用改：
 
 ```php
-Gate::define('acl_authentication', function ($user, $acl_key) {
-    // ① 天然 root 直通。注意：本章的 User::isRoot() 恒返回 false（自增主键体系下
-    //    不启用这条，超级权限走 ③ 的 'is_root' 字面量）；它仍排在第 ① 是给第 7 章
-    //    留位——Personnel::isRoot() 是真实生效的判定（getKey() === ROOT_ID，即
-    //    id=1 的内置管理员），而雪花主键的系统一般不存在 id=1，同样靠 ③ 兜底。
-    //    「换主体不用改 Gate」的多态就体现在这。
-    if ($user->isRoot()) {
-        return true;
+<?php
+
+declare(strict_types=1);
+
+namespace App\Providers;
+
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+
+class AuthServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Gate::define('acl_authentication', function ($user, $acl_key) {
+            // ① 主体自己的 root 判定。本章按第 3 章代码，User::isRoot() 会检查
+            //    actions 里的 'is_root'；第 7 章 Personnel 有自己的实现。
+            if ($user->isRoot()) {
+                return true;
+            }
+
+            // ② config/actions.php 白名单：登录即可用。第 2 章跑 moo:free 后通常
+            //    已生成这个文件；若没有，config() 的默认空数组也会安全跳过。
+            foreach (config('scaffold.controller', []) as $app => $config) {
+                $whitelist = config('actions.'.$app.'.whitelist', []);
+                if (in_array($acl_key, $whitelist, true)) {
+                    return true;
+                }
+            }
+
+            $actions = $user->getActions();
+
+            // ③ 保留字面量兜底：即使某种主体的 isRoot() 只判断“天然 root”，
+            //    角色/动作数据里的 is_root 仍能授予超级权限。
+            if (in_array('is_root', $actions, true)) {
+                return true;
+            }
+
+            // ④ 精确匹配 acl key
+            return in_array($acl_key, $actions, true);
+        });
     }
+}
+```
 
-    // ② config/actions.php 白名单：登录即可用。方式 B 做到本章还没有这个文件——
-    //    config() 拿不到就是空白名单，整段安全跳过；第 7 章 moo:auth 会生成并维护它。
-    foreach (config('scaffold.controller', []) as $app => $config) {
-        $whitelist = config('actions.'.$app.'.whitelist', []);
-        if (in_array($acl_key, $whitelist, true)) {
-            return true;
-        }
-    }
+本轮方式 B 项目里 `config/actions.php` 已由前面的生成流程创建，这是正常的；此刻它的
+`admin.whitelist` 仍为空，不能代替 Gate。先快速确认：
 
-    $actions = $user->getActions();
-
-    // ③ getActions() 里有 'is_root' 字面量 = 超级权限
-    if (in_array('is_root', $actions, true)) {
-        return true;
-    }
-
-    // ④ 精确匹配 acl key
-    return in_array($acl_key, $actions, true);
-});
+```bash
+test -f config/actions.php && echo "actions config exists"
+php artisan tinker --execute="var_dump(config('actions.admin.whitelist', []));"
+# array(0) { }
 ```
 
 > ⚠️ ②③④ 必须有实现，不能只留注释——闭包对非 root 隐式返回 `null` 的话，
 > 所有普通用户会被全部拒绝。
 >
-> 📦 仓库的 `engine/app/Providers/AuthServiceProvider.php` 是第 7 章后的**最终版**：
-> 判定逻辑与上面一致，但注释里出现 Personnel、RoleSeeder、「系统管理员」等第 7 章
-> 才介绍的概念；其中「moo:acl 生成时维护」是**笔误**——这个命令不存在，实际命令叫
-> `moo:auth`（vendor `UpdateAuthorizationCommand` 里 `$name = 'moo:auth'`）。
-> 本章使用上面这段即可（已是完整实现）。
+> 📦 仓库的 `engine/app/Providers/AuthServiceProvider.php` 是第 7 章后的**最终版**，
+> 主体变量名和注释已换成 Personnel / RoleSeeder 等概念，但四段判定顺序一致。
 
-别忘了在 `bootstrap/providers.php` 登记这个 Provider。
+别忘了在 `bootstrap/providers.php` 登记这个 Provider，完整结果应为：
+
+```php
+<?php
+
+use App\Providers\AppServiceProvider;
+use App\Providers\AuthServiceProvider;
+
+return [
+    AppServiceProvider::class,
+    AuthServiceProvider::class,
+];
+```
+
+登记后先确认 Provider 能被 Laravel 启动，且 Gate 已定义：
+
+```bash
+php artisan about >/dev/null
+php artisan tinker --execute="var_dump(Gate::has('acl_authentication'));"
+# bool(true)
+```
 
 **第 2 步：打开开关。** `config/scaffold.php`（注意 ACL 配置是**两个**旋钮）：
 
@@ -115,10 +154,13 @@ Gate::define('acl_authentication', function ($user, $acl_key) {
 
 ```php
 Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], function () {
-    Route::iResource('food', FoodController::class);
+    Route::iResource('food', \App\Admin\Controllers\Food\FoodController::class);
     // :insert_code_here:do_not_delete
 });
 ```
+
+这里故意保留生成器写入的完整类名；若改成 `FoodController::class`，还必须在文件顶部补
+`use App\Admin\Controllers\Food\FoodController;`，漏掉会导致路由加载失败。
 
 > 📦 仓库 HEAD 的这个 group 早已带中间件，且多了一条第 9 章的
 > `Route::post('food/{id}/toggle-status', ...)` ——方式 B 做到本章只需上面这段。
@@ -147,13 +189,16 @@ php artisan tinker --execute="var_dump(Schema::hasColumn('users', 'actions'));"
 php artisan db:seed --class=UserSeeder
 ```
 
-先造一个**零授权**的用户（tinker）：
+先造一个**零授权**的用户。执行 `php artisan tinker`，看到 `>>>` 提示符后逐行输入，
+最后输入 `exit` 回到终端：
 
 ```php
 $e = App\Models\User::firstOrNew(['email' => 'editor@example.com']);
 $e->name = '编辑小王'; $e->password = 'editor888';
 $e->email_verified_at = now();   // 过第 4 章的激活检查
-$e->save();                       // actions 不给 —— 零授权
+$e->actions = [];                 // 显式清空，重做本节时也一定从零授权开始
+$e->save();
+exit
 ```
 
 **① 无 token → 401：**
@@ -187,7 +232,8 @@ curl -s "$BASE/api/admin/food?page=1&page_limit=10" \
 
 > 调试模式（APP_DEBUG=true）下 403 会带很长的堆栈，生产是干净的 `{"message": ...}`。
 
-**③ 给编辑小王授 `food.index` 这一个动作**（tinker；下面按 `md5 = true` 手算，
+**③ 给编辑小王授 `food.index` 这一个动作**（再次执行 `php artisan tinker`；
+下面按 `md5 = true` 手算，
 若你改过 5.2 的 md5 开关，key 直接用明文）：
 
 ```php
@@ -195,6 +241,7 @@ $key = substr(md5(Mooeen\Scaffold\Foundation\Controller::aclPlainKey(
     App\Admin\Controllers\Food\FoodController::class.'::index')), 8, 16);   // d84c4f5251f855f0
 $e = App\Models\User::where('email', 'editor@example.com')->first();
 $e->actions = [$key]; $e->save();
+exit
 ```
 
 **④ 再测——授权是动作粒度的：**
@@ -224,17 +271,115 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/api/admin/food" \
 2. **白名单/授权改完不生效？** 跑过 `config:cache` 的话先 `php artisan config:clear`
    （5.2 第 2 步已提醒过一次，这里再记一笔）。
 
-## 5.5 测试守护（练习）
+## 5.5 测试守护
 
-照第 4 章 AuthTest 的样子，给 ACL 写 4 个用例：无 token 401 / is_root 200 /
-零授权 403 / 授单个动作后 index 200 而 store 仍 403。
-完整的测试代码见本仓库 `engine/tests/Feature/FoodAclTest.php`（Laravel 应用整体在 `engine/`
-子目录，仓库根没有 `tests/`）。
+真机演练通过后，把 401 / 403 / root / 单动作授权固定成回归测试。新建
+`tests/Feature/FoodAclTest.php`，这是与**本章 User 主体**匹配的完整版本，可直接运行：
 
-> 📦 注意：那是第 7 章接入 moo-system 后的**最终版**——登录主体是 Personnel
-> （手机号 `'13900000000'` + 「编辑员」角色），授权对象是"角色"而不是本章 User 的
-> `actions` 列。**处于第 5 章进度直接跑它必挂**，只能参考断言思路；顺带一提，它的
-> `foodIndexAclKey()` 也是按 `authorization.md5` 开关分支算 key 的，正好印证 5.1。
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature;
+
+use App\Admin\Controllers\Food\FoodController;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mooeen\Scaffold\Foundation\Controller;
+use Tests\TestCase;
+
+class FoodAclTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected $seed = true;
+
+    private function login(string $email, string $password): string
+    {
+        return $this->postJson('api/admin/authenticate', compact('email', 'password'))
+            ->assertOk()
+            ->json('data.token');
+    }
+
+    private function makeEditor(array $actions = []): User
+    {
+        $user = new User;
+        $user->name = '编辑小王';
+        $user->email = 'editor@example.com';
+        $user->password = 'editor888';
+        $user->email_verified_at = now();
+        $user->actions = $actions;
+        $user->save();
+
+        return $user;
+    }
+
+    private function foodIndexAclKey(): string
+    {
+        $plain = Controller::aclPlainKey(FoodController::class.'::index');
+
+        return config('scaffold.authorization.md5')
+            ? substr(md5($plain), 8, 16)
+            : $plain;
+    }
+
+    public function test_food_without_token_returns_401(): void
+    {
+        $this->getJson('api/admin/food?page=1&page_limit=10')->assertUnauthorized();
+    }
+
+    public function test_is_root_can_list_food(): void
+    {
+        $token = $this->login('admin@example.com', 'password');
+
+        $this->getJson('api/admin/food?page=1&page_limit=10', [
+            'Authorization' => "Bearer {$token}",
+        ])->assertOk();
+    }
+
+    public function test_editor_without_actions_is_forbidden(): void
+    {
+        $this->makeEditor();
+        $token = $this->login('editor@example.com', 'editor888');
+
+        $this->getJson('api/admin/food?page=1&page_limit=10', [
+            'Authorization' => "Bearer {$token}",
+        ])->assertForbidden();
+    }
+
+    public function test_index_action_does_not_grant_store(): void
+    {
+        $this->makeEditor([$this->foodIndexAclKey()]);
+        $token = $this->login('editor@example.com', 'editor888');
+        $headers = ['Authorization' => "Bearer {$token}"];
+
+        $this->getJson('api/admin/food?page=1&page_limit=10', $headers)->assertOk();
+
+        $this->postJson('api/admin/food', [
+            'food_name' => 'ACL 测试菜品',
+            'food_category' => 1,
+            'price' => 500,
+            'food_status' => 1,
+        ], $headers)->assertForbidden();
+
+        $this->assertDatabaseMissing('foods', ['food_name' => 'ACL 测试菜品']);
+    }
+}
+```
+
+运行完整测试：
+
+```bash
+php artisan test
+# 本轮第 5 章时间点实测：15 passed
+```
+
+> `foodIndexAclKey()` 同时兼容 `authorization.md5=true/false`，避免测试里写死
+> `d84c4f5251f855f0` 后，配置一改就产生假失败。
+>
+> 📦 仓库最终态的同名测试会在第 7 章随主体切换为 Personnel + 角色授权版；
+> 本章先用上面这份 User 版，到了第 7 章再替换。
 
 ---
 

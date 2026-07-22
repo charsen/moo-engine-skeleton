@@ -47,4 +47,35 @@ class FoodIncrementalTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.food_status', 1);
     }
+
+    public function test_stock_may_be_omitted_but_must_not_be_null(): void
+    {
+        $token   = $this->adminLogin();
+        $headers = ['Authorization' => "Bearer {$token}"];
+
+        $id = $this->postJson('api/admin/food', [
+            'food_name'     => '默认库存苹果',
+            'food_category' => 1,
+            'price'         => 100,
+            'food_status'   => 1,
+        ], $headers)->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('foods', ['id' => $id, 'stock' => 0]);
+
+        $this->postJson('api/admin/food', [
+            'food_name'     => '空库存苹果',
+            'food_category' => 1,
+            'price'         => 100,
+            'stock'         => null,
+            'food_status'   => 1,
+        ], $headers)->assertUnprocessable()->assertJsonValidationErrors('stock');
+
+        $this->putJson("api/admin/food/{$id}", [
+            'food_name'     => '默认库存苹果',
+            'food_category' => 1,
+            'price'         => 100,
+            'stock'         => null,
+            'food_status'   => 1,
+        ], $headers)->assertUnprocessable()->assertJsonValidationErrors('stock');
+    }
 }

@@ -86,7 +86,7 @@ moo-engine-skeleton/
 | [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
 | [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
-| [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、单设备 refresh 语义 | 核心 |
+| [第 6 章 移动端分片与 user 守卫](./06-移动端分片与-user-守卫.md) | 启用 Api/ 分片：双向守卫隔离、无宽限 token 轮换 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | **进阶/商业包（可选）**：host 契约、后台主体 User→Personnel 切换、角色授权、操作日志、调试器联调 | 进阶 |
 | [第 8 章 部署上线](./08-部署上线.md) | Composer / Packagist 部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
 | [第 9 章 日常增量开发：改表与加接口](./09-增量开发工作流.md) | 绿地之后的真实日常：加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、移动端分片第一个只读接口、专属 Resource 链式字段控制 | 进阶 |
@@ -105,19 +105,19 @@ moo-engine-skeleton/
 
 | # | 现象 | 原因 / 解决 | 章节 |
 |---|---|---|---|
-| 1 | 生成 Model 报 `EloquentFilter\Filterable not found` | 装 `tucker-eric/eloquentfilter` + `godruoyi/php-snowflake` | 2 |
-| 2 | 报 `BaseActionTrait not found` | `moo:free` 不建共享 trait；生成后直接补跑一次 `php artisan moo:controller Food -f` | 2 |
-| 3 | `moo:free` 里 `moo:api` 提示 No routes matched | 路由刚插入、当前进程没刷新，单独补 `moo:api admin Food` | 2 |
+| 1 | 生成 Model 报 `EloquentFilter\Filterable not found` | 当前 scaffold 已直接声明 `eloquentfilter` + `php-snowflake`；先用 `composer why` 确认依赖链，缺失说明 scaffold 安装不完整 | 2 |
+| 2 | 报 `BaseActionTrait not found` | 首次生成必须按 2.6 的顺序：`moo:fresh` → `moo:controller Food` → `moo:free`；不要等控制器已写入后才补命令 | 2 |
+| 3 | `moo:free` 里 `moo:api` 提示 No routes matched | 前置 `moo:controller Food` 未成功，导致本进程启动时还没有 Food 路由；修正后补跑 `moo:auth admin` 和 `moo:api admin Food` | 2 |
 | 4 | 调试器代理一直转圈 | 单线程 serve 自我代理死锁，用 `PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload` 启动 | 2 |
-| 5 | 装 moo-system 后 artisan 报 `Attribute [iResource] does not exist` | `iResource` 宏要注册在 `AppServiceProvider::register()` | 7 |
+| 5 | 装 moo-system 后 artisan 报 `Attribute [iResource] does not exist` | 第 2 章的完整反射版 `iResource` 宏未正确注册在 `AppServiceProvider::register()`；回到 2.3 修正后重跑 Composer | 2 / 7 |
 | 6 | 调部门列表报 `undefined function toLabelValue()` | 补 `app/Helpers/helpers.php` 并 `composer` files 自动加载 | 7 |
 | 7 | `moo-system check` 的中间件组那项总 FAIL | 中间件组要注册到 router（provider boot），否则 console 看不到 | 7 |
 | 8 | 调试器里带了 token 仍 401 | Authorization 值要加 `Bearer ` 前缀 | 7 |
 | 9 | seed 后部门树 `_lft/_rgt` 错乱 | `DatabaseSeeder` 别用 `WithoutModelEvents`，否则静默 nestedset 事件 | 7 |
-| 10 | token 续签后再请求偶发 401 `Guard Unverified` | jwt-auth 2.8.x 续签会丢自定义 claim（生产环境踩过的真坑）；**无论装的是 2.8.x 还是 2.9.x**，`config/jwt.php` 的 `persistent_claims` 都必须列上 `'guard'`——契约保证靠它，2.9.x 只是内部实现碰巧保留（本仓库 `engine/config/jwt.php` 已是正确示范）。自查版本：`composer show php-open-source-saver/jwt-auth`（本仓库约束 `^2.8`，lock 实锁 2.9.2） | 4 |
+| 10 | token 续签后再请求偶发 401 `Guard Unverified` | jwt-auth 2.8.x 续签会丢自定义 claim（生产环境踩过的真坑）；`config/jwt.php` 的 `persistent_claims` 必须列上 `'guard'`。本仓库用 `~2.8.3` 锁在 2.8 系列，避免 PHP 8.3 机器被宽泛的 `^2.8` 自动升级到要求 PHP 8.3 的 2.9、破坏 PHP 8.2 支持。自查：`composer show php-open-source-saver/jwt-auth`。 | 4 |
 | 11 | 页面并发请求时偶发 401（刚续签完） | 旧 token 续签后立刻进黑名单，同批在途请求被拒；`blacklist_grace_period` 设 90 秒宽限 | 4 |
 | 12 | 前端跨域时拿不到续签的新 token | 新 token 在 `authorization` 响应头里，CORS 默认不暴露；发布 `config/cors.php` 设 `exposed_headers=['Authorization']` | 4 |
-| 13 | 操作日志中间件报 `Undefined constant "LARAVEL_START"` | Laravel 12 入口不再定义它（老项目抄来的代码会炸），改用 `$request->server('REQUEST_TIME_FLOAT')` | 7 |
+| 13 | 操作日志中间件报 `Undefined constant "LARAVEL_START"` | HTTP / artisan 入口会定义它，但 phpunit 不经过这两个入口；统一改用 `$request->server('REQUEST_TIME_FLOAT')` | 7 |
 | 14 | Feature 测试里 refresh 永远"测不出"丢 claim | 同进程下 payload 工厂单例残留登录时的 claim；测试里用 `engine/tests/TestCase.php` 的 `freshJwtProcess()` 重置 jwt 服务链单例，模拟真实跨进程 | 4 |
 | 15 | 开了 ACL 后管理员自己也 403 | 雪花主键下没有 id=1 的天然 root；给「系统管理员」角色授 `is_root` 字面量兜底（RoleSeeder 已带） | 7 |
 | 16 | 带 token 调接口报 422 误以为 ACL 没生效 | FormRequest 校验先于控制器 boot() 的鉴权，参数不合法先 422；带齐合法参数才能看到 403 | 5 |
@@ -126,11 +126,11 @@ moo-engine-skeleton/
 | 19 | 账号状态检查写了却不生效 | 枚举不进 `$casts`、字段是裸 int，`=== AccountStatus::FORBIDDEN`（enum 实例）永远 false，必须 `->value`（生产项目里就出过这种静默失效的死代码） | 7 |
 | 20 | 开 ACL 后零授权角色连个人中心都 403 | `config/actions.php` 白名单要放行 moo-system AdminController 的 8 个个人中心动作，否则自己锁死自己 | 7 |
 | 21 | 操作日志表永远 0 条、也无报错 | `.env` 默认 `QUEUE_CONNECTION=database`，Job 堆在 `jobs` 表没人消费；改 `sync`（或起 worker），且改 `.env` 后要连 `php -S` 的 worker 一起杀掉重启。注：本仓库 `engine/.env.example` 已预设 `sync`，此坑主要是方式 B 从零自装时 Laravel 默认 `.env` 才会踩 | 7 |
-| 22 | 部署清缓存后，已登出的 token 又能用了 | `cache:clear`/`optimize:clear` 会清空 Redis 里的 JWT 黑名单，已作废 token 全部"复活"；部署脚本只用 `optimize`，必要时换 `JWT_SECRET` 强制全员重登 | 8 |
+| 22 | 部署清缓存后，已登出的 token 又能用了 | `cache:clear`/`optimize:clear` 会清空 Redis 里的 JWT 黑名单，已作废 token 全部"复活"；部署脚本只定向清框架生成物后再 `optimize`，不碰业务 cache；必要时换 `JWT_SECRET` 强制全员重登 | 8 |
 | 23 | 手工改过的 `lang/en/model.php` 枚举标签被 `moo:i18n` 回退 | lang 是再生成区、yaml 才是真相源；英文标签写进 yaml 枚举定义，再 `moo:fresh` + `moo:i18n` | 9 |
-| 24 | `moo:adder admin Food` 直接崩：找不到 `FoodFoodController.php` | folder 参数与控制器文件名直接拼接，必须带尾斜杠写成 `Food/` | 9 |
+| 24 | `moo:adder` 重跑后同一路由出现两遍 | 当前版 folder 直接写 `Food`；action 已存在时命令仍可能追加路由，重跑前后都检查 `routes/admin.php` | 9 |
 | 25 | 重跑 `moo:auth` 后零授权角色又被锁在门外（坑 #20 复发） | `config/actions.php` 是再生成区、整文件重写：手动放行的个人中心 8 个 key 会被冲掉（moo:auth 只自动放行「无 @acl」的 action）；重跑后要把 8 个 key 合并回 whitelist（FoodAclTest 有守护断言） | 9 |
-| 26 | `moo:free api` 生成的控制器第一次请求就 500：`Class "FoodResource" not found` | api 分片未声明 resource 时，生成器的 `use` 行已回退到 `BaseResource`（上游半修复），**但控制器方法体仍按 `{Entity}Resource` 引用**（生成器里 `model_name` 恒为实体名，body 占位符 `{{model_name}}Resource` 永远拼成 `FoodResource`）——`use` 导的是 `BaseResource`、体里却用 `FoodResource`，首个请求仍 500。解决：按第 9 章 9.8.2 把方法体里的 `{Entity}Resource::collection/::make` 手动改回 `BaseResource` | 9 |
+| 26 | `moo:free api` 后 `route:list` Fatal / 首次请求 500 | 首个 api 控制器可能引用未生成的 `Api\\Controllers\\Traits\\BaseActionTrait`，且方法体仍拼出不存在的 `FoodResource`；先补空共享 trait，再按 9.8.2 把方法体改用 `BaseResource` | 9 |
 | 27 | `moo:resource Food` 报 SUCCESS 却一个文件不生成 | 生成器只为 yaml `controller.resource` 声明过的分片产文件（坑 #26 的另一面），Food.yaml 只写了 `controller.app` → resource 数组为空 → 0 个目标也算"成功"；yaml 补 `resource: ['admin']` + `moo:fresh` 后再生成 | 9 |
 | 28 | moo-system 撤销会话 / 改密踢人接口回 200 却踢不掉，旧会话照常操作 | `config/jwt.php` 的 `show_black_list_exception` 被关（或精简配置漏了键，包源码兜底值是 `false`）→ 被 `forceForever` 拉黑的 token 在 `decode` 阶段被静默放行，撤销「看似成功、实际无效」，无报错线索排查成本极高；骨架锁成 `env('JWT_SHOW_BLACKLIST_EXCEPTION', true)` 默认 true，AuthTest 有守护断言 | 4 |
 | 29 | moo-system 的部门/人员 create、edit 表单端点 500：`Collection::putMore does not exist` | scaffold/moo-system 构建 `form_widgets` 时会在 Collection 上调 `putMore/default/forgetMore`——这是 **host 侧必须注册的宏契约**（各宿主项目在 AppServiceProvider 注册），骨架此前缺失；已在 `AppServiceProvider::boot()` 补齐三件套并注明语义。新建 host 项目照抄这段宏注册 | 7 |

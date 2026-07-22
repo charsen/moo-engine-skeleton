@@ -9,8 +9,8 @@ declare(strict_types=1);
  * 1. 主体是自建 User（email 登录）——不依赖 moo-system；guard claim 由
  *    User::getJWTCustomClaims() 动态注入（client 组已 shouldUse('user')），
  *    无需任何内联覆盖；
- * 2. refresh 用 (true, false)：forceForever —— 移动端单设备登录，旧 token 永久作废，
- *    不享受 90 秒黑名单宽限；
+ * 2. refresh 用 (true, false)：forceForever —— 本次被刷新的旧 token 永久作废，
+ *    不享受 90 秒黑名单宽限（严格轮换，不等同于跨设备单点登录）；
  * 3. 登录前置检查用 email_verified_at（自建表的最简状态位）；后台 Personnel
  *    （第 7 章）对应的是 account_status 枚举。
  */
@@ -86,16 +86,16 @@ class AuthController
     }
 
     /**
-     * 主动刷新 token（移动端单设备：旧 token 永久作废）
+     * 主动刷新 token（无宽限严格轮换：旧 token 永久作废）
      *
      * 与后台一样**故意不挂** jwt.auth.refresh（见 routes/api.php）：否则过期 token 会被
      * 中间件先续签一次、这里再续签一次，凭一个旧 token 派生出两个有效新 token，
-     * 「单设备」承诺被孤儿 token 打破。
+     * “一次刷新只产生一个新 token”的轮换承诺被孤儿 token 打破。
      */
     public function refresh(Request $request): JsonResponse
     {
         try {
-            // forceForever=true：旧 token 直接 addForever 进黑名单，没有 90 秒宽限 —— 单设备登录语义；
+            // forceForever=true：旧 token 直接 addForever 进黑名单，没有 90 秒宽限 —— 严格轮换；
             // resetClaims=false：保留 guard claim（persistent_claims 契约，见 config/jwt.php）
             $token = Auth::guard('user')->refresh(true, false);
         } catch (JWTException $e) {

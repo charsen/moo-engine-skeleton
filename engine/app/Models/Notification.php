@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Traits\MediaSynchronous;
-use App\Models\Traits\UsingSnowFlakePrimaryKey;
 use Illuminate\Notifications\DatabaseNotification;
 use Mooeen\Scaffold\Concerns\GetSerializeDate;
 use Mooeen\Scaffold\Concerns\GetUpdatedAtHumanTime;
+use Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey;
 
 class Notification extends DatabaseNotification
 {

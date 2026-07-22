@@ -7,7 +7,8 @@ declare(strict_types=1);
  * ② 公开的 logout 对无 token / 垃圾 token 幂等返回 200（JWTGuard::logout 内部吞掉 JWTException，
  *    审查曾误判为 500——这里把真实契约钉死，vendor 行为变化时能第一时间发现）；
  * ③ 过期 token 也要过 guard claim 校验——跨守卫的过期 token 不能在对方的 refresh 端点续签；
- * ④ Food IndexRequest 与 FoodFilter 字段对齐（price 等筛选不再是死代码）+ page_limit 上限。
+ * ④ Food IndexRequest 与 FoodFilter 字段对齐（price 等筛选不再是死代码）+ page_limit 上限；
+ * ⑤ 登录双桶限流同时守住「同 IP 猜同账号」与「同 IP 换账号扫描」。
  */
 
 namespace Tests\Feature;
@@ -88,7 +89,7 @@ class RegressionTest extends TestCase
 
     public function test_login_is_rate_limited_per_account_and_ip(): void
     {
-        // 组限流 300 次/分钟防不了爆破：登录单独按「账号+IP」5 次/分钟，第 6 次 429
+        // 组限流 300 次/分钟防不了爆破：同一 IP 猜同一账号 5 次/分钟，第 6 次 429
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('api/admin/authenticate', [
                 'account' => '13800000000', 'password' => 'wrong-' . $i,
@@ -97,6 +98,20 @@ class RegressionTest extends TestCase
 
         $this->postJson('api/admin/authenticate', [
             'account' => '13800000000', 'password' => 'wrong-6',
+        ])->assertStatus(429);
+    }
+
+    public function test_login_is_rate_limited_when_one_ip_sweeps_accounts(): void
+    {
+        // 只用 account|ip 组合桶时，攻击者每次换账号就能绕过；IP 总桶让第 31 次直接 429。
+        for ($i = 1; $i <= 30; $i++) {
+            $this->postJson('api/admin/authenticate', [
+                'account' => 'missing-' . $i, 'password' => 'wrong',
+            ])->assertStatus(422);
+        }
+
+        $this->postJson('api/admin/authenticate', [
+            'account' => 'missing-31', 'password' => 'wrong',
         ])->assertStatus(429);
     }
 }

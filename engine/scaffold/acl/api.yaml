@@ -109,7 +109,7 @@ modules:
                         key: 75fd9edea3519fa8
                         plain_key: api-auth-refresh
                         action: refresh
-                        title: '主动刷新 token（移动端单设备：旧 token 永久作废）'
+                        title: '主动刷新 token（无宽限严格轮换：旧 token 永久作废）'
                         name:
                             en: ''
                             zh-CN: ''

@@ -84,7 +84,6 @@
 声明好之后安装：
 
 ```bash
-cd engine
 composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
 composer require "charsen/moo-scaffold:dev-master as 2.99.99" --with-all-dependencies
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
@@ -94,21 +93,24 @@ php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令
 > `composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git`。
 > composer 不会读取依赖包自己的 `repositories`，当前过渡期宿主项目必须自己声明 monitor 仓库。
 
-> **前置依赖自检**（避免后续 `moo:free` 报错）：
-> 
-> scaffold 生成的 Model 需要两个包：`tucker-eric/eloquentfilter`（查询过滤器）和
-> `godruoyi/php-snowflake`（雪花 ID）。本骨架的 `engine/composer.json` 已经把这两个包直接写进
-> `require`（它们也是 `moo-system` 的依赖），跟着前面的 `composer install` / `composer update`
-> 一起装好——**scaffold 包本身并不声明这两个依赖**。
-> 
-> 全新项目（没有预填 composer.json）里若缺这两个包，`moo:free` 生成的 Model 会报
-> `Trait "EloquentFilter\Filterable" not found` / 找不到 `Godruoyi\Snowflake`，手动补装即可：
+> **依赖自检**：当前 `moo-scaffold` 已经直接声明
+> `tucker-eric/eloquentfilter` 和 `godruoyi/php-snowflake`，安装 scaffold 时会自动带入，
+> 新项目不需要再手动 `composer require` 一遍。用下面两条命令确认依赖链：
 > 
 > ```bash
-> composer show tucker-eric/eloquentfilter  # 检查是否已装
-> # 如果报 Package not found，补装：
-> composer require tucker-eric/eloquentfilter godruoyi/php-snowflake
+> composer why tucker-eric/eloquentfilter
+> composer why godruoyi/php-snowflake
 > ```
+
+`moo:free` 会生成 Pest 语法的路由契约测试，而全新 Laravel 12 只预装 PHPUnit。
+现在就把 Pest 测试环境补齐，避免生成后 `php artisan test` 天然报
+`Call to undefined function it()`：
+
+```bash
+composer config allow-plugins.pestphp/pest-plugin true
+composer require --dev "pestphp/pest:^3.8" "pestphp/pest-plugin-laravel:^3.2" --with-all-dependencies
+./vendor/bin/pest --init     # 末尾询问是否 star GitHub 时选 no 即可
+```
 
 ## 2.2 初始化 + 发布资源
 
@@ -186,29 +188,70 @@ Route::get('/', static fn () => 'Hello app api ~');
 > 跟做时务必在该文件顶部补一行 `use Illuminate\Support\Facades\Route;`，否则运行即
 > `Fatal error: Class "Route" not found`（仓库 `engine/bootstrap/app.php` 顶部就有这行）。
 
-生成的后台控制器路由用了 `Route::iResource(...)` 宏，先注册在
-`app/Providers/AppServiceProvider.php` 的 `boot()` 里（比 `Route::resource`
-多了回收站 / 永久删除 / 批量删除 / 恢复四条路由）。
-**预告**：第 7 章装 moo-system 时它会报错，要挪到 `register()`——那是个值得亲手踩的坑，
-这里先照写：
+生成的控制器路由使用 `Route::iResource(...)` 宏。这是 host 项目必须提供的
+路由契约，从一开始就注册在 `AppServiceProvider::register()`：它要早于所有 provider 的
+`boot()` 执行，后面可选安装 `moo-system` 时才不会出现
+`Attribute [iResource] does not exist`。
+
+宏不能直接包一层 `Route::resource`：这套生态的控制器方法并不完全相同，
+无条件注册会生成调用不存在方法的“幻影路由”。使用反射只注册真实存在且
+`public` 的 action，并注意固定路径必须早于 `/{id}`：
+
 ```php
-Route::macro('iResource', function (string $name, string $controller, array $options = []) {
-    Route::get($name.'/trashed', $controller.'@trashed')->name($name.'.trashed');
-    Route::delete($name.'/forever/{id}', $controller.'@forceDestroy')->name($name.'.forceDestroy');
-    Route::delete($name.'/batch', $controller.'@destroyBatch')->name($name.'.destroyBatch');
-    Route::patch($name.'/restore', $controller.'@restore')->name($name.'.restore');
-    Route::resource($name, $controller, $options);
-});
+public function register(): void
+{
+    Route::macro('iResource', function (string $name, string $controller) {
+        $hasAction = static function (string $action) use ($controller): bool {
+            if (! class_exists($controller)) {
+                return false;
+            }
+
+            $reflection = new \ReflectionClass($controller);
+
+            return $reflection->hasMethod($action)
+                && $reflection->getMethod($action)->isPublic();
+        };
+
+        if ($hasAction('index')) {
+            Route::get($name, [$controller, 'index'])->name($name.'.index');
+        }
+        if ($hasAction('create')) {
+            Route::get($name.'/create', [$controller, 'create'])->name($name.'.create');
+        }
+        if ($hasAction('store')) {
+            Route::post($name, [$controller, 'store'])->name($name.'.store');
+        }
+        if ($hasAction('trashed')) {
+            Route::get($name.'/trashed', [$controller, 'trashed'])->name($name.'.trashed');
+        }
+        if ($hasAction('show')) {
+            Route::get($name.'/{id}', [$controller, 'show'])->name($name.'.show');
+        }
+        if ($hasAction('edit')) {
+            Route::get($name.'/{id}/edit', [$controller, 'edit'])->name($name.'.edit');
+        }
+        if ($hasAction('update')) {
+            Route::put($name.'/{id}', [$controller, 'update'])->name($name.'.update');
+        }
+        if ($hasAction('forceDestroy')) {
+            Route::delete($name.'/forever/{id}', [$controller, 'forceDestroy'])
+                ->name($name.'.forceDestroy');
+        }
+        if ($hasAction('destroyBatch')) {
+            Route::delete($name.'/batch', [$controller, 'destroyBatch'])
+                ->name($name.'.destroyBatch');
+        }
+        if ($hasAction('destroy')) {
+            Route::delete($name.'/{id}', [$controller, 'destroy'])->name($name.'.destroy');
+        }
+        if ($hasAction('restore')) {
+            Route::patch($name.'/restore', [$controller, 'restore'])->name($name.'.restore');
+        }
+    });
+}
 ```
 
-> 📌 **这个宏体后来被整个重写了**——别拿仓库代码来核对本节。最终版（见仓库
-> `engine/app/Providers/AppServiceProvider.php`，commit `c5acdd1`）改成了**用反射
-> 「按控制器方法真实存在且 public」逐条注册**，去掉了无条件的 `Route::resource` 和
-> `$options` 参数：这套生态的控制器普遍没有 `destroy`（统一走 `destroyBatch`）、
-> 部分没有 `show`/`index`，无脑 resource 会产出「幻影路由」——调用即
-> `Call to undefined method`（500）。上面的简化版**足够跑通本章全部内容**；
-> 第 7 章只负责把它挪进 `register()`，宏体的反射版重写是后来的复审修复、
-> 不在任何章节正文里——参考仓库最终版即可。
+文件顶部还要补 `use Illuminate\Support\Facades\Route;`。
 
 ## 2.4 建调试工具的登录账号
 
@@ -268,7 +311,7 @@ tables:
   维护的**字段翻译润色文件**（`table_fields` 随库表字段自动增、减；你手改的翻译
   不会被重新生成覆盖），**不用手写**，看到它别慌。
 
-## 2.6 一键生成业务代码
+## 2.6 生成业务代码
 
 先确认数据库连接没问题——`moo:free` 末尾要执行迁移，连不上库会失败：
 
@@ -276,10 +319,14 @@ tables:
 php artisan migrate:status    # 能列出迁移即说明 .env 的 DB_* 配置可用（第 1 章配的）
 ```
 
-然后一键生成：
+然后生成。第一次接入时要先单独跑一次 `moo:controller`：它会在写入
+Food 路由的同时创建共享的 `BaseActionTrait`。若直接从空项目跑 `moo:free`，
+当前生成器会先写入引用该 trait 的控制器，但没有创建 trait，下一条 artisan
+命令就会在路由加载时 Fatal。先置命令把这个顺序问题消掉，本项目后续生成无需重复：
 
 ```bash
 php artisan moo:fresh                 # 解析 yaml 到 storage/scaffold 缓存（改完 yaml 必跑）
+php artisan moo:controller Food       # 首次预生成控制器、共享 trait 和路由
 php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i18n/ACL/迁移/API 文档
 ```
 
@@ -289,14 +336,18 @@ php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i
 生成的目录结构：
 ```
 app/Models/Food/{Food.php, Filters/FoodFilter.php, Traits/FoodTrait.php, Enums/{FoodCategory,FoodStatus}.php}
-app/Models/Traits/UsingSnowFlakePrimaryKey.php   # 雪花 ID 约定 trait
-app/Models/Traits/HasOperator.php                # 当前生成器会一并生成；本章 Food.yaml 没有 creator_id/updater_id，所以业务里暂时用不上
+app/Admin/Controllers/Traits/BaseActionTrait.php   # 首次 moo:controller 创建的共享 CRUD 动作
 app/Admin/Controllers/Food/{FoodController.php, Traits/FoodTrait.php}
 app/Admin/Requests/Food/Food/{Index,Store,Update,Create,Edit,DestroyBatch}Request.php
 app/Admin/Requests/Food/Food/FoodRequestTrait.php   # 各 Request 共用的表名/枚举值 trait（也是生成的）
 # 没有单独的 FoodResource —— 控制器直接用包里的 BaseResource，这是这套架构的常态
 database/migrations/*_create_foods_table.php
+tests/Feature/Admin/Food/FoodControllerTest.php   # Pest 路由契约测试
 ```
+
+> 雪花 ID 能力来自包内 `Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey`，
+> 当前版本不会在 `app/Models/Traits/` 再生成同名 trait。本章 schema 也没有
+> `creator_id` / `updater_id`，因此不会生成 host 侧 `HasOperator`。
 
 - **`Requests/Food/Food/` 双层 Food 不是生成错了**：第一层是模块目录
   （YAML 里的 `module.folder: Food`），第二层是表模型名（`Food`）——
@@ -307,39 +358,77 @@ database/migrations/*_create_foods_table.php
   新增了 `app/Admin/Resources/Food/FoodResource.php`，`FoodController` 的
   index/show 改用了它（store/update 等仍用 BaseResource）。本章生成完没有这两样，正常。
 
-### ⚠️ 新手会遇到的 4 个坑（本教程实测）
+### 2.6.1 生成结果自检
 
-1. **生成的 Model 依赖两个约定包**，全新项目里没装会报
-   `Trait "EloquentFilter\Filterable" not found` / 找不到 `Godruoyi\Snowflake`。装上即可：
-   ```bash
-   composer require "tucker-eric/eloquentfilter:^3.0" "godruoyi/php-snowflake:^3.2"
-   ```
-   （这俩也是 `moo-system` 的依赖，提前装好后面不冲突。）
+`moo:free` 的过程中不应再出现“没有路由匹配”或 `BaseActionTrait not found`。
+生成完立即验证路由、ACL/API 产物和测试：
 
-2. **`moo:free` 不会创建共享的 `BaseActionTrait`**（它只在独立命令 `moo:controller` 里创建）。
-   生成完建议直接补跑一次，幂等；否则后面 `route:list` / `moo:api` / curl 首次加载
-   `FoodController` 时会报 `Trait "App\Admin\Controllers\Traits\BaseActionTrait" not found`：
-   ```bash
-   php artisan moo:controller Food -f
-   ```
+```bash
+php artisan route:list --path=api/admin/food
+test -f scaffold/acl/admin.yaml
+test -f scaffold/api/admin/Food/Food.yaml
+php artisan test tests/Feature/Admin/Food
+```
 
-3. **`moo:free` 里的 `moo:auth` / `moo:api` 可能提示 “No routes matched”**，
-   因为路由是同一个进程里刚插进文件的、当前路由表还没刷新。生成完单独补一次即可：
-   ```bash
-   php artisan moo:api admin Food
-   ```
+应该看到 10 条 Food 路由，2 个契约测试全部通过。如果 `moo:free` 里的
+`moo:auth` / `moo:api` 仍然提示没有路由匹配，说明前面的 `moo:controller Food`
+没有成功；修正后再单独执行：
 
-4. **接口调试器的代理会和单线程 `php artisan serve` 死锁**：调试器发请求时，后端要再向
-   「自己」发一次 HTTP 代理请求，单进程服务器处理不了并发会一直转圈。解决办法是开多 worker：
-   ```bash
-   PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
-   ```
-   （必须带 `--no-reload`，否则 Laravel 只起单 worker。）
+```bash
+php artisan moo:auth admin
+php artisan moo:api admin Food
+```
 
-5. **`moo:test` 生成的是 Pest 风格测试骨架**：全新 Laravel 12 项目默认只带 PHPUnit，
-   直接跑 `php artisan test tests/Feature/Admin/Food` 会报 `Call to undefined function it()`。
-   本教程正式的自动化测试从第 4 章开始手写 PHPUnit 测试；第 2 章这里把生成的文件当
-   「路由契约草稿」即可。若你想立刻跑它，需先按 Pest 官方方式安装 Pest。
+还有一个运行时注意点：**接口调试器的代理会和单线程
+`php artisan serve` 死锁**。调试器发请求时，后端要再向
+「自己」发一次 HTTP 代理请求，单进程服务器处理不了并发会一直转圈。解决办法是开多 worker：
+
+```bash
+PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
+```
+
+（必须带 `--no-reload`，否则 Laravel 只起单 worker。）
+
+### 2.6.2 校准列表筛选入参（别让 Filter 成为死代码）
+
+本轮实操发现，当前生成器会在 `FoodFilter` 里生成 `price()` / `calories()` /
+`description()` / 日期筛选方法，但 `IndexRequest` 默认只放行名称和枚举字段。
+控制器调用的是 `->filter($request->validated())`：**没写进 rules 的查询参数会被丢掉**，
+所以 Filter 方法看似存在、实际永远不会执行。
+
+把 `app/Admin/Requests/Food/Food/IndexRequest.php` 的 `rules()` 整理成：
+
+```php
+public function rules(): array
+{
+    return [
+        'food_name'     => ['nullable', 'string', 'max:128'],
+        'description'   => ['nullable', 'string', 'max:255'],
+        'price'         => ['nullable', 'integer', 'min:0'],
+        'calories'      => ['nullable', 'integer', 'min:0'],
+        'food_category' => ['nullable', 'integer', $this->getInEnums($this->getValues('food_category'))],
+        'food_status'   => ['nullable', 'integer', $this->getInEnums($this->getValues('food_status'))],
+        'created_at'    => ['nullable', 'date'],
+        'updated_at'    => ['nullable', 'date'],
+        'deleted_at'    => ['nullable', 'date'],
+        'page'          => ['required', 'integer', 'min:1'],
+        'page_limit'    => ['required', 'integer', 'min:1', 'max:200'],
+    ];
+}
+```
+
+`page_limit` 的 200 上限也是业务保护：不限制时，任何客户端都可一次要求数万条数据。
+真实验证这两条契约：
+
+```bash
+# 先用 2.7 的新增接口建两条不同价格的数据，然后：
+curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10&price=350"
+# meta.total 应只统计 price=350 的数据
+
+curl -s -o /dev/null -w "%{http_code}\n" \
+  "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10000"
+# 422
+```
 
 生成的 `foods` 表（注意 `id` 是非自增 bigint，留给雪花算法赋值。
 `-p7777` / `moo_skeleton` 来自**第 1 章** `.env` 里的 `DB_PASSWORD` / `DB_DATABASE`，
@@ -401,9 +490,8 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以当前过渡期 VCS 方式接入，20 个 `moo:*` 命令可用（`php artisan list | grep moo` 可数；
-  「20」是**刚做完本章**、只装了 moo-scaffold 时的数——第 7 章装上 moo-system 后会更多，
-  在仓库终态执行这条命令数出超过 20 是正常的）；
+- `moo-scaffold` 以当前过渡期 VCS 方式接入，`php artisan list | grep moo`
+  能列出 `moo:init` / `moo:free` / `moo:api` 等命令；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；
 - 接口用 curl 和内置调试器两种方式真机验证通过（HTTP 200）。
 

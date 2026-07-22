@@ -26,7 +26,7 @@ class UpdateRequest extends FormRequest
             'food_name'     => ['required', 'string', 'min:2', 'max:128', $this->getUnique($this->getTable(), 'food_name', 'id')],
             'food_category' => ['required', 'integer', $this->getInEnums($this->getValues('food_category'))],
             'price'         => ['required', 'integer', 'min:0'],
-            'stock'         => ['nullable', 'integer', 'min:0'],
+            'stock'         => ['sometimes', 'required', 'integer', 'min:0'],
             'calories'      => ['nullable', 'integer', 'min:0'],
             'food_status'   => ['required', 'integer', $this->getInEnums($this->getValues('food_status'))],
             'description'   => ['nullable', 'string', 'max:255'],

@@ -25,8 +25,8 @@
 
 **① 续签时保留 guard 声明** —— 不配它，在 jwt-auth **2.8.x** 上换发的新 token 会丢掉
 `guard`，下次请求过 `JWTGuardAuth` 直接 401（坑 #10，生产偶发 401 的真因）。
-本仓库锁定的是 **2.9.2**（见 `engine/composer.lock`），这个版本因内部实现"碰巧"保留、
-现象不复现——但契约写在文档里，不赌内部实现，**任何版本都要配**：
+本仓库为保留 PHP 8.2 支持锁定在 **2.8.3**（见 `engine/composer.lock`），因此这不是
+理论上的兼容配置，而是当前版本必须守住的真实契约：
 
 ```php
 'persistent_claims' => [
@@ -237,20 +237,25 @@ RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->use
 见第 3 章 `AppServiceProvider::boot()` 那段，不是你漏装了什么）。
 
 **登录接口要再单独限**：组限流的 300 次/分钟对 `/authenticate` 等于不设防
-（爆破一分钟能试 300 个密码）。按「账号 + IP」5 次/分钟单独限——锁单账号尝试、
-也锁同 IP 换号扫射。本章时间点登录路由只有 `routes/admin.php` 一条，给它挂上
-`->middleware('throttle:login')`；📦 第 6 章建移动端 `routes/api.php` 的登录路由时，
-**记得回来照样补挂一条**（第 6 章正文的路由片段没写这行）：
+（爆破一分钟能试 300 个密码）。这里用两个计数桶：同一 IP 对同一账号最多 5 次/分钟，
+同时同一 IP 的全部登录请求最多 30 次/分钟，既限制持续猜一个账号，也限制不断换账号扫描。
+本章时间点登录路由只有 `routes/admin.php` 一条，给它挂上
+`->middleware('throttle:login')`；第 6 章建移动端 `routes/api.php` 的登录路由时，
+正文会按同样方式挂上：
 
 ```php
 RateLimiter::for('login', function (Request $r) {
-    $account = (string) ($r->input('account') ?: $r->input('email') ?: '');
+    $account = mb_strtolower(trim((string) ($r->input('account') ?: $r->input('email') ?: '')));
 
-    return Limit::perMinute(5)->by(sha1($account.'|'.$r->ip()));
+    return [
+        Limit::perMinute(5)->by('login-account-ip:'.sha1($account.'|'.$r->ip())),
+        Limit::perMinute(30)->by('login-ip:'.$r->ip()),
+    ];
 });
 ```
 
-验证：同一账号连错 5 次密码，第 6 次返回 **429**（RegressionTest 有守护用例）。
+验证：同一账号连错 5 次密码，第 6 次返回 **429**；若不断更换不存在的邮箱，
+同一 IP 的第 31 次也返回 **429**。
 
 组限流的验证：随便调一个 admin 接口，响应头出现 `X-RateLimit-Limit: 300` 即生效。
 在 scaffold 调试器的 Response Headers 标签里能同时看到限流头和 4.2 节的 CORS 暴露头：
@@ -259,18 +264,169 @@ RateLimiter::for('login', function (Request $r) {
 
 ## 4.7 `.env.example` 与生产 composer
 
-- 把 `.env.example` 改成"复制即可用"：预填 MariaDB `moo_skeleton`、8088 端口、
-  分组中文注释，补 `JWT_SECRET` / `SCAFFOLD_AUTHOR` 占位，
-  删掉骨架用不到的 MAIL/AWS 等死键（如 MAIL_MAILER、AWS_* 等，保留 DB/CACHE/REDIS 相关）；
-- 新建 `composer.production.json`：开源包使用 Packagist 版本约束，`moo-system` 使用版本约束 + VCS 仓库。
-  这是目标生产样例；当前过渡期若 Packagist 还没同步 scaffold / monitor 目标版本，部署 composer
-  仍要临时保留这两个开源包的 VCS 仓库配置。目标版本可解析后，再执行
-  `COMPOSER=composer.production.json composer install --no-dev`；生产配置使用独立的
-  `composer.production.lock`，不覆盖开发用 `composer.json` / `composer.lock`。
-  （📦 仓库版里有 moo-system 的内容——没装第 7 章的包就先删掉**两处**：
-  `require` 里的 `"charsen/moo-system"` 一行，和 `repositories` 里的 `system` 块。
-  另外注意 `moo-system` 的 VCS 地址是 `git@gitee.com:…` 的 SSH 私有仓库形式，部署机要配好
-  对应仓库的访问权（SSH key），否则 `composer install --no-dev` 拉包会直接失败。）
+这一节同时准备两个“交付给下一位开发者”的文件，但不要改乱你正在运行的环境：
+
+- 当前项目的 `.env` **继续使用第 1 章配好的 MariaDB `moo_skeleton`**；
+- `.env.example` 是未来 clone 后复制为 `.env` 的模板，默认用 SQLite，让第一次安装不依赖
+  本机已有 MariaDB；正式项目再按第 1 章把自己的 `.env` 切到独立数据库。
+
+先把 `.env.example` **完整替换**为下面内容。这里没有第 7 章才出现的操作日志、雪花 ID 等配置，
+避免提前抄入尚未安装的功能：
+
+```dotenv
+# 应用
+APP_NAME=moo_skeleton
+APP_ENV=local
+APP_KEY=
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8088
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=zh_CN
+BCRYPT_ROUNDS=12
+
+# scaffold 调试器会回调本服务器；多 worker 可避免单线程自我代理死锁（坑 #4）
+PHP_CLI_SERVER_WORKERS=4
+
+# 日志
+LOG_CHANNEL=stack
+LOG_STACK=single
+LOG_LEVEL=debug
+
+# 克隆后的零依赖默认值；正式项目在自己的 .env 中切换到 MySQL / MariaDB
+DB_CONNECTION=sqlite
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=your_project
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# 缓存 / 会话 / 队列
+CACHE_STORE=database
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+QUEUE_CONNECTION=sync
+FILESYSTEM_DISK=local
+BROADCAST_CONNECTION=log
+
+# 生产多 worker 时把 CACHE_STORE / QUEUE_CONNECTION 换成 redis，并启用这些连接项
+# REDIS_CLIENT=phpredis
+# REDIS_HOST=127.0.0.1
+# REDIS_PASSWORD=null
+# REDIS_PORT=6379
+
+# JWT：复制成 .env 后执行 php artisan jwt:secret
+JWT_SECRET=
+
+# moo-scaffold：执行 php artisan moo:init "你的名字" 后写入
+SCAFFOLD_AUTHOR=
+
+# moo-monitor-laravel
+MOO_MONITOR_SQL_SLOW_ENABLED=true
+MOO_MONITOR_SQL_SLOW_THRESHOLD_MS=100
+MOO_MONITOR_CLOUD_ENABLED=false
+MOO_MONITOR_CLOUD_TOKEN=
+
+VITE_APP_NAME="${APP_NAME}"
+```
+
+确认模板和当前运行配置没有串台：
+
+```bash
+grep '^DB_CONNECTION=' .env .env.example
+# .env:DB_CONNECTION=mysql
+# .env.example:DB_CONNECTION=sqlite
+```
+
+接着在项目根目录新建 `composer.production.json`。这是**第 4 章时间点的完整文件**，
+没有尚未安装的 `moo-system`，也不会引用还不存在的 `app/Helpers/helpers.php`：
+
+```json
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "charsen/moo-monitor-laravel": "^0.1",
+        "charsen/moo-scaffold": "^2.1.3",
+        "laravel/framework": "^12.0",
+        "laravel/tinker": "^2.10.1",
+        "php-open-source-saver/jwt-auth": "~2.8.3"
+    },
+    "repositories": {
+        "scaffold": {
+            "type": "vcs",
+            "url": "https://gitee.com/charsen/moo-scaffold.git"
+        },
+        "monitor": {
+            "type": "vcs",
+            "url": "https://gitee.com/charsen/moo-monitor-laravel.git"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
+```
+
+> scaffold / monitor 当前仍保留公开 VCS 源作为发布过渡期兜底，但 `require` 已使用生产稳定版本约束；
+> 两个版本在 Packagist 可直接解析后，可以删掉对应 `repositories` 块。
+
+真实生成并检查**独立的生产锁文件**：
+
+```bash
+COMPOSER=composer.production.json composer validate --no-check-publish
+COMPOSER=composer.production.json composer update --no-install
+COMPOSER=composer.production.json composer show php-open-source-saver/jwt-auth --locked
+# versions : * v2.8.3
+```
+
+这会创建 `composer.production.lock`，不会覆盖开发用的 `composer.json` / `composer.lock`。
+部署机拿到这两个生产文件后执行：
+
+```bash
+COMPOSER=composer.production.json composer install --no-dev --optimize-autoloader
+```
+
+📦 最终仓库的 `engine/composer.production.json` 会在第 7 章加入商业包 `moo-system`，
+并随着后续能力增加其它直接依赖，所以内容比你此刻创建的文件更多；这是教程时间线的正常差异。
 
 ## 4.8 第一批接口测试
 
@@ -367,13 +523,14 @@ class AuthTest extends TestCase
 
 ```bash
 php artisan test
-# 本章时间点：Tests: 9 passed   ← AuthTest 7 个 + Laravel 自带 Example 2 个
+# 本轮实测：Tests: 11 passed
+# AuthTest 7 个 + Laravel 自带 Example 2 个 + 第 2 章 moo:test 生成的 Food 契约测试 2 个
 ```
 
-> 这个「9 passed」只对**跟到本章为止的你本地**成立。仓库是全书最终态，
-> `tests/Feature/` 下已有 9 个测试文件，在仓库里直接跑会得到
-> 这是本章历史实录 `Tests: 45 passed (146 assertions)`；当前最终态会因后续章节增加守护测试而更多，
-> 以仓库 README 记录的当前基线为准。
+> `11 passed` 是本轮按第 1～4 章顺序实操的历史实录。若以后 moo-scaffold 的 `moo:test`
+> 新增了守护用例，数量可能更多；验收标准是**全部测试绿色**，不要为了凑固定数字删除生成器带来的测试。
+> 📦 仓库 `engine/` 是全书最终态，后续章节还会持续增加测试，所以直接在仓库里运行的数量
+> 一定与本章时间点不同，以命令当次输出和根 README 记录的当前基线为准。
 
 > ⚠️ 坑 #14：Feature 测试里两次请求跑在**同一个进程**，jwt 的服务链是单例
 > （payload 工厂的 claim 残留、auth 适配器绑死首个守卫），跨守卫/跨请求断言会
@@ -390,7 +547,7 @@ php artisan test
 | 4 | 用新 token 访问 `me/info` | 200 |
 | 5 | 手工构造**已过期** token 访问受保护接口 | 200 + 响应头 `authorization: <新token>`（无感续签） |
 | 6 | 过期 token 调 `/refresh` | 200，且响应头**没有** authorization（不产生孤儿 token） |
-| 7 | 已拉黑的旧 token 90 秒内再用 | 200（宽限期生效） |
+| 7 | 被 `/refresh` 拉黑的旧 token 90 秒内再用 | 200（并发宽限期生效） |
 | 8 | 登出后再用 | 401（forceForever 不吃宽限） |
 | 9 | 带 `Origin` 的跨域请求 | 响应头 `Access-Control-Expose-Headers: Authorization` |
 | 10 | 任意 admin 接口 | 响应头 `X-RateLimit-Limit: 300` |
@@ -415,7 +572,8 @@ php artisan test
 
 ## 已知局限（记录在案，不修）
 
-对"已过期但仍在续期窗口内"的 token 调 `logout` 会返回 200 但**没有真正拉黑**
+本轮真机已确认：对"已过期但仍在续期窗口内"的 token 调 `logout` 会返回 200，
+但随后拿同一 token 访问受保护接口仍然是 200 并触发续签——即**没有真正拉黑**
 （jwt-auth 的 `logout()` 静默吞掉过期解码异常）。被盗的过期 token 在窗口内无法主动吊销，
 只能等窗口关闭或换 `JWT_SECRET` 全员下线。这是 jwt-auth 的设计局限；
 敏感场景靠缩短 `refresh_ttl` 缓解。
@@ -427,6 +585,6 @@ php artisan test
 - `config/jwt.php` 5 处加固 + `config/cors.php` 暴露续签响应头；
 - 登录有状态检查、`/refresh` 不再产生孤儿 token；
 - 限流（admin 300/分钟）；`.env.example` 复制即可用，生产 Composer 部署闭环；
-- 9 个接口测试全绿，10 项真机验证通过。
+- 第一批接口测试全绿（本轮第 4 章时间点共 11 个），10 项真机验证通过。
 
 下一章：把第 2 章故意公开的 `food` 接口锁进 JWT，并启用**动作级 ACL 授权**。

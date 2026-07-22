@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Mooeen\Monitor\ExceptionDispatcher;
+use Mooeen\Monitor\Recorder\RuntimeErrorRecorder;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
@@ -18,15 +21,27 @@ class MonitorTest extends TestCase
 {
     use RefreshDatabase;
 
+    private string $runtimeBase;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        // 清空本地缓冲目录（隔离测试）
-        $runtimesDir = storage_path('moo-monitor/runtimes/open');
-        if (is_dir($runtimesDir)) {
-            array_map('unlink', glob("$runtimesDir/*.yaml"));
-        }
+        // 用测试专用目录，不得清空开发者真实的 storage/moo-monitor/runtimes/open。
+        $this->runtimeBase = storage_path('framework/testing/moo-monitor-' . getmypid());
+        File::deleteDirectory($this->runtimeBase);
+        File::ensureDirectoryExists($this->runtimeBase . '/open');
+
+        config(['moo-monitor.runtime.path' => $this->runtimeBase]);
+        $this->app->forgetInstance(RuntimeErrorRecorder::class);
+        $this->app->forgetInstance(ExceptionDispatcher::class);
+    }
+
+    protected function tearDown(): void
+    {
+        File::deleteDirectory($this->runtimeBase);
+
+        parent::tearDown();
     }
 
     /** 测试异常被自动记录到本地缓冲 */
@@ -34,7 +49,7 @@ class MonitorTest extends TestCase
     public function runtime_exception_is_recorded_to_local_buffer(): void
     {
         // 断言：监控目录一开始是空的
-        $runtimesDir = storage_path('moo-monitor/runtimes/open');
+        $runtimesDir = $this->runtimeBase . '/open';
         $this->assertEmpty(glob("$runtimesDir/*.yaml"), 'runtimes/open 目录应该为空');
 
         // 通过 HTTP 请求触发异常（CLI 下会被 cli_experiment_skip 跳过）
@@ -66,7 +81,7 @@ class MonitorTest extends TestCase
     #[Test]
     public function base_exception_is_not_reported(): void
     {
-        $runtimesDir = storage_path('moo-monitor/runtimes/open');
+        $runtimesDir = $this->runtimeBase . '/open';
         $beforeCount = count(glob("$runtimesDir/*.yaml"));
 
         // BaseException（moo-scaffold 的业务异常）在 bootstrap/app.php 的 dontReport 列表里

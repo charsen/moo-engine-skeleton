@@ -60,7 +60,7 @@ Options:
 Example:
   php tools/init-project.php --name=acme/orders --app-name="Orders" \
     --scaffold-user=developer --fresh-git
-HELP;
+HELP, PHP_EOL;
     exit(isset($options['help']) ? 0 : 2);
 }
 
@@ -163,6 +163,12 @@ run(['php', 'artisan', 'key:generate', '--force'], $engine);
 run(['php', 'artisan', 'jwt:secret', '--force'], $engine);
 
 if (! $keepDemo) {
+    // Food routes are removed below; clear any route/config cache copied from the
+    // skeleton before moo:auth reflects the live route table.  Do not use
+    // optimize:clear here: a fresh SQLite bootstrap has no `cache` table yet,
+    // while that umbrella command also clears the database-backed cache store.
+    run(['php', 'artisan', 'config:clear'], $engine);
+    run(['php', 'artisan', 'route:clear'], $engine);
     run(['php', 'artisan', 'moo:auth', 'admin'], $engine);
     run(['php', 'artisan', 'moo:auth', 'api'], $engine);
     restorePersonalCentreWhitelist($engine . '/config/actions.php');
