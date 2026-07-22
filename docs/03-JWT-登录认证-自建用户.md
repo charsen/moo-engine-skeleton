@@ -23,7 +23,7 @@
 ## 3.1 安装 jwt-auth
 
 ```bash
-composer require "php-open-source-saver/jwt-auth:^2.8"
+composer require "php-open-source-saver/jwt-auth:~2.8.3"
 php artisan vendor:publish --provider="PHPOpenSourceSaver\JWTAuth\Providers\LaravelServiceProvider"
 php artisan jwt:secret --force        # 生成 JWT_SECRET 写入 .env
 ```
@@ -34,8 +34,10 @@ php artisan jwt:secret --force        # 生成 JWT_SECRET 写入 .env
 > 所有已签发的 token 立刻全部作废、全员被踢重新登录（`config/jwt.php` 里的注释也这么写）。
 > 全新项目随便跑；在已有环境上跑之前想清楚。
 >
-> 版本提示：这里装 `^2.8`，当前仓库 lock 在 PHP 8.2 环境下解析为 jwt-auth **v2.8.3**；
-> Laravel 12 本身也只要求 `^8.2`，见 docs/README.md 的环境表。
+> 版本提示：这里用 `~2.8.3`，允许 2.8 系列的补丁更新，但不自动跨到 2.9。
+> 原因是 2.9 起要求 PHP 8.3，而本骨架承诺 PHP 8.2+；若写成宽泛的 `^2.8`，
+> Composer 会在 PHP 8.3 机器装到 2.9、在 PHP 8.2 机器装到 2.8，团队成员得到不同依赖树。
+> 安装后运行 `composer show php-open-source-saver/jwt-auth`，本教程当前应为 **2.8.3**。
 
 ## 3.2 自建最简用户：User 实现 JWTSubject
 
@@ -233,19 +235,14 @@ php artisan db:seed --class=UserSeeder
 'defaults' => ['guard' => env('AUTH_GUARD', 'admin'), 'passwords' => 'users'],
 'guards' => [
     'web'   => ['driver' => 'session', 'provider' => 'users'],
-    'admin' => ['driver' => 'jwt', 'provider' => 'users', 'hash' => false],
-    'user'  => ['driver' => 'jwt', 'provider' => 'users', 'hash' => false],
+    'admin' => ['driver' => 'jwt', 'provider' => 'users'],
+    'user'  => ['driver' => 'jwt', 'provider' => 'users'],
 ],
 'providers' => [
     'users' => ['driver' => 'eloquent', 'model' => App\Models\User::class],
 ],
 ```
 
-> `'hash' => false` 在 Laravel 官方文档里查不到，别去找了：它是 Laravel 自带
-> TokenGuard 的选项，对 `jwt` 驱动**完全不生效**（jwt-auth 的守卫工厂只读
-> `provider` 和 `ttl` 两个键）。本骨架的密码由登录控制器手动 `Hash::check()` 校验，
-> 那是 3.5 控制器的架构选择，与这个键无关；留着它只是无害冗余，抄不抄都行。
->
 > 📦 **第 7 章的变化**：接入 moo-system 后，`admin` 守卫的 provider 会切到
 > `personnels`（包里的 Personnel 模型）；`user` 守卫**永久**用自建 User。
 > 所以仓库里的 `config/auth.php` 是切换后的最终版，本章按上面的写。
@@ -311,7 +308,9 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\JWTAuth;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 /**
@@ -322,31 +321,41 @@ use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
  */
 class JWTGuardAuth
 {
-    public function handle(Request $request, Closure $next, string $expectedGuard): Response
-    {
-        $guard = auth($expectedGuard);
+    public function __construct(protected JWTAuth $auth) {}
 
-        // 没带 token → 放行（强制认证由 jwt.auth.refresh 负责）
-        if (! $request->bearerToken()) {
+    public function handle(Request $request, Closure $next, $guard = null): mixed
+    {
+        $guard = $guard === null ? config('auth.defaults.guard') : $guard;
+
+        try {
+            $tokenGuard = $this->auth->parseToken()->getClaim('guard');
+        } catch (TokenExpiredException $e) {
+            // 过期 token 仍要核对 guard：底层 decode 会验签，但不因 exp 中断。
+            try {
+                $claims = $this->auth->manager()->getJWTProvider()
+                    ->decode((string) $request->bearerToken());
+                $tokenGuard = $claims['guard'] ?? null;
+            } catch (JWTException $e) {
+                return $next($request);
+            }
+        } catch (JWTException $e) {
+            // 没有可用 token：放行，交给 jwt.auth.refresh 决定是否强制 401。
             return $next($request);
         }
 
-        try {
-            $payload = $guard->payload();
-        } catch (\Exception $e) {
-            throw new UnauthorizedHttpException('jwt-auth', 'Token Invalid: '.$e->getMessage());
-        }
-
-        $tokenGuard = $payload->get('guard');
-
-        if ($tokenGuard !== $expectedGuard) {
-            throw new UnauthorizedHttpException('jwt-auth', "Guard Unverified: token guard={$tokenGuard}, route expects={$expectedGuard}");
+        if ($tokenGuard !== $guard) {
+            throw new UnauthorizedHttpException('jwt-auth', 'Guard Unverified');
         }
 
         return $next($request);
     }
 }
 ```
+
+> 这里不能在所有情况下直接调完整 `payload()` 后把异常统一变成 401。
+> 否则过期 token 会在本中间件提前终止，后面 `JWTAuthOrRefresh` 的自动续签分支
+> 永远无法执行。底层 provider 的 `decode()` 仍会验证签名，只是允许我们在过期时读取
+> `guard` claim，再把真正的过期/续签处理交给下一个中间件。
 
 ### 3.4.3 JWTAuthOrRefresh 中间件
 
@@ -397,9 +406,11 @@ class JWTAuthOrRefresh
             try {
                 $token = $this->auth->refresh();
 
-                // 续签后用户数据已不存在（如开发期 reseed 把人删了）→ 让前端清缓存重登
-                if ($this->auth->user() === null) {
-                    throw new UnauthorizedHttpException('jwt-auth', 'Token not provided');
+                // refresh() 只返回新 token，不会自动认证其中的用户。
+                // 用新 token 再认证一次，后续业务才能读到当前用户；
+                // 用户数据已不存在时（如开发期 reseed 删人）明确 401。
+                if (! $this->auth->setToken($token)->authenticate()) {
+                    throw new UnauthorizedHttpException('jwt-auth', 'Token subject not found');
                 }
             } catch (JWTException $e) {
                 throw new UnauthorizedHttpException('jwt-auth', $e->getMessage());
@@ -416,6 +427,10 @@ class JWTAuthOrRefresh
     }
 }
 ```
+
+> `refresh()` 只负责签发新 token，不会自动把新 token 里的 `sub` 恢复成当前用户。
+> 因此不能只在续签后检查 `$this->auth->user()`；必须用新 token 再跑一次
+> `authenticate()`，同时验证用户仍存在并为本次业务请求建立认证上下文。
 
 > 📦 第 7 章接入 moo-system 后，续签成功处会**再补一行**
 > `if (! empty($old_token) && class_exists(UpdateLoginTokenJob::class)) { UpdateLoginTokenJob::dispatch($old_token, $token); }`
@@ -634,6 +649,12 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 });
 ```
 
+> `logout` **故意放在保护组外**，采用幂等退出契约：无 token、垃圾 token、已拉黑 token
+> 都统一返回 `200 {"message":"ok"}`，避免前端在本地会话已经残缺时还卡在退出流程。
+> 这不表示这些请求“认证成功”——jwt-auth 的 `JWTGuard::logout()` 只是拉黑不了就当作已经退出。
+> 因此不能拿 `logout` 自身的 200 判断退出是否生效；必须像 3.6 ⑤ 那样，先用一个仍有效的
+> token 调退出，再拿同一个 token 访问受保护接口并确认变成 401。
+
 > 📦 **这一段别照仓库抄**——仓库 `routes/admin.php` 是第 4 章重构后的最终版，有两处不同：
 > ① 仓库的 `authenticate` 挂了 `throttle:login` 登录限流（第 4 章加的）；
 > ② 仓库的 `refresh` 已**移出** `jwt.auth.refresh` 组、只挂 `jwt.guard.auth:admin`——
@@ -678,6 +699,10 @@ curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorizati
 > 的 `logout()` 对拉黑失败是吞掉异常照常登出的（幂等设计），所以「登出是否生效」
 > 必须像 ⑤ 那样用一个**还有效的** token 验证。宽限期为什么生产上要调成 90 秒，
 > 第 4 章讲（坑 #11）。
+
+> 本节 5 条命令覆盖的是新手先要跑通的正常链路；`JWTAuthOrRefresh` 的“过期但仍在
+> 续期窗口内 → 自动换新 token”分支，靠普通未过期 token 触发不了。第 4 章 4.9 会专门
+> 构造过期 token，验证业务仍返回 200、响应头带新 token，以及错误 guard 不能跨端续签。
 
 ---
 

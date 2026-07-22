@@ -4,7 +4,7 @@
 #
 # 跟 pull.sh 职责严格分离：
 #   pull.sh ：网络层 — git pull / 私包验证 / composer / vendor:publish
-#   cache.sh：本地层 — Laravel 缓存（optimize:clear + optimize）+ 目录权限
+#   cache.sh：本地层 — Laravel 生成缓存（不碰业务 cache）+ 目录权限
 #
 # 何时单独跑 cache.sh：
 #   - 改了 .env / config/* / 路由 / view，想刷 Laravel 优化缓存
@@ -26,8 +26,8 @@
 # 流程总览：
 #   1 检查 / 建 storage 与 prototypes 软链接
 #   2 准备可写目录 + 预创建当日+次日 daily log（artisan 前，治 00:00 翻篇 first-writer-wins）
-#   3 重建 storage/framework/cache/data
-#   4 刷新 Laravel 优化缓存（optimize:clear + optimize）
+#   3 准备 storage/framework/cache/data（不清业务 cache）
+#   4 定向清理 config/route/event/view/compiled 后重新 optimize
 #   5 修正根目录 *.sh 权限（仅 prod root，750 + chgrp web group）
 #   6 兜底 chown -R + setgid + 文件 mode（→ web user；public/ 和 vendor/ 除外）
 #   7 reload php-fpm（清 OPcache realpath 失败缓存）
@@ -392,7 +392,7 @@ fi
 section "📂 准备可写目录 + 预创建 daily log + 清旧 log（必须在 artisan 之前）"
 # 顺序关键点（双场景行为不同）：
 #   场景 A：独立跑 sh cache.sh —— predcreate 真正占首写：先 touch 出 web user owned
-#     的当天 log，artisan optimize:clear 紧接着 append（不重新创建），owner 保持 web user。
+#     的当天 log，后续 artisan 缓存命令直接 append（不重新创建），owner 保持 web user。
 #   场景 B：被 pull.sh 调 —— 当天 log 早被 root 创建锁定 owner=root，predcreate 退化
 #     为 noop，真正起作用的是下面"预 chown"段（把 root owned 当天 log 改回 web user）。
 #   两个场景都靠最末段 chown -R 兜 bootstrap/cache（artisan 写出的 .php 仍归 root）。
@@ -422,33 +422,36 @@ if [ "$(id -u)" -eq 0 ] && [ -n "$WEB_USER" ] && [ -n "$WEB_GROUP" ]; then
     find "$ENGINE_DIR/storage/logs" -type d -exec chmod 2775 {} +
 fi
 
-section "🗑️  重建 Laravel 缓存目录"
-clear_dir_contents "$ENGINE_DIR/storage/framework/cache/data"
+section "🗂️  准备 Laravel 缓存目录（保留业务 cache）"
+ensure_dir "$ENGINE_DIR/storage/framework/cache/data"
 ensure_cache_gitignore
-success "storage/framework/cache/data 已重建"
+success "storage/framework/cache/data 已就绪（未清空业务 cache）"
 
 section "🧹 刷新 Laravel 优化缓存"
 # 轻量物理删自救：bootstrap/cache 里若有死类引用（如 Target [...] is not instantiable），
-# artisan 自己都 boot 不起来，optimize:clear 同样会炸 → 单独跑 cache.sh 也救不了。
+# artisan 自己都 boot 不起来，任何 artisan clear 命令同样会炸 → 单独跑 cache.sh 也救不了。
 # 先物理删掉缓存的 *.php，让 artisan 能起来。
 # 权衡：**只删 *.php，不碰 .gitignore** —— 旧版 rm -rf 整目录会误删 git tracked 的
 # bootstrap/cache/.gitignore，导致后续生成 .php 不被 ignore、git status 假阳性。
 find "$ENGINE_DIR/bootstrap/cache" -maxdepth 1 -name '*.php' -type f -delete 2>/dev/null || true
 
-# clear-compiled 砍掉 — optimize:clear 已包含（cached bootstrap / config / cache /
-# compiled / events / routes / views 全清）。静默 artisan 输出（Laravel 11+ 默认每个
-# cache name 打一行 "xxx ... DONE" 噪音），失败时 dump 完整输出 + die。
-if ! out=$(php artisan optimize:clear 2>&1); then
-    printf '%s\n' "$out" >&2
-    error "php artisan optimize:clear 失败"
-    exit 1
-fi
+# 不能用 optimize:clear：它内部包含 cache:clear，会清空 Redis 业务 cache，连同
+# jwt-auth 的黑名单一起删掉，让已登出 / 已续签作废的 token 复活。这里只定向清理
+# 可安全重建的框架生成物，再跑 optimize；storage/framework/cache/data 也不清空。
+# 静默 artisan 输出（Laravel 11+ 默认每项打一行 "DONE"），失败时再完整输出。
+for artisan_command in clear-compiled config:clear event:clear route:clear view:clear; do
+    if ! out=$(php artisan "$artisan_command" 2>&1); then
+        printf '%s\n' "$out" >&2
+        error "php artisan $artisan_command 失败"
+        exit 1
+    fi
+done
 if ! out=$(php artisan optimize 2>&1); then
     printf '%s\n' "$out" >&2
     error "php artisan optimize 失败"
     exit 1
 fi
-success "🧹 Laravel 缓存刷新完成（optimize:clear + optimize）"
+success "🧹 Laravel 生成缓存刷新完成（业务 cache / JWT 黑名单未清）"
 
 section "🔐 修正脚本权限（仅生产 root 跑）"
 # 只在 root + 检测到 WEB_GROUP + 非 dev fallback 时跑，避免本地开发跑 cache.sh 改 mode
@@ -578,5 +581,5 @@ else
     info "  1) Laravel scheduler crontab 用 web user (${WEB_USER}) 跑（不要 root）"
     info "  2) queue worker / supervisor / systemd 的 User= 字段配 ${WEB_USER}（不要 root）"
     info "  3) PHP-FPM systemd drop-in 显式 UMask=0002"
-    info "  4) ${WEB_USER} crontab 加 '55 23 * * * cd ${PROJECT_DIR} && sh cache.sh' 每天预创建次日 log"
+    info "  4) ${WEB_USER} crontab 加 '55 23 * * * /bin/sh ${PROJECT_DIR}/cache.sh' 每天预创建次日 log"
 fi

@@ -40,9 +40,10 @@ class JWTAuthOrRefresh
             try {
                 $token = $this->auth->refresh();
 
-                // token 有效但用户数据丢失（如开发期 reseed）→ 让前端清缓存重登
-                if ($this->auth->user() === null) {
-                    throw new UnauthorizedHttpException('jwt-auth', 'Token not provided');
+                // refresh() 只签发新 token，不会自动恢复认证用户。
+                // 用新 token 再认证一次，既确认主体仍存在，也让后续业务拿到当前用户。
+                if (! $this->auth->setToken($token)->authenticate()) {
+                    throw new UnauthorizedHttpException('jwt-auth', 'Token subject not found');
                 }
 
                 // 同步 moo-system 登录管理记录（第 7 章装包后自动生效；未装包时静默跳过，

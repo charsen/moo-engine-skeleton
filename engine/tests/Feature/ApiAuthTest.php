@@ -8,7 +8,7 @@ declare(strict_types=1);
  * 两条主线：
  * 1. 守卫隔离：admin token 调移动端接口 401，user token 调后台接口 401
  *    （jwt.guard.auth 校验 token 里的 guard claim）；
- * 2. 单设备语义：移动端 refresh(true) 后旧 token 立即作废（无 90 秒宽限），
+ * 2. 严格轮换：移动端 refresh(true) 后本次旧 token 立即作废（无 90 秒宽限），
  *    与后台 refresh(false) 的宽限行为形成对照。
  */
 
@@ -60,7 +60,7 @@ class ApiAuthTest extends TestCase
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$admin_token}"])->assertOk();
     }
 
-    public function test_app_refresh_is_single_device(): void
+    public function test_app_refresh_strictly_rotates_token(): void
     {
         $token = $this->appLogin();
         $this->freshJwtProcess();
@@ -75,7 +75,7 @@ class ApiAuthTest extends TestCase
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$new_token}"])->assertOk();
         $this->freshJwtProcess();
 
-        // 旧 token 被 forceForever 拉黑，**没有** 90 秒宽限，立即 401 —— 单设备登录
+        // 旧 token 被 forceForever 拉黑，**没有** 90 秒宽限，立即 401 —— 严格轮换
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$token}"])->assertStatus(401);
     }
 

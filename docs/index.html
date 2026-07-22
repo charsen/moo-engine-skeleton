@@ -261,7 +261,7 @@ const CHAPTERS = [
   { id: 'ch3',    file: '03-JWT-登录认证-自建用户.md',    title: '第 3 章 JWT 登录认证', sub: '自建 User · 零付费依赖' },
   { id: 'ch4',    file: '04-JWT-加固与生产化.md',         title: '第 4 章 JWT 加固与生产化', sub: '5 处加固 · 限流 · 测试' },
   { id: 'ch5',    file: '05-给-Food-上-JWT-与-ACL.md',   title: '第 5 章 Food 上 JWT 与 ACL', sub: '动作级授权 401→403→200' },
-  { id: 'ch6',    file: '06-移动端分片与-user-守卫.md',   title: '第 6 章 移动端与 user 守卫', sub: '双向隔离 · 单设备刷新' },
+  { id: 'ch6',    file: '06-移动端分片与-user-守卫.md',   title: '第 6 章 移动端与 user 守卫', sub: '双向隔离 · 无宽限轮换' },
   { id: 'ch7',    file: '07-安装-moo-system.md',          title: '第 7 章 安装 moo-system', sub: '进阶包 · 主体切换 · 角色授权' },
   { id: 'ch8',    file: '08-部署上线.md',                 title: '第 8 章 部署上线', sub: '可选 · Redis · nginx · 清缓存坑' },
   { id: 'ch9',    file: '09-增量开发工作流.md',           title: '第 9 章 日常增量开发', sub: '改表 · moo:adder · 自动 vs 手动 · 移动端只读接口' },
@@ -269,22 +269,39 @@ const CHAPTERS = [
   { id: 'ch11',   file: '11-操作人身份契约.md',          title: '第 11 章 操作人身份契约', sub: 'OperatorResolver · HasOperator · null 语义' },
   { id: 'ch12',   file: '12-从骨架起手新项目.md',        title: '第 12 章 从骨架起手新项目', sub: 'clone→改名→配 env→跑通 · 双 composer · Food 去留 · 真机验证' },
 ];
-const LS_KEY = 'moo-skeleton-tutorial-v3';   // 分步切分规则升级后步序变化，升版重置旧进度
+const LS_KEY = 'moo-skeleton-tutorial-v4';
+const LEGACY_LS_KEY = 'moo-skeleton-tutorial-v3';
 const LAST_CHAPTER_KEY = 'moo-skeleton-tutorial-last-chapter';
 const THEME_KEY = 'moo-skeleton-theme';
 const STEP_SPLIT_THRESHOLD = 3000;
+// v3 只存步骤下标。第 2 章在历史上先后有 9 / 10 步；用户已经进入后续章节时，
+// 连续完成这些旧步骤就代表当时已完成整章，迁移时应把新增步骤一并视为已复核。
+const LEGACY_COMPLETE_TOTALS = { ch2: [9, 10] };
 
 /* ================= 状态 ================= */
 const state = {
   cur: null,            // 当前章 id
   mode: 'read',         // read | step
   stepIdx: 0,
-  cache: {},            // id -> { md, steps:[{title, md}] }
-  progress: load(),     // { [chapterId]: { doneSteps: [idx...], mode, stepIdx } }
+  cache: {},            // id -> { md, steps:[{title, md,key}] }
+  progress: load(),     // { [chapterId]: { doneStepKeys: [key...], mode, stepKey } }
 };
-function load() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } }
+function load() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY)) ||
+      JSON.parse(localStorage.getItem(LEGACY_LS_KEY)) || {};
+  } catch { return {}; }
+}
 function save() { localStorage.setItem(LS_KEY, JSON.stringify(state.progress)); }
-function prog(id) { return state.progress[id] || (state.progress[id] = { doneSteps: [], mode: 'read', stepIdx: 0 }); }
+function prog(id) {
+  return state.progress[id] ||
+    (state.progress[id] = { doneStepKeys: [], mode: 'read', stepKey: null });
+}
+function isStepDone(p, step) { return (p.doneStepKeys || []).includes(step.key); }
+function completedStepCount(p, steps) {
+  const done = new Set(p?.doneStepKeys || []);
+  return steps.filter(step => done.has(step.key)).length;
+}
 
 function applyTheme(theme) {
   const next = theme === 'moon' ? 'moon' : 'sun';
@@ -319,12 +336,12 @@ function renderMd(md) {
   while (i < lines.length) {
     const line = lines[i];
 
-    if (/^```/.test(line)) {                                  // 代码块
+    if (/^ {0,3}```/.test(line)) {                            // 代码块（含列表下缩进 fence）
       flushPara(para);
-      const lang = line.slice(3).trim();
+      const lang = line.replace(/^ {0,3}```/, '').trim();
       const buf = [];
       i++;
-      while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      while (i < lines.length && !/^ {0,3}```/.test(lines[i])) { buf.push(lines[i]); i++; }
       i++;
       out.push(`<div class="codeblock">${lang ? `<span class="lang">${lang}</span>` : ''}` +
         `<button class="copy-btn" type="button">复制</button>` +
@@ -397,7 +414,7 @@ function splitSteps(md) {
   let cur = { title: '本章目标', buf: [] };
   let inCode = false;
   for (const line of lines) {
-    if (/^```/.test(line)) inCode = !inCode;
+    if (/^ {0,3}```/.test(line)) inCode = !inCode;
     if (!inCode && /^## /.test(line)) {
       if (cur.buf.join('').trim()) sections.push({ title: cur.title, md: cur.buf.join('\n') });
       cur = { title: line.replace(/^## /, ''), buf: [line] };
@@ -415,7 +432,7 @@ function splitSteps(md) {
     let sub = { title: section.title, buf: [] };
     inCode = false;
     for (const line of section.md.split('\n')) {
-      if (/^```/.test(line)) inCode = !inCode;
+      if (/^ {0,3}```/.test(line)) inCode = !inCode;
       if (!inCode && /^### /.test(line)) {
         if (sub.buf.join('').trim()) steps.push({ title: sub.title, md: sub.buf.join('\n') });
         sub = { title: line.replace(/^### /, ''), buf: [line] };
@@ -423,7 +440,52 @@ function splitSteps(md) {
     }
     if (sub.buf.join('').trim()) steps.push({ title: sub.title, md: sub.buf.join('\n') });
   }
-  return steps;
+  const seen = new Map();
+  return steps.map(step => {
+    // 编号标题（如 9.3.2）只取编号，后续润色标题不会丢进度；无编号标题用规范化文本。
+    const numbered = step.title.match(/^(\d+(?:\.\d+)+)(?:\s|$)/);
+    const base = numbered ? `section:${numbered[1]}` : `title:${slugify(step.title.replace(/[`*_~]/g, '')) || 'step'}`;
+    const occurrence = (seen.get(base) || 0) + 1;
+    seen.set(base, occurrence);
+    return { ...step, key: occurrence === 1 ? base : `${base}#${occurrence}` };
+  });
+}
+
+function migrateProgress() {
+  let changed = false;
+  for (const [chapterIndex, ch] of CHAPTERS.entries()) {
+    const p = state.progress[ch.id];
+    const steps = state.cache[ch.id]?.steps || [];
+    if (!p || !steps.length) continue;
+
+    if (!Array.isArray(p.doneStepKeys)) {
+      const indexes = [...new Set((p.doneSteps || []).filter(Number.isInteger))]
+        .filter(idx => idx >= 0).sort((a, b) => a - b);
+      let doneStepKeys = indexes.map(idx => steps[idx]?.key).filter(Boolean);
+
+      const hasLaterProgress = CHAPTERS.slice(chapterIndex + 1).some(item => {
+        const later = state.progress[item.id];
+        return (later?.doneSteps || later?.doneStepKeys || []).length > 0;
+      });
+      const contiguous = indexes.every((idx, pos) => idx === pos);
+      if (hasLaterProgress && contiguous && (LEGACY_COMPLETE_TOTALS[ch.id] || []).includes(indexes.length)) {
+        doneStepKeys = steps.map(step => step.key);
+      }
+
+      const oldIndex = Math.max(0, Math.min(Number.isInteger(p.stepIdx) ? p.stepIdx : 0, steps.length - 1));
+      p.doneStepKeys = [...new Set(doneStepKeys)];
+      p.stepKey = steps[oldIndex]?.key || null;
+      delete p.doneSteps;
+      delete p.stepIdx;
+      changed = true;
+    } else {
+      const validKeys = new Set(steps.map(step => step.key));
+      const filtered = [...new Set(p.doneStepKeys)].filter(key => validKeys.has(key));
+      if (filtered.length !== p.doneStepKeys.length) { p.doneStepKeys = filtered; changed = true; }
+      if (p.stepKey && !validKeys.has(p.stepKey)) { p.stepKey = null; changed = true; }
+    }
+  }
+  if (changed || !localStorage.getItem(LS_KEY)) save();
 }
 
 /* ================= 取章节内容 ================= */
@@ -442,7 +504,7 @@ function renderSidebar() {
   $('#chapter-list').innerHTML = CHAPTERS.map((ch, idx) => {
     const p = state.progress[ch.id];
     const total = state.cache[ch.id]?.steps.length;
-    const done = p && total && ch.steppable !== false && p.doneSteps.filter(x => x < total).length >= total;
+    const done = p && total && ch.steppable !== false && completedStepCount(p, state.cache[ch.id].steps) >= total;
     return `<button class="chap${ch.id === state.cur ? ' active' : ''}${done ? ' done' : ''}" data-id="${ch.id}">
       <span class="num">${done ? '✓' : (idx === 0 ? '☰' : idx)}</span>
       <span class="chap-main"><span class="chap-title">${ch.title}</span><span class="chap-sub">${ch.sub}</span></span>
@@ -455,7 +517,7 @@ function renderSidebar() {
     const steps = state.cache[ch.id]?.steps;
     if (!steps) continue;
     total += steps.length;
-    done += (state.progress[ch.id]?.doneSteps || []).filter(x => x < steps.length).length;
+    done += completedStepCount(state.progress[ch.id], steps);
   }
   const pct = total ? Math.round(done / total * 100) : 0;
   $('#total-progress .bar i').style.width = pct + '%';
@@ -465,7 +527,7 @@ function renderSidebar() {
 function renderStepsNav(ch, steps) {
   const p = prog(ch.id);
   $('#steps-nav').innerHTML = steps.map((s, idx) => {
-    const done = p.doneSteps.includes(idx);
+    const done = isStepDone(p, s);
     const label = `${done ? '已完成：' : ''}${s.title}`;
     return `<button class="step-item${idx === state.stepIdx ? ' cur' : ''}${done ? ' done' : ''}" data-idx="${idx}" aria-label="${escapeHtml(label)}">
       <span class="dot" aria-hidden="true">✓</span><span>${inline(escapeHtml(s.title))}</span>
@@ -502,8 +564,9 @@ async function show(chapterId, opts = {}) {
   const p = prog(ch.id);
   try { localStorage.setItem(LAST_CHAPTER_KEY, ch.id); } catch {}
   state.mode = ch.steppable === false ? 'read' : (opts.mode || p.mode || 'read');
-  state.stepIdx = Math.min(opts.stepIdx ?? p.stepIdx ?? 0, data.steps.length - 1);
-  p.mode = state.mode; p.stepIdx = state.stepIdx; save();
+  const savedStepIdx = data.steps.findIndex(step => step.key === p.stepKey);
+  state.stepIdx = Math.max(0, Math.min(opts.stepIdx ?? (savedStepIdx >= 0 ? savedStepIdx : 0), data.steps.length - 1));
+  p.mode = state.mode; p.stepKey = data.steps[state.stepIdx]?.key || null; save();
 
   $('#mode-switch').style.display = ch.steppable === false ? 'none' : 'flex';
   $('#mode-read').classList.toggle('on', state.mode === 'read');
@@ -515,19 +578,19 @@ async function show(chapterId, opts = {}) {
 
   if (stepMode) {
     const step = data.steps[state.stepIdx];
-    const doneThis = p.doneSteps.includes(state.stepIdx);
+    const doneThis = isStepDone(p, step);
     $('#inner').innerHTML = `<div class="md">${renderMd(step.md)}</div>` +
       (doneThis ? `<div class="step-done-tip">✓ 这一步你已标记完成。可随时回看，或继续下一步。</div>` : '');
     renderStepsNav(ch, data.steps);
     $('#btn-prev').disabled = state.stepIdx === 0;
     const lastStep = state.stepIdx === data.steps.length - 1;
     const lastChapter = CHAPTERS.findIndex(item => item.id === ch.id) === CHAPTERS.length - 1;
-    const completesChapter = data.steps.every((_, idx) => idx === state.stepIdx || p.doneSteps.includes(idx));
+    const completesChapter = data.steps.every((item, idx) => idx === state.stepIdx || isStepDone(p, item));
     const completesTutorial = completesChapter && CHAPTERS.every(item => {
       if (item.steppable === false || item.id === ch.id) return true;
       const itemSteps = state.cache[item.id]?.steps || [];
-      const itemDone = state.progress[item.id]?.doneSteps || [];
-      return itemSteps.length > 0 && itemSteps.every((_, idx) => itemDone.includes(idx));
+      const itemProgress = state.progress[item.id];
+      return itemSteps.length > 0 && itemSteps.every(step => isStepDone(itemProgress || {}, step));
     });
     $('#btn-next').textContent = doneThis
       ? (lastStep ? (lastChapter ? '回到本章全文' : '进入下一章 →') : '下一步 →')
@@ -627,14 +690,16 @@ $('#btn-prev').onclick = () => {
 };
 $('#btn-done').onclick = () => {
   const p = prog(state.cur);
-  const idx = p.doneSteps.indexOf(state.stepIdx);
-  idx >= 0 ? p.doneSteps.splice(idx, 1) : p.doneSteps.push(state.stepIdx);
+  const key = state.cache[state.cur].steps[state.stepIdx].key;
+  const idx = p.doneStepKeys.indexOf(key);
+  idx >= 0 ? p.doneStepKeys.splice(idx, 1) : p.doneStepKeys.push(key);
   save(); show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
 };
 $('#btn-next').onclick = () => {
   const p = prog(state.cur);
-  if (!p.doneSteps.includes(state.stepIdx)) { p.doneSteps.push(state.stepIdx); save(); }
   const steps = state.cache[state.cur].steps;
+  const key = steps[state.stepIdx].key;
+  if (!p.doneStepKeys.includes(key)) { p.doneStepKeys.push(key); save(); }
   if (state.stepIdx < steps.length - 1) {
     state.stepIdx += 1;                                    // 同步推进，连点不丢步
     show(state.cur, { mode: 'step', stepIdx: state.stepIdx });
@@ -658,12 +723,13 @@ applyTheme(document.documentElement.dataset.theme);
 /* ================= 启动：预取全部章节以计算总进度，再进入上次位置 ================= */
 (async () => {
   try { await Promise.all(CHAPTERS.map(fetchChapter)); } catch (e) { return showFetchError(e); }
+  migrateProgress();
   // 优先回到最后访问章节；旧数据没有该记录时，再从有进度的最后一章推断。
   let entry = null;
   try { entry = localStorage.getItem(LAST_CHAPTER_KEY); } catch {}
   if (!CHAPTERS.some(ch => ch.id === entry)) {
     entry = 'readme';
-    for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneSteps || []).length) entry = ch.id;
+    for (const ch of CHAPTERS) if ((state.progress[ch.id]?.doneStepKeys || []).length) entry = ch.id;
   }
   show(entry);
 })();

@@ -11,7 +11,7 @@
 本项目把这套实践提炼为一个**从 0 开始的标准起点**，达成三个目标：
 
 1. **新项目脚手架**：备齐依赖后克隆即得一个可运行、可生成代码、带完整认证授权的后端底座；
-2. **新人教学载体**：`docs/` 下十章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
+2. **新人教学载体**：`docs/` 下十二章教程照实记录每条命令与结果，配零依赖网页引导器，新人可独立复现整个搭建过程；
 3. **生产经验回灌池**：生产项目踩过的坑（JWT 续签丢 claim、孤儿 token、nestedset 事件被静默等 31 项）以代码 + 文档双重形式固化于此，反向校准生产仓库。
 
 **教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
@@ -28,7 +28,7 @@
 | 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
 | 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
-| 测试 | Pest 3 + PHPUnit 11，`php artisan test` 57 passed / 164 assertions | Feature 14 个文件 + Unit 1 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
+| 测试 | Pest 3 + PHPUnit 11，`php artisan test` 64 passed / 230 assertions | Feature 14 个文件 + Unit 2 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
 
 ## 三、总体架构
 
@@ -98,7 +98,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 | 黑名单 90 秒宽限 | 续签瞬间旧 token 进黑名单前留 90 秒宽限期，并发在途请求不被误杀 |
 | 滑动续期 | `refresh_iat=true` + ttl 2880 分钟 / refresh_ttl 20160 分钟，活跃用户无感长登录 |
 | refresh 防孤儿 token | `/refresh` 路由不挂 `jwt.auth.refresh` 中间件，避免中间件与控制器各续签一次派生两个有效 token |
-| 单设备语义（移动端） | 移动端主动刷新调用 `JWTGuard::refresh($forceForever, $resetClaims)` 时传 `(true, false)`——`$forceForever=true` 让旧 token **立即**进黑名单（跳过 90 秒宽限），实现单设备登录语义（见 `app/Api/Controllers/AuthController.php`） |
+| 无宽限轮换（移动端） | 移动端主动刷新调用 `JWTGuard::refresh($forceForever, $resetClaims)` 时传 `(true, false)`——`$forceForever=true` 让本次被刷新的旧 token **立即**进黑名单（跳过 90 秒宽限）。这不是跨设备互踢；完整单设备登录仍需服务端会话或 token_version（见 `app/Api/Controllers/AuthController.php`） |
 | CORS 配套 | `config/cors.php` 暴露 `Authorization` 响应头，跨域前端才能读到无感续签的新 token |
 | 接口限流 | 后台 300 次/分钟限流，另有登录接口专用限流（`AppServiceProvider`），防暴力撞库与异常流量 |
 
@@ -163,7 +163,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| Feature 测试（14 文件） | `AuthTest`、`ApiAuthTest`、`FoodAclTest`、`JwtAutoRefreshTest`、`RegressionTest`、`SeederIntegrityTest`、`FoodIncrementalTest` / `ApiFoodTest`、`MonitorTest`、`OperatorResolverTest`、`RouteMacroTest`、`HelpersTest`、`UploadTest`、`ExampleTest`；`php artisan test` 57 passed 全绿 |
+| Feature 测试（14 文件） | `AuthTest`、`ApiAuthTest`、`FoodAclTest`、`JwtAutoRefreshTest`、`RegressionTest`、`SeederIntegrityTest`、`FoodIncrementalTest` / `ApiFoodTest`、`MonitorTest`、`OperatorResolverTest`、`RouteMacroTest`、`HelpersTest`、`UploadTest`、`ExampleTest`；`php artisan test` 64 passed 全绿 |
 | 跨进程行为模拟 | 测试基类 `tests/TestCase.php` 的 `freshJwtProcess()` 用 `forgetInstance` 重置整条 jwt 服务链单例（`tymon.jwt.*` + `auth.driver`），使同进程测试能复现真实跨进程的续签丢 claim 问题 |
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |

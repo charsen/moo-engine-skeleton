@@ -21,6 +21,32 @@
 
 set -eu
 
+usage() {
+    cat <<'HELP'
+用法：sh backup.sh [选项]
+
+选项：
+  -h, --help           显示本帮助，不执行备份
+
+配置通过环境变量或 engine/.env 提供。常用环境变量：
+  DB_NAME / DB_USER / DB_PASS / DB_HOST / DB_PORT
+  MYSQLDUMP_BIN / OUT_DIR / KEEP_DAYS / IGNORE_TABLES
+HELP
+}
+
+case "${1:-}" in
+    '') ;;
+    -h|--help)
+        usage
+        exit 0
+        ;;
+    *)
+        printf '%s\n' "未知选项：$1" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
+
 # shellcheck disable=SC1007
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROJECT_DIR="$SCRIPT_DIR"
@@ -57,7 +83,7 @@ DB_PORT=${DB_PORT:-$(read_env DB_PORT)}
 
 OUT_DIR=${OUT_DIR:-"$ENGINE_DIR/storage/app/db"}
 KEEP_DAYS=${KEEP_DAYS:-7}
-# 默认跳过操作日志表（moo-system 的 system_operation_logs，体积大、无需入备份）。逗号分隔可覆盖。
+# 默认跳过操作日志表的数据、保留表结构（体积大但恢复后仍应有空表）。逗号分隔可覆盖。
 IGNORE_TABLES=${IGNORE_TABLES:-system_operation_logs}
 
 # 解析 mysqldump：env MYSQLDUMP_BIN > PATH > 常见安装位置。
@@ -74,14 +100,14 @@ resolve_mysqldump() {
     return 1
 }
 
-# IGNORE_TABLES="a,b" → 多个 --ignore-table=DB.table
+# IGNORE_TABLES="a,b" → 多个 --ignore-table-data=DB.table（保留建表语句）
 build_ignore_args() {
     raw="$1"; db="$2"; args=""
     OLD_IFS=$IFS; IFS=','
     for tbl in $raw; do
         tbl_trimmed=$(printf '%s' "$tbl" | awk '{$1=$1; print}')
         [ -n "$tbl_trimmed" ] || continue
-        args="$args --ignore-table=$db.$tbl_trimmed"
+        args="$args --ignore-table-data=$db.$tbl_trimmed"
     done
     IFS=$OLD_IFS
     printf '%s' "$args"
@@ -109,10 +135,10 @@ DATE=$(date +%Y%m%d_%H%M%S)
 OUT_SQL="${DB_NAME}_${DATE}.sql"
 TAR_SQL="${DB_NAME}_${DATE}.tar.bz2"
 
-# 组装鉴权参数（仅当取到才传；-p 无空格是 mysql client 约定）
+# 组装非密码鉴权参数。密码不拼进命令行参数，避免 `ps` 暴露和 mysql 的
+# "Using a password on the command line" 警告；只给本次 mysqldump 注入 MYSQL_PWD。
 DUMP_AUTH=""
 [ -n "$DB_USER" ] && DUMP_AUTH="$DUMP_AUTH -u$DB_USER"
-[ -n "$DB_PASS" ] && DUMP_AUTH="$DUMP_AUTH -p$DB_PASS"
 [ -n "$DB_HOST" ] && DUMP_AUTH="$DUMP_AUTH -h$DB_HOST"
 [ -n "$DB_PORT" ] && DUMP_AUTH="$DUMP_AUTH -P$DB_PORT"
 
@@ -121,11 +147,19 @@ IGNORE_ARGS=$(build_ignore_args "$IGNORE_TABLES" "$DB_NAME")
 [ -n "$IGNORE_ARGS" ] && info "忽略表: $IGNORE_TABLES"
 
 # shellcheck disable=SC2086
-"$DUMP_BIN" $DUMP_AUTH \
-    --skip-extended-insert \
-    --default-character-set=utf8mb4 \
-    $IGNORE_ARGS \
-    "$DB_NAME" > "$OUT_SQL"
+if [ -n "$DB_PASS" ]; then
+    MYSQL_PWD="$DB_PASS" "$DUMP_BIN" $DUMP_AUTH \
+        --skip-extended-insert \
+        --default-character-set=utf8mb4 \
+        $IGNORE_ARGS \
+        "$DB_NAME" > "$OUT_SQL"
+else
+    "$DUMP_BIN" $DUMP_AUTH \
+        --skip-extended-insert \
+        --default-character-set=utf8mb4 \
+        $IGNORE_ARGS \
+        "$DB_NAME" > "$OUT_SQL"
+fi
 success "已导出: $OUT_SQL"
 
 section "压缩"

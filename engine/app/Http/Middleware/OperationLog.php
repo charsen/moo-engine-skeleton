@@ -51,7 +51,7 @@ class OperationLog
             return;
         }
 
-        $user_id   = 0;
+        $user_id   = null;
         $user_name = '';
 
         if (Auth::guard('admin')->check()) {
@@ -67,14 +67,15 @@ class OperationLog
         }
 
         // 成功响应不存 body，失败响应存下来便于排查。
-        // 截断到 6 万字符以内：response_content 是 text 列（64KB），APP_DEBUG 下一个
-        // 5xx 带全量 trace 轻松超限，strict mode 会让 insert 直接失败、job 重试堆积。
+        // 按 60000 字节截断：response_content 是 MySQL TEXT（最大 65535 字节），
+        // 不能用 mb_substr(..., 60000) 按「字符」截；中文/emoji 可能占 3~4 字节，
+        // 看似 6 万字符实际早已超列宽，strict mode 会让 job 失败重试。
         $content = ((int) $response->getStatusCode() !== 200 && (int) $response->getStatusCode() !== 201)
-            ? mb_substr($response->getContent() ?: '', 0, 60000)
+            ? mb_strcut($response->getContent() ?: '', 0, 60000, 'UTF-8')
             : '[]';
 
-        // Laravel 12 入口不再定义 LARAVEL_START（老项目用它是版本升级遗留），
-        // 改用 PHP 自带的请求起始时间
+        // HTTP / artisan 入口虽定义 LARAVEL_START，phpunit 不经过这两个入口，
+        // 所以统一用 PHP 请求起始时间，任何入口都可用。
         $started_at = (float) $request->server('REQUEST_TIME_FLOAT', microtime(true));
 
         $response_log = [

@@ -143,12 +143,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(1000)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 登录接口专用限流：组限流的 300 次/分钟对 /authenticate 来说防不了爆破。
-        // 按「账号 + IP」计数（拿不到账号字段就按 IP），5 次/分钟——锁账号尝试也锁分布式换号。
+        // 登录接口专用双桶限流：组限流的 300 次/分钟对 /authenticate 来说防不了爆破。
+        // - 同一 IP 对同一账号：5 次/分钟；
+        // - 同一 IP 的全部登录请求：30 次/分钟，防止不断换账号扫描。
         RateLimiter::for('login', function (Request $request) {
-            $account = (string) ($request->input('account') ?: $request->input('email') ?: '');
+            $account = mb_strtolower(trim((string) ($request->input('account') ?: $request->input('email') ?: '')));
 
-            return Limit::perMinute(5)->by(sha1($account . '|' . $request->ip()));
+            return [
+                Limit::perMinute(5)->by('login-account-ip:' . sha1($account . '|' . $request->ip())),
+                Limit::perMinute(30)->by('login-ip:' . $request->ip()),
+            ];
         });
 
         // JWT 中间件别名

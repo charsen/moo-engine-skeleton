@@ -155,7 +155,7 @@ cd orders
 
 初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和两份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
 
-> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，当前最终态为 **57 passed / 164 assertions**。
+> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，当前最终态为 **64 passed / 230 assertions**。
 > 完全不碰本机 MariaDB——所以 MariaDB 没装/没建库测试照样全绿，反过来测试通过也
 > **不代表** `.env` 的数据库配好了，两者别互相误判。仓库还自带 GitHub Actions CI
 > （`.github/workflows/tests.yml`），push 后自动跑同一套测试。
@@ -237,7 +237,7 @@ moo-engine-skeleton/
 | [第 3 章 JWT 登录认证（自建用户）](./docs/03-JWT-登录认证-自建用户.md) | 零付费依赖：最简 User 实现 JWTSubject、双守卫、三中间件、登录全链路 |
 | [第 4 章 JWT 加固与生产化](./docs/04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、接口测试 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./docs/05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200（User actions 最小实现） |
-| [第 6 章 移动端分片与 user 守卫](./docs/06-移动端分片与-user-守卫.md) | 守卫隔离、单设备 refresh |
+| [第 6 章 移动端分片与 user 守卫](./docs/06-移动端分片与-user-守卫.md) | 守卫隔离、无宽限 token 轮换 |
 | [第 7 章 安装 moo-system（进阶）](./docs/07-安装-moo-system.md) | 完整系统管理：host 契约、主体切换 User→Personnel、角色授权、操作日志、调试器联调 |
 | [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | Composer / Packagist 部署、Redis、nginx、supervisor、清缓存坑 |
 | [第 9 章 日常增量开发：改表与加接口](./docs/09-增量开发工作流.md) | 加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、专属 Resource 链式字段控制 |

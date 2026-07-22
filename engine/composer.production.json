@@ -13,7 +13,7 @@
         "godruoyi/php-snowflake": "^3.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "php-open-source-saver/jwt-auth": "^2.8",
+        "php-open-source-saver/jwt-auth": "~2.8.3",
         "predis/predis": "^3.5",
         "tucker-eric/eloquentfilter": "^3.0"
     },
@@ -72,7 +72,10 @@
         "clear-all": [
             "composer dumpautoload -o",
             "@php artisan clear-compiled",
-            "@php artisan optimize:clear",
+            "@php artisan config:clear",
+            "@php artisan event:clear",
+            "@php artisan route:clear",
+            "@php artisan view:clear",
             "@php artisan optimize"
         ]
     },
