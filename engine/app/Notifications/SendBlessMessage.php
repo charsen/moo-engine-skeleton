@@ -31,6 +31,20 @@ class SendBlessMessage extends Notification
         return $this->robot;
     }
 
+    /**
+     * 渠道契约：DingTalkRobotChannel / WeWorkRobotChannel 的 send() 取的是这两个方法，
+     * 不是 toArray()。骨架里 via() 为空、调不到，接入真实 Channel 后就是投递入口。
+     */
+    public function toDingTalk(mixed $notifiable = null): array
+    {
+        return $this->toArray($notifiable);
+    }
+
+    public function toWeWork(mixed $notifiable = null): array
+    {
+        return $this->toArray($notifiable);
+    }
+
     public function toArray(mixed $notifiable): array
     {
         return [
