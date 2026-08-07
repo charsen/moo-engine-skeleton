@@ -1,7 +1,7 @@
 # 第 1 章　安装 Laravel 12
 
-目标：在 `engine/` 子目录里创建一个 Laravel 12 应用，连接本机 MariaDB 数据库
-`moo_skeleton`，并在真实浏览器里打开它的欢迎页。
+目标：在 `engine/` 子目录里创建一个 Laravel 12 应用，接入 Pint 统一代码格式，
+连接本机 MariaDB 数据库 `moo_engine_from_zero`，并在真实浏览器里打开它的欢迎页。
 
 > **先分清你走哪条路。** 仓库根 [README](../README.md) 定义了两种用法：
 > **方式 A = 用本仓库初始化自己的项目**（克隆后运行根目录 `./init-project`）；
@@ -56,7 +56,7 @@ brew services start mariadb        # 启动 MariaDB，监听 127.0.0.1:3306
 >    连 `127.0.0.1` 需要 `ALTER USER 'root'@'127.0.0.1'` 或 `'root'@'%'`
 > 3. 如果仍然失败，检查 MariaDB 错误日志：`brew services log mariadb`
 
-然后确认本机工具齐全（在仓库根目录执行）：
+然后确认本机工具齐全（在当前终端执行即可）：
 
 ```bash
 php -v            # 8.2 起即可
@@ -78,7 +78,7 @@ mysql --version   # MariaDB 12.x 客户端
 本教程直接用 `composer create-project`（不需要全局安装 laravel/installer），并指定目录为 `engine`：
 
 ```bash
-# 在仓库根目录 moo-engine-skeleton/ 下执行
+# 在 1.1 创建的项目根目录 moo-engine-from-zero/ 下执行
 composer create-project "laravel/laravel:^12.0" engine --no-interaction
 ```
 
@@ -100,11 +100,117 @@ php artisan --version
 # Laravel Framework 12.61.1   ← 小版本号以实际安装为准（^12.0 内都没问题）
 ```
 
+### 1.2.1 接入 Laravel Pint 统一代码格式
+
+从第一章开始统一 PHP 代码格式，避免后续手写代码和生成代码混用不同风格。
+Laravel 12 项目模板通常已经把 Pint 放在开发依赖中，先确认：
+
+```bash
+composer show laravel/pint
+```
+
+如果提示找不到包，再安装本教程使用的版本约束：
+
+```bash
+composer require --dev "laravel/pint:^1.24"
+```
+
+在 `engine/` 根目录新建 `pint.json`。下面这份配置与 `moo-system` 使用同一套规则，
+宿主项目和扩展包格式一致：
+
+```json
+{
+    "preset": "laravel",
+    "rules": {
+        "binary_operator_spaces": {
+            "default": "align_single_space_minimal"
+        },
+        "ternary_to_null_coalescing": true,
+        "combine_consecutive_unsets": true,
+        "method_chaining_indentation": false,
+        "blank_line_after_opening_tag": false,
+        "single_blank_line_before_namespace": false,
+        "linebreak_after_opening_tag": false,
+        "declare_equal_normalize": {
+            "space": "none"
+        },
+        "declare_strict_types": true,
+        "fully_qualified_strict_types": false,
+        "no_blank_lines_after_phpdoc": true,
+        "concat_space": {
+            "spacing": "one"
+        },
+        "phpdoc_align": {
+            "align": "vertical"
+        },
+        "phpdoc_separation": {
+            "groups": [
+                ["author", "copyright", "license"],
+                ["category", "package", "subpackage"],
+                ["property", "property-read", "property-write"],
+                ["deprecated", "link", "see", "since"],
+                ["package_name", "module_name", "controller_name"]
+            ]
+        }
+    }
+}
+```
+
+首次执行格式化，然后用只检查模式确认结果：
+
+```bash
+./vendor/bin/pint          # 自动修复格式
+./vendor/bin/pint --test   # 只检查；无格式问题时退出码为 0
+```
+
+后续每次新增或生成 PHP 代码后执行 `./vendor/bin/pint`；提交前或 CI 使用
+`./vendor/bin/pint --test`，发现格式问题时会返回非 0 退出码，但不会修改文件。
+
+**VS Code 保存时自动格式化（可选）**：推荐直接把 `engine/` 作为工作区打开：
+
+```bash
+code .
+```
+
+安装 `open-southeners.laravel-pint` 扩展后，在 `engine/.vscode/settings.json` 加入：
+
+```json
+{
+    "[php]": {
+        "editor.defaultFormatter": "open-southeners.laravel-pint",
+        "editor.formatOnSave": true
+    },
+    "laravel-pint.enable": true,
+    "laravel-pint.executablePath": "vendor/bin/pint",
+    "laravel-pint.configPath": "pint.json",
+    "laravel-pint.fallbackToGlobalBin": false
+}
+```
+
+如果 VS Code 打开的是外层项目根目录 `moo-engine-from-zero/`，则配置文件应放在外层的
+`.vscode/settings.json`，并把上面两条路径分别改成 `engine/vendor/bin/pint` 和
+`engine/pint.json`。
+
+> **扩展报 `executableCandidates: []` / `Executable not readable`，但终端能运行 Pint？**
+> 扩展可能在 `composer install` 之前缓存了“未找到可执行文件”的结果。先确认
+> `ls -l vendor/bin/pint` 能看到可执行权限，再从命令面板执行
+> **Developer: Reload Window**。重载后扩展会重新扫描本地 Pint；不需要全局安装 Pint，
+> 也不要把 `fallbackToGlobalBin` 改成 `true` 来掩盖项目依赖缺失。
+
 ## 1.3 创建数据库
 
 ```bash
 mysql -uroot -p7777 -h127.0.0.1 -e \
-  "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  "CREATE DATABASE IF NOT EXISTS moo_engine_from_zero CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+`moo_engine_from_zero` 是方式 B 的独立练习库，不要复用成品骨架使用的 `moo_skeleton`。
+建库后确认它还是空库：
+
+```bash
+mysql -uroot -p7777 -h127.0.0.1 -Nse \
+  "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='moo_engine_from_zero';"
+# 期望输出 0；不是 0 说明库里已有旧项目数据，请换一个全新的库名再继续
 ```
 
 ## 1.4 配置 .env 连接数据库（替换 SQLite，不要追加）
@@ -125,7 +231,7 @@ APP_URL=http://127.0.0.1:8088
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=moo_skeleton
+DB_DATABASE=moo_engine_from_zero
 DB_USERNAME=root
 DB_PASSWORD=7777
 ```
@@ -133,7 +239,7 @@ DB_PASSWORD=7777
 > **别只在文件末尾追加！** 要确保文件里最后生效的是 `DB_CONNECTION=mysql`。
 > 如果原来的 `DB_CONNECTION=sqlite` 还留着，Laravel 会继续连 SQLite，后面
 > `php artisan migrate` 看似成功但表会建到 `database/database.sqlite`，不是
-> `moo_skeleton`。
+> `moo_engine_from_zero`。
 
 > 端口为什么是 8088？最初只是因为作者本机 8000 端口被其它项目占用（见 1.6），
 > 但 8088 现在已是**本仓库的约定端口**——`engine/.env`、根 README、第 2 章起的
@@ -148,7 +254,7 @@ php artisan config:clear
 
 ## 1.5 执行数据库迁移
 
-把 Laravel 自带的基础表建到 `moo_skeleton` 里（在 `engine/` 目录下执行）：
+把 Laravel 自带的基础表建到 `moo_engine_from_zero` 里（在 `engine/` 目录下执行）：
 
 ```bash
 php artisan migrate
@@ -162,7 +268,7 @@ php artisan migrate
 验证表已建好：
 
 ```bash
-mysql -uroot -p7777 -h127.0.0.1 moo_skeleton -e "SHOW TABLES;"
+mysql -uroot -p7777 -h127.0.0.1 moo_engine_from_zero -e "SHOW TABLES;"
 ```
 
 应能看到 **9 张表**（按字母序）：`cache`、`cache_locks`、`failed_jobs`、`job_batches`、
@@ -217,15 +323,14 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8088   # 期望 200
 这个包的定位：**headless 采集 SDK**（不提供本地页面，采集 + 缓冲 + 推送云端），
 MIT 协议，目标发布到 Packagist。Packagist 目标版本同步完成后，直接用 Composer 安装即可。
 
-安装（在 `engine/` 目录执行）。当前过渡期先声明 VCS 仓库，再 require dev 分支别名：
+安装（在 `engine/` 目录执行）：
 
 ```bash
-composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git
-composer require "charsen/moo-monitor-laravel:dev-master as 0.1.99"
+composer require "charsen/moo-monitor-laravel:^0.1"
 ```
 
-> Packagist 目标版本可解析后，替换为
-> `composer require "charsen/moo-monitor-laravel:^0.1"`，并删掉 `repositories.monitor` 配置。
+> 使用正式语义化版本约束（`^0.1`），不要使用 VCS 仓库声明或
+> `dev-master as 0.1.99` 这类过渡写法。
 
 验证命令已注册：
 
@@ -359,7 +464,28 @@ context:
 
 ### 1.7.5 推送到云端（可选）
 
-如果你已经拿到 cloud token 并配到 `.env`，先一键自检整条管道，确认无误后再推真实数据上云。
+先在 moo-scaffold-cloud 创建项目并取得该项目的接入 token：
+
+1. 浏览器访问 [https://c.mooeen.com](https://c.mooeen.com)，注册或登录账号。
+2. 登录后进入项目列表，点击「新建项目」。
+3. 填写项目名称（例如 `moo-engine-skeleton`），按需勾选 `runtimes`（运行时异常）和
+   `slow_queries`（慢 SQL），然后创建项目。
+4. 创建成功后，复制页面生成的 **接入 token**。token 以 `moo_` 开头，每个项目的 token
+   相互独立；请妥善保存，不要提交到 Git，也不要粘贴到日志或聊天记录中。
+5. 回到本地项目，把 token 写入 `engine/.env`，同时开启云端推送：
+
+```dotenv
+MOO_MONITOR_CLOUD_ENABLED=true
+MOO_MONITOR_CLOUD_TOKEN=moo_这里替换为刚复制的真实token
+```
+
+修改后清理配置缓存：
+
+```bash
+php artisan config:clear
+```
+
+完成以上步骤后，先一键自检整条管道，确认无误再推真实数据上云。
 
 **先自检**——不用等真异常发生，`moo:cloud:test` 直接推一条自检 runtime + 一条自检慢 SQL
 走真实接口，把「配置 → 连通 → 鉴权 → 推送」四步逐个走一遍并分别反馈，哪一步断一目了然：
@@ -420,7 +546,8 @@ php artisan moo:cloud:push             # 真实推送
 ## 本章产出
 
 - `engine/` 下一个可运行的 Laravel 12 应用（小版本号以实际安装为准，`^12.0` 内均可）；
-- 连上本机 MariaDB 的 `moo_skeleton` 库，基础表迁移完成；
+- Laravel Pint 已按与 `moo-system` 相同的规则配置，格式化与检查均通过；
+- 连上本机 MariaDB 的独立练习库 `moo_engine_from_zero`，基础表迁移完成；
 - 真实浏览器访问欢迎页通过（HTTP 200）；
 - **监控已接入**（moo-monitor-laravel），运行时异常自动记录到本地缓冲，可推送云端。
 

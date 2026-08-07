@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cf0247c74e8660457603202a1b0858f9",
+    "content-hash": "8160b5d2c72f6e638e4e338706957a87",
     "packages": [
         {
             "name": "brick/math",
@@ -189,7 +189,7 @@
             "version": "v0.1.11",
             "source": {
                 "type": "git",
-                "url": "https://gitee.com/charsen/moo-monitor-laravel.git",
+                "url": "https://github.com/charsen/moo-monitor-laravel.git",
                 "reference": "ce3c0ea3a5fdf923ebbc7b0f3e161876b23cfa31"
             },
             "require": {
@@ -282,7 +282,7 @@
             "version": "2.1.3",
             "source": {
                 "type": "git",
-                "url": "https://gitee.com/charsen/moo-scaffold.git",
+                "url": "https://github.com/charsen/moo-scaffold.git",
                 "reference": "99700ab457b75e27a725f38d63c498c558d170ed"
             },
             "require": {

@@ -162,6 +162,25 @@ return new class extends Migration
 };
 ```
 
+迁移前先确认当前练习库里还没有这个列：
+
+```bash
+php artisan tinker --execute="var_dump(Schema::hasColumn('users', 'actions'));"
+# 期望输出 bool(false)
+```
+
+如果这里已经是 `true`，不要继续执行迁移，也不要把迁移改成
+`Schema::hasColumn()` 条件跳过。这通常表示方式 B 误用了成品骨架的 `moo_skeleton`
+旧库，数据库里的迁移账本也可能包含当前练习项目没有的 moo-system / Food 记录。
+按第 1.3 节创建独立空库，在 `.env` 改成 `DB_DATABASE=moo_engine_from_zero`，然后执行：
+
+```bash
+php artisan config:clear
+php artisan migrate
+```
+
+如果 `moo_engine_from_zero` 也不是空库，就换一个从未使用过的库名；不要删除或覆盖旧库。
+
 执行迁移：
 
 ```bash

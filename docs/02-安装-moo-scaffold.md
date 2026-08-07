@@ -10,97 +10,17 @@
 
 ---
 
-## 2.1 接入 moo-scaffold：开源包（当前 VCS 过渡）
+## 2.1 接入 moo-scaffold：开源包（正式版本）
 
-> **与第 1.7 节的关系**：第 1 章单独装了 `moo-monitor-laravel`，本章装 `moo-scaffold`
-> 时，composer 会发现 monitor 包已经存在，自动去重、不会重复安装。
-> scaffold 3.9+ 的 `composer.json` 里声明了对 monitor 包的依赖（`^0.1`），
-> 所以**只装 scaffold 时，monitor 会作为传递依赖自动带入**；第 1 章之所以单独装，
-> 是为了让监控在「裸 Laravel」这个最简单的时点先上岗——新手先建立「出错去哪看」的心智模型。
-
-先把这个包的身份说清楚：`moo-scaffold` 采用 **MIT 协议**，目标发布到 Packagist。
-生产环境当前稳定基线直接使用
-`composer require "charsen/moo-scaffold:^2.1.3"`。
-
-> 注意将来也**不是** `--dev`：在这套架构里 scaffold 是**运行时依赖**，不是纯开发工具——
-> 生成的控制器直接继承 / 返回包里的类（`Mooeen\Scaffold\Foundation\{Controller, BaseResource, ...}`），
-> `bootstrap/app.php` 也引用了包里的 `BaseException`（运行时异常采集则由 scaffold 3.9+
-> 自动带入的 moo-monitor-laravel 在 Provider 里自动挂钩，无需 bootstrap 引用）。
-> 装进 `require-dev` 的话，本节自己推荐的 `composer install --no-dev` 部署会直接炸。
-> 本仓库 `engine/composer.json` 也是把它放在 `require` 里的。
-
-当前过渡期接入方式：先在 `engine/composer.json` 里声明 VCS 仓库，再把 dev 分支用别名
-装成稳定版本号：
-
-```json
-"require": {
-    "charsen/moo-scaffold": "dev-master as 2.99.99"
-},
-"repositories": {
-    "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
-},
-"minimum-stability": "stable",
-"prefer-stable": true
-```
-
-> ⚠️ 上面是**片段**，不是完整的 composer.json，要**合并**进已有文件。
-> 
-> **合并示例（修改前后对照）**：
-> 
-> **修改前**（Laravel 12 默认的 `engine/composer.json` 部分）：
-> ```json
-> "require": {
->     "php": "^8.2",
->     "laravel/framework": "^12.0",
->     "laravel/tinker": "^2.10"
-> },
-> "minimum-stability": "stable",
-> "prefer-stable": true
-> ```
-> 
-> **修改后**（追加 moo-scaffold）：
-> ```json
-> "require": {
->     "php": "^8.2",
->     "laravel/framework": "^12.0",
->     "laravel/tinker": "^2.10",
->     "charsen/moo-scaffold": "dev-master as 2.99.99"
-> },
-> "repositories": {
->     "scaffold": { "type": "vcs", "url": "git@gitee.com:charsen/moo-scaffold.git" }
-> },
-> "minimum-stability": "stable",
-> "prefer-stable": true
-> ```
-> 
-> 关键：`"require"` 里**追加**一行（不是整块替换，否则会顶掉核心依赖）；
-> `"repositories"` 是**新增**的顶层键（与 `"require"` 平级）。
->
-> 为什么本地是 `dev-master as 2.99.99`？开发环境可跟随 scaffold 主分支，同时用
-> 2.x alias 满足扩展包对稳定 2.x 公共 API 的版本约束。
->
-> 生产环境改为 `"charsen/moo-scaffold": "^2.1.3"`，从稳定 tag 安装。
-
-声明好之后安装：
+`moo-scaffold` 是运行时依赖，不要加 `--dev`。在 `engine/` 目录直接安装稳定版本：
 
 ```bash
-composer config repositories.scaffold vcs git@gitee.com:charsen/moo-scaffold.git
-composer require "charsen/moo-scaffold:dev-master as 2.99.99" --with-all-dependencies
+composer require "charsen/moo-scaffold:^2.1.3"
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
 
-> 如果你没有按第 1.7 节先装 `moo-monitor-laravel`，这里还要先执行：
-> `composer config repositories.monitor vcs git@gitee.com:charsen/moo-monitor-laravel.git`。
-> composer 不会读取依赖包自己的 `repositories`，当前过渡期宿主项目必须自己声明 monitor 仓库。
-
-> **依赖自检**：当前 `moo-scaffold` 已经直接声明
-> `tucker-eric/eloquentfilter` 和 `godruoyi/php-snowflake`，安装 scaffold 时会自动带入，
-> 新项目不需要再手动 `composer require` 一遍。用下面两条命令确认依赖链：
-> 
-> ```bash
-> composer why tucker-eric/eloquentfilter
-> composer why godruoyi/php-snowflake
-> ```
+Composer 会自动更新 `composer.json` 和 `composer.lock`，并安装包括 `moo-monitor-laravel`
+在内的依赖；第 1.7 节已经安装过的包会直接复用。
 
 `moo:free` 会生成 Pest 语法的路由契约测试，而全新 Laravel 12 只预装 PHPUnit。
 现在就把 Pest 测试环境补齐，避免生成后 `php artisan test` 天然报
@@ -193,6 +113,19 @@ Route::get('/', static fn () => 'Hello app api ~');
 `boot()` 执行，后面可选安装 `moo-system` 时才不会出现
 `Attribute [iResource] does not exist`。
 
+具体植入位置是 **`engine/app/Providers/AppServiceProvider.php`**（如果当前终端已经在
+`engine/` 目录，就是 `app/Providers/AppServiceProvider.php`）：
+
+**第一步：导入 Route 门面。** 在文件顶部、`namespace App\Providers;` 后面的 `use` 区域加入：
+
+```php
+use Illuminate\Support\Facades\Route;
+```
+
+**第二步：注册宏。** 在 `AppServiceProvider` 类现有的 `register()` 方法**内部**加入下面的
+`Route::macro(...)`。全新 Laravel 已经有一个空的 `register()`，直接把宏放进方法体即可；
+如果方法里已有其他注册代码，就追加进去，**不要再声明第二个 `register()` 方法**。
+
 宏不能直接包一层 `Route::resource`：这套生态的控制器方法并不完全相同，
 无条件注册会生成调用不存在方法的“幻影路由”。使用反射只注册真实存在且
 `public` 的 action，并注意固定路径必须早于 `/{id}`：
@@ -250,8 +183,6 @@ public function register(): void
     });
 }
 ```
-
-文件顶部还要补 `use Illuminate\Support\Facades\Route;`。
 
 ## 2.4 建调试工具的登录账号
 
@@ -319,14 +250,10 @@ tables:
 php artisan migrate:status    # 能列出迁移即说明 .env 的 DB_* 配置可用（第 1 章配的）
 ```
 
-然后生成。第一次接入时要先单独跑一次 `moo:controller`：它会在写入
-Food 路由的同时创建共享的 `BaseActionTrait`。若直接从空项目跑 `moo:free`，
-当前生成器会先写入引用该 trait 的控制器，但没有创建 trait，下一条 artisan
-命令就会在路由加载时 Fatal。先置命令把这个顺序问题消掉，本项目后续生成无需重复：
+然后生成：
 
 ```bash
 php artisan moo:fresh                 # 解析 yaml 到 storage/scaffold 缓存（改完 yaml 必跑）
-php artisan moo:controller Food       # 首次预生成控制器、共享 trait 和路由
 php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i18n/ACL/迁移/API 文档
 ```
 
@@ -335,15 +262,29 @@ php artisan moo:free admin Food -a    # 生成 Model/Controller/Request/路由/i
 
 生成的目录结构：
 ```
-app/Models/Food/{Food.php, Filters/FoodFilter.php, Traits/FoodTrait.php, Enums/{FoodCategory,FoodStatus}.php}
-app/Admin/Controllers/Traits/BaseActionTrait.php   # 首次 moo:controller 创建的共享 CRUD 动作
-app/Admin/Controllers/Food/{FoodController.php, Traits/FoodTrait.php}
-app/Admin/Requests/Food/Food/{Index,Store,Update,Create,Edit,DestroyBatch}Request.php
-app/Admin/Requests/Food/Food/FoodRequestTrait.php   # 各 Request 共用的表名/枚举值 trait（也是生成的）
-# 没有单独的 FoodResource —— 控制器直接用包里的 BaseResource，这是这套架构的常态
+app/
+├── Models/Food/
+│   ├── Food.php
+│   ├── Filters/FoodFilter.php
+│   ├── Traits/FoodTrait.php
+│   └── Enums/{FoodCategory,FoodStatus}.php
+└── Admin/
+    ├── Controllers/Traits/BaseActionTrait.php
+    ├── Controllers/Food/
+    │   ├── FoodController.php
+    │   └── Traits/FoodTrait.php
+    └── Requests/Food/Food/
+        ├── {Index,Store,Update}Request.php
+        ├── {Create,Edit,DestroyBatch}Request.php
+        └── FoodRequestTrait.php
+
 database/migrations/*_create_foods_table.php
-tests/Feature/Admin/Food/FoodControllerTest.php   # Pest 路由契约测试
+tests/Feature/Admin/Food/FoodControllerTest.php
 ```
+
+其中 `BaseActionTrait.php` 是生成的共享 CRUD 动作，`FoodRequestTrait.php` 是各 Request
+共用的表名 / 枚举值 trait。这里不会生成单独的 `FoodResource`，控制器直接使用包里的
+`BaseResource`，这是这套架构的常态。
 
 > 雪花 ID 能力来自包内 `Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey`，
 > 当前版本不会在 `app/Models/Traits/` 再生成同名 trait。本章 schema 也没有
@@ -360,8 +301,7 @@ tests/Feature/Admin/Food/FoodControllerTest.php   # Pest 路由契约测试
 
 ### 2.6.1 生成结果自检
 
-`moo:free` 的过程中不应再出现“没有路由匹配”或 `BaseActionTrait not found`。
-生成完立即验证路由、ACL/API 产物和测试：
+`moo:free` 完成后，立即验证路由、ACL/API 产物和测试：
 
 ```bash
 php artisan route:list --path=api/admin/food
@@ -371,8 +311,8 @@ php artisan test tests/Feature/Admin/Food
 ```
 
 应该看到 10 条 Food 路由，2 个契约测试全部通过。如果 `moo:free` 里的
-`moo:auth` / `moo:api` 仍然提示没有路由匹配，说明前面的 `moo:controller Food`
-没有成功；修正后再单独执行：
+`moo:auth` / `moo:api` 提示没有路由匹配，先检查 2.3 的路由插入标记和
+`iResource` 宏；确认 Food 路由已经生成后，再单独执行：
 
 ```bash
 php artisan moo:auth admin
@@ -431,10 +371,10 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 ```
 
 生成的 `foods` 表（注意 `id` 是非自增 bigint，留给雪花算法赋值。
-`-p7777` / `moo_skeleton` 来自**第 1 章** `.env` 里的 `DB_PASSWORD` / `DB_DATABASE`，
+`-p7777` / `moo_engine_from_zero` 来自**第 1 章** `.env` 里的 `DB_PASSWORD` / `DB_DATABASE`，
 按你自己的配置替换）：
 ```bash
-mysql -uroot -p7777 -h127.0.0.1 moo_skeleton -e "DESCRIBE foods;"
+mysql -uroot -p7777 -h127.0.0.1 moo_engine_from_zero -e "DESCRIBE foods;"
 ```
 
 ## 2.7 真机调试接口（两种方式）
@@ -490,7 +430,7 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以当前过渡期 VCS 方式接入，`php artisan list | grep moo`
+- `moo-scaffold` 以正式版本约束方式接入，`php artisan list | grep moo`
   能列出 `moo:init` / `moo:free` / `moo:api` 等命令；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；
 - 接口用 curl 和内置调试器两种方式真机验证通过（HTTP 200）。

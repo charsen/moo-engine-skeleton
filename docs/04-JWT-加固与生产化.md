@@ -266,7 +266,7 @@ RateLimiter::for('login', function (Request $r) {
 
 这一节同时准备两个“交付给下一位开发者”的文件，但不要改乱你正在运行的环境：
 
-- 当前项目的 `.env` **继续使用第 1 章配好的 MariaDB `moo_skeleton`**；
+- 当前项目的 `.env` **继续使用第 1 章配好的 MariaDB `moo_engine_from_zero`**；
 - `.env.example` 是未来 clone 后复制为 `.env` 的模板，默认用 SQLite，让第一次安装不依赖
   本机已有 MariaDB；正式项目再按第 1 章把自己的 `.env` 切到独立数据库。
 
@@ -275,7 +275,7 @@ RateLimiter::for('login', function (Request $r) {
 
 ```dotenv
 # 应用
-APP_NAME=moo_skeleton
+APP_NAME=moo_engine_from_zero
 APP_ENV=local
 APP_KEY=
 APP_DEBUG=true
@@ -357,16 +357,6 @@ grep '^DB_CONNECTION=' .env .env.example
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "php-open-source-saver/jwt-auth": "~2.8.3"
-    },
-    "repositories": {
-        "scaffold": {
-            "type": "vcs",
-            "url": "https://gitee.com/charsen/moo-scaffold.git"
-        },
-        "monitor": {
-            "type": "vcs",
-            "url": "https://gitee.com/charsen/moo-monitor-laravel.git"
-        }
     },
     "autoload": {
         "psr-4": {

@@ -1,24 +1,22 @@
-# 私有 / 过渡期 Composer 包接入 SOP
+# 私有 Composer 包接入 SOP
 
-> 适用：项目依赖尚未发到公共 Packagist 的 Composer 包——要么**商业闭源**（deploy key 授权分发），
-> 要么**开源但处于 Packagist 同步过渡期**（暂经公开 VCS 解析）。
+> 适用：项目依赖**不在公共 Packagist**的 Composer 包（商业闭源，deploy key 授权分发）。
 >
-> 骨架当前接入 3 个 `charsen/*` 包，正好覆盖两种形态：
+> 骨架当前接入 3 个 `charsen/*` 包，只有商业包走私有 VCS：
 >
 > | 包 | 定位 | 当前来源 | 目标来源 |
 > | --- | --- | --- | --- |
-> | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | 公开 Gitee VCS（过渡期） | Packagist |
-> | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | 公开 Gitee VCS（过渡期） | Packagist |
+> | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | Packagist | Packagist |
+> | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | Packagist | Packagist |
 > | `charsen/moo-system` | **商业包**（proprietary） | 商业 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 >
-> 换句话说：Packagist 同步完成后，前两个包不再需要任何 VCS 配置，只有 `moo-system` 长期走
-> deploy key VCS——本文档 §4 的 deploy key 流程对它长期有效。
+> 换句话说：开源包不需要任何 VCS 配置，只有 `moo-system` 长期走 deploy key VCS——
+> 本文档 §4 的 deploy key 流程对它长期有效。
 
 ## 1. 解决什么问题
 
 1. **闭源包不能进公共 Packagist**（`moo-system` 商业授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
-2. **开源包在 Packagist 同步前**（`moo-scaffold` / `moo-monitor-laravel`）——先经 VCS 仓库解析，别 block 部署。
-3. **本地开发想改包源码即时生效**——这是下面「双 composer.json」的用武之地。
+2. **本地开发想改包源码即时生效**——这是下面「双 composer.json」的用武之地。
 
 目标：**本地开发体验顺 + 生产能装上锁定版 + 闭源包不外泄**。
 
@@ -28,7 +26,7 @@
 
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
-| `composer.json` | 本地开发（默认） | 团队自选：`path`（symlink 即时生效）或 `vcs`（追 master） | 改包源码两边实时可见 / 或 dev-master 追最新 |
+| `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包可用 `path`（联调）或 `vcs` | 改包源码两边实时可见 |
 | `composer.production.json` | 生产部署 | `vcs`（git clone 锁 `composer.production.lock` 版本） | 装成实体目录、版本可复现 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
@@ -36,24 +34,22 @@
 ```jsonc
 // composer.json —— 本地
 "repositories": {
-    "scaffold": { "type": "path", "url": "../moo-scaffold" }
+  "system": { "type": "path", "url": "../moo-system" }
 },
-"require": { "charsen/moo-scaffold": "dev-master as 2.99.99" }  // 别名压高版本满足下游 caret 约束
+"require": { "charsen/moo-system": "^1.6.17" }
 ```
 
 ```jsonc
 // composer.production.json —— 生产
 "repositories": {
-    "scaffold": { "type": "vcs", "url": "https://gitee.com/charsen/moo-scaffold.git" }
+  "system": { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
 },
-"require": { "charsen/moo-scaffold": "^2.1" }  // caret：接受所有 2.x.x，主版本边界才手动评估
+"require": { "charsen/moo-system": "^1.6.17" }
 ```
 
-> **骨架自身的现状**：骨架是模板仓、不假设你把包 clone 到了同级目录，所以它的 `composer.json`
-> **两份都用 `vcs`**（`dev-master as *` 追 master / `composer.production.json` caret 锁版本），
-> 见 `engine/composer.json` 与 `engine/composer.production.json` 的 `repositories` 段。
-> 你若在本地把某个开源包 clone 下来想改源码，再按上表把 `composer.json` 的对应 `repositories` 改成 `path` 即可——
-> `composer.production.json` 不动。
+> **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 仅保留 `moo-system`。
+> 若本地要改 `moo-system` 源码，可把 `composer.json` 的 `system` 仓库临时改成 `path`，
+> `composer.production.json` 保持 VCS 不动。
 
 **pull.sh 的私包 manifest** 从 `composer.production.json` 的 `extra."moo-private-packages"` 读（字段
 `name` / `repo-key` / `provider-rel` / `publish-tag`），URL 从 `repositories.<repo-key>.url` 关联——
@@ -133,9 +129,9 @@ ssh -T git@gitee.com
 
 ✅ SSH 通了 → pull.sh Step 3 的私包权限验证会通过，`composer install` 走 SSH 自动用这把 key。
 
-> 骨架 `composer.production.json` 里三个仓库 URL 现用 **https** 公开地址（开源包过渡期可匿名拉）。
-> `moo-system` 转为**私有**后，把它那条 URL 改成 `git@gitee.com:charsen/moo-system.git`（SSH），
-> 生产才会用 deploy key；此时 pull.sh Step 3 的 `ssh -T git@gitee.com` 联通检查即前置门禁。
+> 骨架 `composer.production.json` 里仅保留 `moo-system` 这一条私有仓库 URL。
+> 生产建议使用 `git@gitee.com:charsen/moo-system.git`（SSH），这样 deploy key 才会生效；
+> 此时 pull.sh Step 3 的 `ssh -T git@gitee.com` 联通检查即前置门禁。
 
 ## 5. 日常迭代
 
