@@ -18,7 +18,8 @@ try { document.documentElement.dataset.theme = localStorage.getItem('moo-skeleto
   --inline-code-bg: #edf1f5; --inline-code-ink: #c0392b; --quote-bg: #f0f6f4;
   --note-bg: #eef4fb; --tip-bg: #f3effb; --img-shadow: rgba(0,0,0,.06);
   --done-bg: #eafaf1; --done-line: #bfe8d2; --done-ink: #1e8449;
-  --code-bg: #2d3440; --code-ink: #e8edf3; --warn-bg: #fff8e8; --warn-line: #e8b339;
+  --code-bg: #242c36; --code-ink: #e8edf3; --code-line: #35414d; --code-shadow: rgba(24,31,39,.16);
+  --warn-bg: #fff8e8; --warn-line: #e8b339;
   --ok: #27ae60; --radius: 10px;
 }
 :root[data-theme="moon"] {
@@ -30,7 +31,8 @@ try { document.documentElement.dataset.theme = localStorage.getItem('moo-skeleto
   --inline-code-bg: #252b31; --inline-code-ink: #ffb08a; --quote-bg: #172a27;
   --note-bg: #182637; --tip-bg: #251f33; --warn-bg: #332714; --warn-line: #e0a22b;
   --img-shadow: rgba(0,0,0,.24); --done-bg: #162b22; --done-line: #286247; --done-ink: #9ce0ba;
-  --code-bg: #0f1216; --code-ink: #edf3f7; --ok: #4bd184;
+  --code-bg: #20272f; --code-ink: #edf3f7; --code-line: #394652; --code-shadow: rgba(0,0,0,.28);
+  --ok: #4bd184;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
@@ -160,17 +162,27 @@ button { font-family: inherit; cursor: pointer; }
 .md code { background: var(--inline-code-bg); color: var(--inline-code-ink); padding: .12em .4em; border-radius: 4px; font-size: .88em; font-family: "SF Mono", Menlo, Consolas, monospace; }
 .md .codeblock { position: relative; margin: 1em 0; }
 .md pre {
-  background: var(--code-bg); color: var(--code-ink); border-radius: var(--radius);
+  background: var(--code-bg); color: var(--code-ink); border: 1px solid var(--code-line);
+  border-radius: var(--radius); box-shadow: 0 8px 24px var(--code-shadow);
   padding: 14px 16px; overflow-x: auto; font-size: .84rem; line-height: 1.6;
 }
 .md pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
-.md .codeblock .lang { position: absolute; right: 56px; top: 8px; font-size: .68rem; color: #8b96a5; }
+.md .codeblock .lang { position: absolute; right: 64px; top: 9px; font-size: .68rem; color: #9ba8b6; }
 .md .copy-btn {
-  position: absolute; right: 10px; top: 7px; border: 1px solid #4a5568; background: #3a4250;
+  position: absolute; right: 10px; top: 8px; border: 1px solid #536171; background: #36414d;
   color: #cbd5e0; font-size: .7rem; padding: 3px 9px; border-radius: 6px;
 }
 .md .copy-btn:hover { background: #4a5568; }
 .md .copy-btn.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+.md .tok-comment { color: #91a0ae; font-style: italic; }
+.md .tok-keyword, .md .tok-tag { color: #ff9b7a; }
+.md .tok-string { color: #a8d892; }
+.md .tok-number, .md .tok-literal { color: #e4bd76; }
+.md .tok-variable { color: #78c9e8; }
+.md .tok-function { color: #d9a6e9; }
+.md .tok-key { color: #83b7ff; }
+.md .tok-constant { color: #72d6c9; }
+.md .tok-operator { color: #b9c4ce; }
 
 /* ===== 提示页 ===== */
 .notice { max-width: 640px; margin: 80px auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 36px; }
@@ -256,7 +268,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ================= 配置 ================= */
 const CHAPTERS = [
   { id: 'readme', file: 'README.md',                    title: '教程总览与踩坑速查', sub: '环境要求 · 踩坑速查表', steppable: false },
-  { id: 'ch1',    file: '01-安装-laravel.md',            title: '第 1 章 安装 Laravel 12', sub: '建项目 · 连库 · 真机访问 · 1.7 监控（标准件）' },
+  { id: 'ch1',    file: '01-安装-laravel.md',            title: '第 1 章 安装 Laravel 12', sub: '建项目 · Pint · 连库 · 真机访问 · 1.7 监控' },
   { id: 'ch2',    file: '02-安装-moo-scaffold.md',       title: '第 2 章 安装 moo-scaffold', sub: '开源代码生成器 · 生成 foods · 调试器' },
   { id: 'ch3',    file: '03-JWT-登录认证-自建用户.md',    title: '第 3 章 JWT 登录认证', sub: '自建 User · 零付费依赖' },
   { id: 'ch4',    file: '04-JWT-加固与生产化.md',         title: '第 4 章 JWT 加固与生产化', sub: '5 处加固 · 限流 · 测试' },
@@ -326,6 +338,64 @@ function inline(s) {
   return s;
 }
 
+const CODE_KEYWORDS = {
+  php: new Set(('abstract and array as break callable case catch class clone const continue declare default do else elseif ' +
+    'empty enddeclare endfor endforeach endif endswitch endwhile enum extends final finally fn for foreach function global ' +
+    'goto if implements include include_once instanceof insteadof interface isset list match namespace new or print private ' +
+    'protected public readonly require require_once return static switch throw trait try unset use var while xor yield').split(' ')),
+  bash: new Set('if then else elif fi for while in do done case esac function select until time coproc export local readonly source'.split(' ')),
+  nginx: new Set('server location listen server_name root index return rewrite proxy_pass fastcgi_pass include upstream set if'.split(' ')),
+};
+
+function normalizeCodeLang(lang) {
+  const value = String(lang || '').toLowerCase();
+  if (['sh', 'shell', 'zsh', 'console'].includes(value)) return 'bash';
+  if (value === 'yml') return 'yaml';
+  if (value === 'env') return 'dotenv';
+  return value;
+}
+
+function highlightCode(source, language) {
+  const lang = normalizeCodeLang(language);
+  if (!lang || lang === 'text') return escapeHtml(source);
+
+  const keywords = CODE_KEYWORDS[lang] || new Set();
+  const tokenPattern = /(\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->|\/\/[^\n]*|#[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(<\?(?:php)?|\?>)|(\$[A-Za-z_]\w*)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][\w-]*)|([=!<>+\-*\/|&?:.%]+)/g;
+
+  let html = '';
+  let cursor = 0;
+  for (const match of source.matchAll(tokenPattern)) {
+    const token = match[0];
+    const offset = match.index;
+    html += escapeHtml(source.slice(cursor, offset));
+
+    let type = '';
+    if (match[1]) type = 'comment';
+    else if (match[2]) {
+      const after = source.slice(offset + token.length);
+      type = lang === 'json' && /^\s*:/.test(after) ? 'key' : 'string';
+    } else if (match[3]) type = 'tag';
+    else if (match[4]) type = 'variable';
+    else if (match[5]) type = 'number';
+    else if (match[6]) {
+      const lower = token.toLowerCase();
+      const before = source.slice(0, offset);
+      const after = source.slice(offset + token.length);
+      if (keywords.has(lower)) type = 'keyword';
+      else if (['true', 'false', 'null'].includes(lower)) type = 'literal';
+      else if ((lang === 'yaml' || lang === 'dotenv' || lang === 'ini') && /^\s*[:=]/.test(after) && /(?:^|\n)\s*$/.test(before)) type = 'key';
+      else if (lang === 'xml' && /<\/?\s*$/.test(before)) type = 'tag';
+      else if (lang === 'xml' && /^\s*=/.test(after)) type = 'key';
+      else if (/^\s*\(/.test(after)) type = 'function';
+      else if (/^[A-Z][A-Z0-9_]*$/.test(token)) type = 'constant';
+    } else if (match[7]) type = 'operator';
+
+    html += type ? `<span class="tok-${type}">${escapeHtml(token)}</span>` : escapeHtml(token);
+    cursor = offset + token.length;
+  }
+  return html + escapeHtml(source.slice(cursor));
+}
+
 function renderMd(md) {
   const lines = md.split('\n');
   const out = [];
@@ -343,9 +413,9 @@ function renderMd(md) {
       i++;
       while (i < lines.length && !/^ {0,3}```/.test(lines[i])) { buf.push(lines[i]); i++; }
       i++;
-      out.push(`<div class="codeblock">${lang ? `<span class="lang">${lang}</span>` : ''}` +
+      out.push(`<div class="codeblock">${lang ? `<span class="lang">${escapeHtml(lang)}</span>` : ''}` +
         `<button class="copy-btn" type="button">复制</button>` +
-        `<pre><code>${escapeHtml(buf.join('\n'))}</code></pre></div>`);
+        `<pre><code class="language-${escapeHtml(normalizeCodeLang(lang))}">${highlightCode(buf.join('\n'), lang)}</code></pre></div>`);
       continue;
     }
     if (/^<!--/.test(line)) {                                 // HTML 注释：编辑者可见、不渲染

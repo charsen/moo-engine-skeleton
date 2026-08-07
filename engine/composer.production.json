@@ -18,14 +18,6 @@
         "tucker-eric/eloquentfilter": "^3.0"
     },
     "repositories": {
-        "scaffold": {
-            "type": "vcs",
-            "url": "https://gitee.com/charsen/moo-scaffold.git"
-        },
-        "monitor": {
-            "type": "vcs",
-            "url": "https://gitee.com/charsen/moo-monitor-laravel.git"
-        },
         "system": {
             "type": "vcs",
             "url": "https://gitee.com/charsen/moo-system.git"
@@ -45,9 +37,7 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         },
-        "files": [
-            "app/Helpers/helpers.php"
-        ]
+        "files": ["app/Helpers/helpers.php"]
     },
     "autoload-dev": {
         "psr-4": {
@@ -55,10 +45,7 @@
         }
     },
     "scripts": {
-        "test": [
-            "@php artisan config:clear --ansi",
-            "@php artisan test"
-        ],
+        "test": ["@php artisan config:clear --ansi", "@php artisan test"],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
@@ -84,18 +71,6 @@
             "dont-discover": []
         },
         "moo-private-packages": [
-            {
-                "name": "charsen/moo-scaffold",
-                "repo-key": "scaffold",
-                "provider-rel": "src/ScaffoldProvider.php",
-                "publish-tag": "public"
-            },
-            {
-                "name": "charsen/moo-monitor-laravel",
-                "repo-key": "monitor",
-                "provider-rel": "src/MonitorProvider.php",
-                "publish-tag": null
-            },
             {
                 "name": "charsen/moo-system",
                 "repo-key": "system",

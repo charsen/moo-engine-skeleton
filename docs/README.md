@@ -42,8 +42,8 @@ cd moo-engine-skeleton
 | Node / npm | Node 26 / npm 11 | **整行可选**：教程第 1-10 章均不涉及前端资源构建（不执行任何 npm 命令），可完全不装；`engine/` 已自带 vite/tailwind 构建配置（`package.json` + `vite.config.js`），仅本教程用不到 |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8（实测均可） | 数据库；本机 `127.0.0.1:3306` |
 | Git | 任意较新版本 | **无需 git-lfs**（本仓库不使用 LFS） |
-| moo-scaffold | 本地 `dev-master as 2.99.99`，生产 `^2.1.3` | **第 2 章起必需**。开源包（MIT）；本地可跟随开发分支，生产必须使用包含共享身份契约的稳定版本。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
-| moo-monitor-laravel | 当前 `dev-master as 0.1.99`，目标 `^0.1` | **非可选**：第 1.7 节当前过渡期通过 VCS 安装；Packagist 目标版本可解析后改为 `composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
+| moo-scaffold | `^2.1.3` | **第 2 章起必需**。开源包（MIT）；按正式版本约束安装。moo-system 为第 7 章的**商业包**（可选，通过 VCS 仓库接入） |
+| moo-monitor-laravel | `^0.1` | **非可选**：第 1.7 节起按正式版本约束安装：`composer require "charsen/moo-monitor-laravel:^0.1"`。scaffold 3.9+ 也会把它作为传递依赖自动带入。 |
 
 动手前先自检一遍（PHP 版本不对的话，先安装/切换到 8.2 或更高版本再继续）：
 
@@ -54,19 +54,18 @@ mysql --version
 node -v && npm -v   # 可选，不做前端构建可跳过
 ```
 
-数据库连接：教程统一用示例凭据 **`root` / `7777`**（换成你自己的，命令里同步替换），库名 **`moo_skeleton`**。建库命令（与[根 README 方式 B](../README.md) 相同）：
+数据库连接：教程统一用示例凭据 **`root` / `7777`**（换成你自己的，命令里同步替换），方式 B 使用独立练习库 **`moo_engine_from_zero`**。建库命令（与[根 README 方式 B](../README.md) 相同）：
 
 ```bash
 mysql -uroot -p7777 -h127.0.0.1 -e \
-  "CREATE DATABASE IF NOT EXISTS moo_skeleton CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+  "CREATE DATABASE IF NOT EXISTS moo_engine_from_zero CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
 ## 目录结构约定（重要）
 
 Laravel 应用放在仓库的 **`engine/`** 子目录里；仓库根目录放教程、初始化器和部署运维脚本，具体上线流程见[第 8 章](./08-部署上线.md)。
 这是作者所有项目统一的目录约定。
-当前过渡期，宿主项目通过 VCS 解析 moo-scaffold / moo-monitor-laravel / moo-system；
-目标状态下，开源包通过 Packagist 安装，只有商业包 moo-system 继续通过 Composer VCS 仓库接入。
+宿主项目中，开源包通过 Packagist 安装，只有商业包 moo-system 通过 Composer VCS 仓库接入。
 这些包都不依赖本地同级目录；执行 composer 命令时仍统一在 **`engine/` 子目录**内执行。
 
 ```
@@ -81,8 +80,8 @@ moo-engine-skeleton/
 
 | 章节 | 内容 | 定位 |
 |---|---|---|
-| [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、连接 MariaDB、建库、真机访问、**1.7 接入监控（标准件·必装；当前 VCS 过渡，目标 Packagist）** | 基础 |
-| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器当前 VCS 过渡 / 目标 Packagist、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
+| [第 1 章 安装 Laravel 12](./01-安装-laravel.md) | 创建项目、配置 Pint、连接 MariaDB、建库、真机访问、**1.7 接入监控（标准件·必装，正式版本安装）** | 基础 |
+| [第 2 章 安装 moo-scaffold](./02-安装-moo-scaffold.md) | 开源代码生成器按正式版本安装、设计 `foods` 表、一键生成业务代码、两种方式调接口 | 基础 |
 | [第 3 章 JWT 登录认证（自建用户）](./03-JWT-登录认证-自建用户.md) | **零付费依赖**：最简 User 实现 JWTSubject、双守卫规划、三中间件、登录/me/刷新/登出全链路 | 核心 |
 | [第 4 章 JWT 加固与生产化](./04-JWT-加固与生产化.md) | 生产踩坑回灌：persistent_claims、黑名单宽限、滑动续期、CORS、限流、生产 composer、第一批接口测试 | 核心 |
 | [第 5 章 给 Food 上 JWT 与 ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：Gate 契约、401→403→授权→200（User actions 列最小实现） | 核心 |
@@ -97,7 +96,6 @@ moo-engine-skeleton/
 > **包定位**：moo-scaffold / moo-monitor-laravel 是开源包，目标发布到 Packagist；
 > moo-system 是商业包，需要联系作者授权并通过 VCS 仓库安装。
 > 第 1~6 章不依赖任何**付费**包，装不装第 7 章，前六章的骨架都是完整可用的。
-> 当前过渡期若 Packagist 尚未同步目标版本，示例仓库会临时保留开源包的 VCS 配置以保证可运行。
 
 ## 踩过的坑速查
 
@@ -106,8 +104,8 @@ moo-engine-skeleton/
 | # | 现象 | 原因 / 解决 | 章节 |
 |---|---|---|---|
 | 1 | 生成 Model 报 `EloquentFilter\Filterable not found` | 当前 scaffold 已直接声明 `eloquentfilter` + `php-snowflake`；先用 `composer why` 确认依赖链，缺失说明 scaffold 安装不完整 | 2 |
-| 2 | 报 `BaseActionTrait not found` | 首次生成必须按 2.6 的顺序：`moo:fresh` → `moo:controller Food` → `moo:free`；不要等控制器已写入后才补命令 | 2 |
-| 3 | `moo:free` 里 `moo:api` 提示 No routes matched | 前置 `moo:controller Food` 未成功，导致本进程启动时还没有 Food 路由；修正后补跑 `moo:auth admin` 和 `moo:api admin Food` | 2 |
+| 2 | 报 `BaseActionTrait not found` | 当前正式版应由 `moo:free admin Food -a` 生成共享 trait；确认已安装教程指定版本，并按 2.6 重跑 `moo:fresh` → `moo:free` | 2 |
+| 3 | `moo:free` 里 `moo:api` 提示 No routes matched | 检查 2.3 的路由插入标记与 `iResource` 宏；确认 Food 路由已生成后，补跑 `moo:auth admin` 和 `moo:api admin Food` | 2 |
 | 4 | 调试器代理一直转圈 | 单线程 serve 自我代理死锁，用 `PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload` 启动 | 2 |
 | 5 | 装 moo-system 后 artisan 报 `Attribute [iResource] does not exist` | 第 2 章的完整反射版 `iResource` 宏未正确注册在 `AppServiceProvider::register()`；回到 2.3 修正后重跑 Composer | 2 / 7 |
 | 6 | 调部门列表报 `undefined function toLabelValue()` | 补 `app/Helpers/helpers.php` 并 `composer` files 自动加载 | 7 |

@@ -30,26 +30,15 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 没有访问权，下面的 `composer update` 第一步就会失败（Composer 拉不到 VCS 仓库）。
 
 把 `system` 仓库加进 `engine/composer.json` 的 `repositories`。下面片段只示意要**新增**
-`system` 这一项；当前过渡期第 1 / 2 章加过的 `monitor`、`scaffold` VCS 仓库要原样保留，
-不要整块覆盖：
+`system` 这一项；开源包保持正式版本约束安装，只有商业私有包 `moo-system` 保留 VCS：
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "dev-master as 2.99.99",
-    "charsen/moo-monitor-laravel": "dev-master as 0.1.99",
-    "charsen/moo-system": "dev-master as 1.999.0"
+    "charsen/moo-scaffold": "^2.1.3",
+    "charsen/moo-monitor-laravel": "^0.1",
+    "charsen/moo-system": "^1.6.17"
 },
 "repositories": [
-    {
-        "name": "scaffold",
-        "type": "vcs",
-        "url": "git@gitee.com:charsen/moo-scaffold.git"
-    },
-    {
-        "name": "monitor",
-        "type": "vcs",
-        "url": "git@gitee.com:charsen/moo-monitor-laravel.git"
-    },
     {
         "name": "system",
         "type": "vcs",
@@ -58,8 +47,8 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 ]
 ```
 
-> composer **不会**读依赖包自带的 repositories 声明；当前过渡期 host 要保留这三个仓库。
-> Packagist 同步开源包目标版本后，可删掉 `monitor` / `scaffold` 两项，只保留 `system`。
+> composer **不会**读依赖包自带的 repositories 声明；本仓库约定只为 `moo-system`
+> 保留私有仓库声明。
 
 安装前先检查第 2 章的 `iResource` 契约：
 
