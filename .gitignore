@@ -6,5 +6,8 @@ CLAUDE.local.md
 # db-yaml-drift-probe.php 的生成报告（含 host 库表结构，按需本地生成，不入仓）
 tools/db-yaml-drift.md
 
+# 本地开发依赖锁仅供当前环境使用；生产继续使用并提交 composer.production.lock。
+/engine/composer.lock
+
 # macOS
 .DS_Store
