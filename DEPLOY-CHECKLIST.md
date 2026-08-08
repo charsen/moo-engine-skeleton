@@ -87,7 +87,9 @@ _（本次上线高风险项：______________________ ；无则显式写"无"）
   ```bash
   sudo sh pull.sh --production
   ```
-- [ ] **DB migrate + seed**：`cd engine && php artisan migrate --force`（首批账号按需 `--seed`）
+- [ ] **DB migrate**：`cd engine && php artisan migrate --force`；禁止在生产运行含公开演示账号的
+  通用 `DatabaseSeeder`。首个管理员用随机密码的一次性流程创建，业务字典使用不含账号的
+  `ProductionSeeder`。
 - [ ] **storage 软链 + 权限**：pull.sh Step 6 调 cache.sh 自动处理
 - [ ] **supervisor + cron**：queue worker + `schedule:run`（O-2 / O-3）+ 每晚 `sh cache.sh` + 每天
   `backup.sh`（见 [`SCRIPTS.md`](./SCRIPTS.md) crontab 标配）

@@ -1,24 +1,17 @@
 # 第 5 章　给 Food 上 JWT 与 ACL（动作级授权）
 
-目标：把第 2 章故意公开的 `food` 接口锁进 JWT，并启用这套架构的招牌能力——
-**动作级 ACL 授权**。做完后完整走一遍：无 token `401` → 有 token 无权限 `403` →
-给用户授权 → `200`。
+目标：为 Food 接口加入 JWT 和动作级 ACL，验证 `401 → 403 → 授权 → 200`。
 
 > ACL 的鉴权引擎在 moo-scaffold（免费）里，授权数据怎么存由 host 决定。
 > 本章用自建 User 的 `actions` 列做**最小实现**；第 7 章的 moo-system（进阶包）
 > 用「角色 → 动作」的完整授权体系实现同一个契约。
 
-> ⚠️ **本章演练适用的代码状态**：本文按「方式 B（从 0 跟教程）做到第 4 章末」的
-> 快照行文。仓库 HEAD 是第 7~9 章的**最终态**——admin 守卫已换成 Personnel 登录、
-> `config/actions.php` 已生成且内容庞大、ACL 开关已是 `true`、food 路由组已带中间件
-> 并多了第 9 章的路由——所以下文所有「去改 X」「现在还没有 Y」在仓库里都对不上号；
-> 仓库也没有按章 tag/分支，回不到「第 5 章状态」。**对照仓库的读者（方式 A）请只看
-> 思路；真机跟做 5.3 需要方式 B 的进度。** 方式 A / 方式 B 的定义见
-> [docs/README.md](./README.md)。
+> 本章按方式 B 完成第 4 章后的状态编写。方式 A 的仓库已包含后续 Personnel 和角色授权代码，
+> 可参考机制，但不要直接照搬本章的 User 演练数据。
 
 ---
 
-## 5.1 先花两分钟搞懂机制
+## 5.1 ACL 如何工作
 
 moo-scaffold 生成的每个控制器都带这么一段：
 
@@ -97,7 +90,7 @@ class AuthServiceProvider extends ServiceProvider
 }
 ```
 
-本轮方式 B 项目里 `config/actions.php` 已由前面的生成流程创建，这是正常的；此刻它的
+方式 B 中，`config/actions.php` 已由前面的生成流程创建；此刻它的
 `admin.whitelist` 仍为空，不能代替 Gate。先快速确认：
 
 ```bash
@@ -109,8 +102,7 @@ php artisan tinker --execute="var_dump(config('actions.admin.whitelist', []));"
 > ⚠️ ②③④ 必须有实现，不能只留注释——闭包对非 root 隐式返回 `null` 的话，
 > 所有普通用户会被全部拒绝。
 >
-> 📦 仓库的 `engine/app/Providers/AuthServiceProvider.php` 是第 7 章后的**最终版**，
-> 主体变量名和注释已换成 Personnel / RoleSeeder 等概念，但四段判定顺序一致。
+> 第 7 章会把授权主体改为 Personnel，但判定顺序不变。
 
 别忘了在 `bootstrap/providers.php` 登记这个 Provider，完整结果应为：
 
@@ -148,7 +140,7 @@ php artisan tinker --execute="var_dump(Gate::has('acl_authentication'));"
 > `md5` 开关决定 5.1 / 5.3 ③ 算出来的 key 形态：若你把它改成 `false`，
 > 5.3 ③ 按 md5 手算的 key 会**静默失配**（403 始终不变 200）。本教程全程保持 `true`。
 >
-> 📦 仓库 HEAD 里 `check` 已经是 `true`——「去改它」只对方式 B 跟做成立。
+> 使用完成态仓库时，这个开关已经是 `true`。
 
 **第 3 步：food 路由入组。** `routes/admin.php` 里把 food 那个空 group 改成：
 
@@ -162,18 +154,12 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 这里故意保留生成器写入的完整类名；若改成 `FoodController::class`，还必须在文件顶部补
 `use App\Admin\Controllers\Food\FoodController;`，漏掉会导致路由加载失败。
 
-> 📦 仓库 HEAD 的这个 group 早已带中间件，且多了一条第 9 章的
-> `Route::post('food/{id}/toggle-status', ...)` ——方式 B 做到本章只需上面这段。
->
 > 从此第 2 章"无 token 调 food"的玩法失效，调试器/curl 都要带 `Bearer token`
 > （第 2 章已加注记）。admin@example.com 有 `is_root`，不会把自己锁在门外。
 
 ## 5.3 真机演练：403 → 授权 → 200
 
-> ⚠️ 本节只适用于**方式 B 跟做到第 4 章末**的代码状态（见开篇说明）。仓库最终态的
-> admin 守卫 provider 已是 `personnels`，`AuthController` 校验的是 `account` 字段
-> 并查 moo-system 的 Personnel（姓名/手机号）——在最终态上跑下面的 email 登录会直接
-> 422 / 查无此人。
+> 本节按方式 B 的 User 状态演练。完成第 7 章后，请改用 Personnel 的 account 登录。
 
 跟做前先确认两件事：
 
@@ -252,7 +238,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "$BASE/api/admin/food?page=1&page_limit
   -H "Authorization: Bearer $EDITOR_TOKEN"    # 200
 
 # 编辑小王新增 → 仍然 403（没授 store）。store 是 POST，必须带齐合法请求体才能
-# 越过表单校验看到 403（否则先撞 422，正是 5.4 的坑 #16）。必填字段可在
+# 越过表单校验后才会看到 403。必填字段可在
 # /scaffold 调试器或 app/Admin/Requests/Food/Food/StoreRequest.php 查到：
 curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/api/admin/food" \
   -H "Authorization: Bearer $EDITOR_TOKEN" \
@@ -262,12 +248,8 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/api/admin/food" \
 
 ## 5.4 两个容易误判的点
 
-> 「坑 #N」编号出自 [docs/README.md](./README.md) 的「踩过的坑速查」表——
-> 下面的 #16 正是本章贡献的那条。
-
-1. **先 422 后 403**（坑 #16）：表单校验发生在控制器 `boot()` 之前。参数不合法时
-   你会先看到 422——别误以为"ACL 没生效"，把 `page`/`page_limit` 等必填参数带齐
-   才能看到 403（POST 同理，见 5.3 ④）。
+1. **先 422 后 403**：表单校验发生在 ACL 之前。参数不合法时会先返回 422；
+   带齐必填参数后才能验证 403。
 2. **白名单/授权改完不生效？** 跑过 `config:cache` 的话先 `php artisan config:clear`
    （5.2 第 2 步已提醒过一次，这里再记一笔）。
 
@@ -372,14 +354,11 @@ class FoodAclTest extends TestCase
 
 ```bash
 php artisan test
-# 本轮第 5 章时间点实测：15 passed
 ```
 
 > `foodIndexAclKey()` 同时兼容 `authorization.md5=true/false`，避免测试里写死
 > `d84c4f5251f855f0` 后，配置一改就产生假失败。
->
-> 📦 仓库最终态的同名测试会在第 7 章随主体切换为 Personnel + 角色授权版；
-> 本章先用上面这份 User 版，到了第 7 章再替换。
+> 第 7 章会把测试主体从 User 换成 Personnel，ACL 断言保持不变。
 
 ---
 

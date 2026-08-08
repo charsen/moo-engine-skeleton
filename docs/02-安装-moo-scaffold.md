@@ -1,12 +1,8 @@
 # 第 2 章　安装 moo-scaffold，生成 foods 表的业务代码
 
-目标：把 `charsen/moo-scaffold`（代码生成器 + 可视化调试工具）接入项目，
-设计一张 `foods` 表，一键生成全套 CRUD 业务代码，并用两种方式真机调试接口。
+目标：安装 `moo-scaffold`，设计 `foods` 表，生成 CRUD，并完成接口验证。
 
-> 📌 **仓库现状 vs 本章时点**：本仓库只保留全书完成后的**终态代码**，没有按章打 tag / 分支。
-> 后面章节会不断改写本章的产出（路由、宏、YAML……），所以拿仓库文件核对时会发现
-> 「比文中多了东西」——凡是这种地方，文中都有「来自第 X 章的更新」之类的回注说明。
-> **跟做时以文中代码为准**，回注只用来解释差异。
+> 仓库保存的是全书最终代码，可能比本章示例多。跟做时以正文为准。
 
 ---
 
@@ -19,12 +15,10 @@ composer require "charsen/moo-scaffold:^2.1.3"
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
 
-Composer 会自动更新 `composer.json` 和 `composer.lock`，并安装包括 `moo-monitor-laravel`
-在内的依赖；第 1.7 节已经安装过的包会直接复用。
+Composer 会更新 `composer.json` 和 lock；已安装的 monitor 兼容时直接复用，
+版本偏低时会自动升级。
 
-`moo:free` 会生成 Pest 语法的路由契约测试，而全新 Laravel 12 只预装 PHPUnit。
-现在就把 Pest 测试环境补齐，避免生成后 `php artisan test` 天然报
-`Call to undefined function it()`：
+`moo:free` 会生成 Pest 测试，先安装测试依赖：
 
 ```bash
 composer config allow-plugins.pestphp/pest-plugin true
@@ -61,9 +55,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 也就是说，名叫 `api.php` 的文件反而**不在** `/api` 前缀下；2.7 那条
 `curl http://127.0.0.1:8088/api/admin/food`，落在的是 `routes/admin.php`。
 
-> 📌 **来自第 3 / 5 章的更新**：仓库现状的这两个文件已经长大了——多了第 3 章的
-> `authenticate` / `logout` / `refresh` / `me` 等登录路由，food 业务组也已包上第 5 章的
-> JWT 中间件。本章时点只需要下面的最简骨架。
+> 仓库中的文件已经包含后续章节内容。本章先写下面的最小骨架。
 
 `routes/admin.php`：
 ```php
@@ -88,10 +80,8 @@ Route::get('/', static fn () => 'Hello app api ~');
 // :insert_code_here:do_not_delete
 ```
 
-在 `bootstrap/app.php` 的 `withRouting()` 里用 `then:` 挂载它们
-（**第 3 章**会把这段换成 `using:` 并给挂载点指定中间件组，这里先用最简形式。
-提前点名一个 `using:` 的副作用：换成 `using:` 后框架的 `health: '/up'` 参数会**失效**，
-要手动补一条 `/up` 路由——仓库 `engine/bootstrap/app.php` 里就是这么做的）：
+在 `bootstrap/app.php` 的 `withRouting()` 里用 `then:` 挂载路由。第 3 章接入中间件组时，
+会再改为 `using:`：
 ```php
 ->withRouting(
     web: __DIR__.'/../routes/web.php',
@@ -234,7 +224,7 @@ tables:
             food_status:   { on_shelf: [1, on shelf, 上架], off_shelf: [2, off shelf, 下架] }
 ```
 
-两个新手必问的点：
+注意两点：
 
 - **`id: { }` / `deleted_at: { }` / `created_at: { }` 为什么是空的？** 这些是**约定字段**，
   留空即可——生成器会自动补全类型（`id` 是雪花算法主键，见 2.6 末尾的表结构）。
@@ -295,7 +285,7 @@ tests/Feature/Admin/Food/FoodControllerTest.php
   本例俩恰好同名才显得重复；模块目录换个名（比如 `Catalog`）就是 `Catalog/Food/`。
 - 📌 **对照仓库时的两处差异**：① `app/Models/Traits/` 里仓库还有一个
   `MediaSynchronous.php`——那是**第 7 章** host 契约抄进去的，本章不会生成；
-  ② 「没有单独的 FoodResource」是本章时点的事实，**第 9.9 章**为定制列表字段
+  ② 「没有单独的 FoodResource」是本章时点的事实，**第 9 章 9.9 节**为定制列表字段
   新增了 `app/Admin/Resources/Food/FoodResource.php`，`FoodController` 的
   index/show 改用了它（store/update 等仍用 BaseResource）。本章生成完没有这两样，正常。
 
@@ -310,7 +300,7 @@ test -f scaffold/api/admin/Food/Food.yaml
 php artisan test tests/Feature/Admin/Food
 ```
 
-应该看到 10 条 Food 路由，2 个契约测试全部通过。如果 `moo:free` 里的
+应该看到 Food 资源路由，生成的契约测试全部通过。如果 `moo:free` 里的
 `moo:auth` / `moo:api` 提示没有路由匹配，先检查 2.3 的路由插入标记和
 `iResource` 宏；确认 Food 路由已经生成后，再单独执行：
 
@@ -331,7 +321,7 @@ PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-rel
 
 ### 2.6.2 校准列表筛选入参（别让 Filter 成为死代码）
 
-本轮实操发现，当前生成器会在 `FoodFilter` 里生成 `price()` / `calories()` /
+当前生成器会在 `FoodFilter` 里生成 `price()` / `calories()` /
 `description()` / 日期筛选方法，但 `IndexRequest` 默认只放行名称和枚举字段。
 控制器调用的是 `->filter($request->validated())`：**没写进 rules 的查询参数会被丢掉**，
 所以 Filter 方法看似存在、实际永远不会执行。

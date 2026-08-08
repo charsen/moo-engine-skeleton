@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use LogicException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,6 +19,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new LogicException(
+                'DatabaseSeeder contains public demo credentials and must not run in production. '
+                . 'Create a credential-free ProductionSeeder instead.'
+            );
+        }
+
         $this->call([
             UserSeeder::class,
             RoleSeeder::class,

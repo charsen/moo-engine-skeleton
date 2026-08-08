@@ -1,22 +1,9 @@
 # 第 3 章　JWT 登录认证（自建最简用户）
 
-目标：**不依赖任何付费包**，用 Laravel 自带的 `users` 表 + 一个最简 User 模型，
-把整套 JWT 登录跑通：登录拿 token → 无 token 401 → 带 token 200 → 刷新 → 登出。
+目标：使用 Laravel 自带的 User 跑通 JWT 登录、鉴权、刷新和登出，不依赖商业包。
 
-> 这一章建立的认证骨架（中间件、守卫、路由结构）是后面所有章节的地基。
-> 第 7 章接入 moo-system（进阶包）时，只是把**后台守卫的主体换成 Personnel**——
-> 骨架一行不用动，这正是本章要体会的设计。
-
-**前置与约定**（只读本章的话，先看这四条）：
-
-- 本章接着第 2 章做：`routes/admin.php` 和 `bootstrap/app.php` 的 `then:` 挂载是第 2 章建好的；
-  本地服务跑在 **8088 端口**，启动命令是第 2 章的
-  `PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload`。
-- 文中「坑 #N」指 [docs/README.md](./README.md) 里「踩过的坑速查」表的编号，本章不再展开。
-- 文中的仓库文件路径（如 `app/Models/User.php`）都相对仓库的 **`engine/` 子目录**——
-  仓库根目录只有 `docs/`、`engine/` 等，按根目录字面找 `app/`、`database/` 会落空。
-- 📦 标注 = 仓库里的对应文件是**第 7 章之后的最终版**，与本章要写的版本不一致——
-  看到 📦 就照文档写，别照仓库抄。
+前置：已完成第 2 章；命令均在 `engine/` 执行，服务端口为 `8088`。
+仓库保存最终代码，与本章不同时以正文为准。
 
 ---
 
@@ -30,14 +17,8 @@ php artisan jwt:secret --force        # 生成 JWT_SECRET 写入 .env
 
 得到 `config/jwt.php`（先用默认值，第 4 章逐项加固它）。
 
-> ⚠️ `jwt:secret --force` 会**无条件覆盖** `.env` 里已有的 `JWT_SECRET`——换密钥 =
-> 所有已签发的 token 立刻全部作废、全员被踢重新登录（`config/jwt.php` 里的注释也这么写）。
-> 全新项目随便跑；在已有环境上跑之前想清楚。
->
-> 版本提示：这里用 `~2.8.3`，允许 2.8 系列的补丁更新，但不自动跨到 2.9。
-> 原因是 2.9 起要求 PHP 8.3，而本骨架承诺 PHP 8.2+；若写成宽泛的 `^2.8`，
-> Composer 会在 PHP 8.3 机器装到 2.9、在 PHP 8.2 机器装到 2.8，团队成员得到不同依赖树。
-> 安装后运行 `composer show php-open-source-saver/jwt-auth`，本教程当前应为 **2.8.3**。
+> `jwt:secret --force` 会覆盖旧密钥，使现有 token 全部失效；只在新项目或计划换密时执行。
+> `~2.8.3` 将依赖限制在支持 PHP 8.2 的 2.8 系列。
 
 ## 3.2 自建最简用户：User 实现 JWTSubject
 
@@ -122,18 +103,36 @@ class User extends Authenticatable implements JWTSubject
 
 `getActions()` 和 `isRoot()` 是第 5 章 ACL 的最小授权存储，本章先不用理解。
 
-> 📦 仓库 `engine/app/Models/User.php` 的 `isRoot()` 实为 `return false`（注释：自增主键体系下不启用，
-> 超级权限统一走 `actions` 里的 `is_root` 字面量，由第 5 章 host 的 `AuthServiceProvider` 在 Gate 里用
-> `getActions()` 兜底判定）。两种写法对 `is_root` 用户的最终效果一致、本章也用不到该方法——这里按上面这版
-> （`in_array` 更直观）写即可；仓库那行 `return false` 是第 7 章主体切到 Personnel 后定的最终形态。
+> 第 7 章接入 Personnel 后会调整 `isRoot()`；本章按上面的 User 版本实现。
 
 ### 3.2.2 给 users 表加 actions 列
 
 第 5 章会给 User 加 `actions` 列（ACL 最小授权存储）——为了让下面的 UserSeeder 能运行，
 现在先建好这个列。
 
-**新建迁移文件** `database/migrations/2024_01_15_100000_add_actions_to_users_table.php`
-（时间戳用当前时间，格式为 `年_月_日_时分秒`），完整代码如下：
+先确认项目里没有同用途迁移，并查看当前迁移账本：
+
+```bash
+find database/migrations -name '*add_actions_to_users_table.php' -print
+php artisan migrate:status
+php artisan tinker --execute="var_dump(Schema::hasColumn('users', 'actions'));"
+```
+
+按结果处理：
+
+- 没有同名迁移且输出 `bool(false)`：继续执行下面的 `make:migration`。
+- 已有迁移、状态为 `Pending` 且输出 `bool(false)`：不要重复创建，直接执行该迁移。
+- 已有迁移、状态为 `Ran` 且输出 `bool(true)`：本节已经完成，跳到 3.2.3。
+- 迁移为 `Pending` 但列已存在：迁移账本与表结构不一致。不要在迁移里用
+  `Schema::hasColumn()` 静默跳过；按第 1.3 节换一个独立空库后重新迁移。
+
+确认需要新建后，让 Artisan 自动生成当前时间戳文件：
+
+```bash
+php artisan make:migration add_actions_to_users_table --table=users
+```
+
+打开命令输出的 `database/migrations/*_add_actions_to_users_table.php`，写入：
 
 ```php
 <?php
@@ -161,25 +160,6 @@ return new class extends Migration
     }
 };
 ```
-
-迁移前先确认当前练习库里还没有这个列：
-
-```bash
-php artisan tinker --execute="var_dump(Schema::hasColumn('users', 'actions'));"
-# 期望输出 bool(false)
-```
-
-如果这里已经是 `true`，不要继续执行迁移，也不要把迁移改成
-`Schema::hasColumn()` 条件跳过。这通常表示方式 B 误用了成品骨架的 `moo_skeleton`
-旧库，数据库里的迁移账本也可能包含当前练习项目没有的 moo-system / Food 记录。
-按第 1.3 节创建独立空库，在 `.env` 改成 `DB_DATABASE=moo_engine_from_zero`，然后执行：
-
-```bash
-php artisan config:clear
-php artisan migrate
-```
-
-如果 `moo_engine_from_zero` 也不是空库，就换一个从未使用过的库名；不要删除或覆盖旧库。
 
 执行迁移：
 
@@ -217,10 +197,8 @@ class UserSeeder extends Seeder
 }
 ```
 
-**编辑** `database/seeders/DatabaseSeeder.php`，修改 `run()` 方法只调用 UserSeeder
-（📦 仓库版的 `DatabaseSeeder` 还列着第 7 章的四个 moo-system seeder——那四个依赖
-moo-system 包的 Personnel 等模型，你的项目现在还没装包，照抄仓库版跑起来会报错——
-本章先这样写，第 7 章再加回去）：
+**编辑** `database/seeders/DatabaseSeeder.php`，让 `run()` 只调用 `UserSeeder`。
+moo-system 的 seeder 等第 7 章安装包后再加入：
 
 ```php
 public function run(): void
@@ -262,9 +240,7 @@ php artisan db:seed --class=UserSeeder
 ],
 ```
 
-> 📦 **第 7 章的变化**：接入 moo-system 后，`admin` 守卫的 provider 会切到
-> `personnels`（包里的 Personnel 模型）；`user` 守卫**永久**用自建 User。
-> 所以仓库里的 `config/auth.php` 是切换后的最终版，本章按上面的写。
+> 第 7 章会把 `admin` provider 改为 Personnel；`user` 仍使用自建 User。
 
 
 ## 3.4 三个 JWT 中间件 + 中间件组
@@ -451,11 +427,7 @@ class JWTAuthOrRefresh
 > 因此不能只在续签后检查 `$this->auth->user()`；必须用新 token 再跑一次
 > `authenticate()`，同时验证用户仍存在并为本次业务请求建立认证上下文。
 
-> 📦 第 7 章接入 moo-system 后，续签成功处会**再补一行**
-> `if (! empty($old_token) && class_exists(UpdateLoginTokenJob::class)) { UpdateLoginTokenJob::dispatch($old_token, $token); }`
-> （同步包里的登录管理记录）。它用 `class_exists` 守卫——未装 moo-system 时静默跳过，
-> 所以本章这版**不依赖任何付费包、可直接抄**，与仓库 `engine/app/Http/Middleware/JWTAuthOrRefresh.php`
-> 的差异仅此一行（仓库版即上面这段 + 这行 Job）。
+> 第 7 章会在续签成功后同步 moo-system 的登录记录；本章暂不依赖商业包。
 
 ### 3.4.4 注册中间件别名和组
 
@@ -500,24 +472,18 @@ public function boot(): void
 use Illuminate\Routing\Middleware\SubstituteBindings;
 ```
 
-> **命名对照（容易绕晕，先记下来）**——同一条通道在三处用了不同名字：
+> **命名对照**：
 >
 > | 通道 | 守卫名（config/auth.php） | 中间件组名（本节） | URL 前缀（bootstrap/app.php） |
 > |---|---|---|---|
 > | 后台 | `admin` | `admin` | `api/admin` |
 > | 移动端 | `user` | `client` | `app` |
 >
-> 后台三处都叫 admin 最省心；移动端则是守卫 `user`、组 `client`、前缀 `app` 三个名字。
-> 区分规则：`jwt.assign.guard:X` / `jwt.guard.auth:X` 冒号后的 X 永远是**守卫名**；
+> `jwt.assign.guard:X` / `jwt.guard.auth:X` 中的 X 是**守卫名**；
 > `middlewareGroup('X', …)` 和 `Route::middleware('X')` 里的 X 是**组名**。
 
-> **为什么写在 provider 的 `boot()` 而不是 `bootstrap/app.php` 的 `withMiddleware()`？**
-> 后者注册的组只有「HTTP 内核」实例化时才同步到 router，artisan 命令走「Console 内核」
-> 看不到——第 7 章的 `moo-system check` 自检就靠这一点才能通过（坑 #7）。
->
-> 📦 第 4 章会往组里加 `throttle:*`（限流），第 7 章再加 `OperationLog`（操作日志）。
-> 仓库最终版三个组并不一样：`admin` 和 `moo-system` 组两样都加了；`client` 组只加了
-> `throttle:client`，**没有 OperationLog**（移动端不记操作日志）。
+> 中间件组必须在 provider 的 `boot()` 注册，确保 HTTP 和 Artisan 都能读取。
+> 第 4 章会加入限流，第 7 章再加入后台操作日志。
 
 ### 3.4.5 修改 bootstrap/app.php 路由挂载
 
@@ -645,15 +611,14 @@ class AuthController
 }
 ```
 
-> **三个「长得像 Laravel 却不是」的调用**——jwt-auth 用自己的 `JWTGuard` 整个替换了
-> 守卫实现，API 语义跟着变了，不是上面的代码写错：
+> jwt-auth 的 `JWTGuard` 与 Laravel session guard 有三处不同：
 >
 > - `login($user)` **返回 token 字符串**。Laravel 原生 `login()` 返回 void，这里能用
 >   `$token =` 接住，是 JWTGuard 重写后的行为（签发并返回 token）；
 > - `refresh(false, false)` 的两个参数是 `forceForever`（旧 token 是否永久拉黑）和
 >   `resetClaims`（是否丢弃自定义声明）。`resetClaims = false` 是为了保住 token 里的
 >   `guard` 声明——还要配合第 4 章的 `persistent_claims` 配置，否则续签出的 token
->   过不了 `JWTGuardAuth`（生产真坑，坑 #10，仓库 AuthController 的注释有详细说明）；
+>   否则续签 token 会丢失 guard，无法通过 `JWTGuardAuth`；
 > - `logout(true)` 的 `true` 也是 `forceForever`：把当前 token **永久**拉黑。
 
 **编辑** `routes/admin.php`，添加路由（记得文件顶部添加 `use App\Admin\Controllers\AuthController;`）：
@@ -674,16 +639,11 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 > 因此不能拿 `logout` 自身的 200 判断退出是否生效；必须像 3.6 ⑤ 那样，先用一个仍有效的
 > token 调退出，再拿同一个 token 访问受保护接口并确认变成 401。
 
-> 📦 **这一段别照仓库抄**——仓库 `routes/admin.php` 是第 4 章重构后的最终版，有两处不同：
-> ① 仓库的 `authenticate` 挂了 `throttle:login` 登录限流（第 4 章加的）；
-> ② 仓库的 `refresh` 已**移出** `jwt.auth.refresh` 组、只挂 `jwt.guard.auth:admin`——
-> 把 refresh 放进自动续签组，过期 token 会被中间件和控制器各续签一次，派生出一个永远
-> 无法作废的「孤儿 token」（坑 #18）。本章先按上面的简单版写，第 4 章 §4.4 专门重构它；
-> 下面 3.6 ④ 用的是**未过期**的 token，不会触发这个缺陷。
+> 第 4 章会为登录加限流，并把 `refresh` 移出自动续签组，避免过期 token 被续签两次。
 
 ## 3.6 真机验证
 
-服务起着（多 worker，命令见本章开头的前置约定，原因见坑 #4），逐条跑：
+保持服务运行，逐条验证：
 
 ```bash
 BASE=http://127.0.0.1:8088
@@ -712,16 +672,10 @@ curl -s -X POST $BASE/api/admin/logout -H "Authorization: Bearer $NEW_TOKEN"    
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $NEW_TOKEN"   # 401
 ```
 
-> 为什么 ④ 里旧 token **立即** 401：本章 `config/jwt.php` 全用默认值，黑名单宽限期
-> `blacklist_grace_period` 默认是 0——refresh 一执行，旧 token 当场进黑名单。
-> 一个容易误判的点：拿**已拉黑**的旧 token 去调 logout，照样返回 200——`JWTGuard`
-> 的 `logout()` 对拉黑失败是吞掉异常照常登出的（幂等设计），所以「登出是否生效」
-> 必须像 ⑤ 那样用一个**还有效的** token 验证。宽限期为什么生产上要调成 90 秒，
-> 第 4 章讲（坑 #11）。
+> 本章黑名单宽限期为 0，因此 refresh 后旧 token 立即失效。`logout` 是幂等接口，
+> 判断退出是否生效要再次访问受保护接口，不能只看 logout 返回的 200。
 
-> 本节 5 条命令覆盖的是新手先要跑通的正常链路；`JWTAuthOrRefresh` 的“过期但仍在
-> 续期窗口内 → 自动换新 token”分支，靠普通未过期 token 触发不了。第 4 章 4.9 会专门
-> 构造过期 token，验证业务仍返回 200、响应头带新 token，以及错误 guard 不能跨端续签。
+> 第 4 章会继续验证过期 token 自动续签和跨守卫拦截。
 
 ---
 

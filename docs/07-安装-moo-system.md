@@ -1,20 +1,9 @@
 # 第 7 章　安装 moo-system（进阶：完整系统管理）
 
-目标：接入 `charsen/moo-system`，后台一步升级成完整的系统管理：
-**部门 / 岗位 / 人员 / 角色 / 授权 / 登录管理 / 操作日志 / 个人中心**。
-后台守卫的主体从自建 User 切换为包里的 Personnel——前六章搭的中间件、路由、Gate、
-移动端守卫**机制层一行不用动**，要换的只有「主体」两处（见 7.3），
-这正是第 3 章埋下的伏笔。
+目标：接入 `moo-system`，加入部门、岗位、人员、角色、授权和操作日志，
+并把后台认证主体从 User 切换为 Personnel。
 
-> 📦 moo-system 是**商业包**（proprietary，获取与授权方式联系作者）。
-> 没有它，前六章的骨架已是完整可用的"自建用户 + JWT + ACL"后端
-> （moo-scaffold 本身是开源的）；装上它，你得到的是一套生产里打磨过的
-> 组织架构与授权体系。
-
-> 💡 **关于「坑 #N」的编号**：全系列的坑统一编号、收录在
-> [docs/README.md 的踩坑速查表（31 条）](./README.md)里。本章按**出现顺序**引用
-> #5、#6、#19、#17、#7、#8、#9、#15、#20、#13、#21——不连续、不从 1 开始都是正常的
-> （其余编号在别的章），不是你漏看了前面的坑；随时可去速查表对照。
+> moo-system 是可选商业包，需要授权访问。未安装时，前 6 章的 User + JWT + ACL 仍可独立使用。
 
 ---
 
@@ -73,6 +62,9 @@ composer update charsen/moo-system --with-all-dependencies
 第 4 章建立的 `composer.production.json` 还是当时的最小版本，不含 `moo-system`、
 `predis/predis`、`tucker-eric/eloquentfilter` 和部署脚本依赖的私包 manifest。此处必须同步升级，
 否则开发环境看似完成，到了第 8 章生产安装时才会失败。在项目根目录执行：
+
+> 下文复制的参考仓库必须与当前教程来自同一 tag 或 commit。不要把新版主分支的
+> 最终态文件复制到旧版依赖中。
 
 ```bash
 REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 按你的实际位置调整
@@ -199,18 +191,30 @@ if (! function_exists('toLabelValue')) {
 }
 ```
 
-然后在 `composer.json` 登记 `files` 自动加载后 `composer dump-autoload`：
+然后在 `composer.json` 的现有 `autoload` 中加入 `files`。下面是可直接替换的完整
+`autoload` 段，不要把省略号写进 JSON：
 
 ```json
 "autoload": {
-    "psr-4": { "App\\": "app/", ... },
-    "files": [ "app/Helpers/helpers.php" ]
+    "psr-4": {
+        "App\\": "app/",
+        "Database\\Factories\\": "database/factories/",
+        "Database\\Seeders\\": "database/seeders/"
+    },
+    "files": [
+        "app/Helpers/helpers.php"
+    ]
 }
 ```
 
-> ⚠️ **坑 #6**：不补 `toLabelValue()`，调部门列表会报 `undefined function`（HTTP 500）。
-> 这时去 `storage/moo-monitor/runtimes/open/` 看（第 1.7 节接入的监控），能看到完整的
-> 异常栈与触发位置——从此报错有地方看了。
+```bash
+composer dump-autoload
+php -r "require 'vendor/autoload.php'; var_dump(function_exists('toLabelValue'));"
+# bool(true)
+```
+
+> 缺少 `toLabelValue()` 时，部门列表会返回 500。完整异常栈可在
+> `storage/moo-monitor/runtimes/open/` 查看。
 
 ## 7.3 后台主体切换：User → Personnel
 
@@ -258,17 +262,9 @@ cp "$REFERENCE_ENGINE/app/Admin/Controllers/AuthController.php" engine/app/Admin
 - 查询主体：请求体字段统一叫 **`account`**，控制器拿它**同时匹配姓名或手机号**——
   `Personnel::where('real_name', $params['account'])->orWhere('mobile', $params['account'])`。
   所以 7.8 登录时传的是 `{"account":"13800000000",...}`，而不是 `mobile`；
-- 状态检查：`account_status` 枚举——**必须比较 `->value`**（坑 #19）。
-  背景：这是 moo-scaffold 生成器的生态约定——枚举**不写进 `$casts`**，
-  字段从数据库读出来是**裸 int** 而非枚举实例（前几章生成的模型都是如此）。
-  于是 `=== AccountStatus::FORBIDDEN`（int 比枚举实例）**永远为 false**，
-  检查会静默失效；正确写法是和 `AccountStatus::FORBIDDEN->value` 比较；
+- 状态检查：字段是 int，必须与 `AccountStatus::FORBIDDEN->value` 比较；
 - 登录后更新 `login_times / last_login_at / last_login_ip`；
 - `refresh()` 补一行 `UpdateLoginTokenJob::dispatch($old, $new)`（同步包里的登录管理记录）。
-
-> **历史坑 #17**：moo-system 旧版的 `Personnel::getJWTCustomClaims()` 硬编码
-> `guard=admin`，host 给其它守卫签发时必须 `claims(['guard'=>...])` 内联覆盖。
-> 新版已动态化（和你第 3 章给 User 写的一样），此坑仅在用旧版包时存在。
 
 ## 7.4 包路由接线 + 迁移 + 自检
 
@@ -317,9 +313,9 @@ php artisan moo-system check    # 当前应 5/5 全绿
 
 ```
 ✓ Auth provider 配置真实 FQN
-✓ admin middleware group 含 jwt.auth.refresh   ← 靠第 3 章"组注册在 provider boot()"（坑 #7）
-✓ Composer classmap 不含已删的 App\Models\System\*   ← 指老项目迁包前的旧类，新项目天然通过
-✓ Host 端 5 个必需契约 trait/class 全部存在   ← 只查存在不查内容，见 7.2 的提醒
+✓ 包路由使用的 middleware group 含 jwt.auth.refresh
+✓ Composer classmap 不含已删除的 App\Models\System\*
+✓ Host 端 5 个必需契约 trait/class 全部存在
 ✓ config:cache 与 source 一致
 🎉  All 5 required checks passed. moo-system 配置健康。
 ```
@@ -327,11 +323,8 @@ php artisan moo-system check    # 当前应 5/5 全绿
 > `Route::iResource` 已在 7.1 安装前单独检查；当前 `moo-system check` 的输出不再
 > 把它重复计入 5 项 host 集成检查。
 
-> 第 2 项检查的不是字面上的 `'admin'` 组，而是按
-> `config('moo-system.admin.middleware')` 解析**包路由实际生效的组**——本仓库即上面
-> 配置指向的 `'moo-system'` 组（完整 JWT 链，含 `jwt.auth.refresh`）。host 自己的
-> `'admin'` 组**故意不含** refresh（要放行公开登录路由），所以别按输出字面去翻
-> `'admin'` 组、发现"不含"而困惑——查 `'moo-system'` 组才对。
+> 自检读取的是 `config('moo-system.admin.middleware')` 指向的 `moo-system` 组，
+> 不是需要放行登录接口的 `admin` 组。
 
 ## 7.5 初始数据：角色 → 部门 → 岗位 → 人员
 
@@ -357,21 +350,18 @@ cp "$REFERENCE_ENGINE/database/seeders/PersonnelSeeder.php" engine/database/seed
 | `PositionSeeder` | 后端工程师 / 前端工程师 / 市场专员 |
 | `PersonnelSeeder` | 管理员 `13800000000` / `admin888`，挂技术部·后端工程师·系统管理员角色 |
 
+> 这些 seeder 只用于本地学习和测试，包含公开演示密码。复制后的 `DatabaseSeeder`
+> 会在 `APP_ENV=production` 主动拒绝运行；生产初始账号流程见第 8 章。
+
 > 「第 ③ 优先级」回指第 5 章 Gate 闭包的判定顺序：① `isRoot()` 天然 root 直通
 > → ② `config/actions.php` 白名单 → ③ `getActions()` 含 `'is_root'` 字面量 = 超级权限
 > → ④ 精确匹配 acl key。
 
-> ⚠️ **坑 #9**：`DatabaseSeeder` 千万**别用** `WithoutModelEvents`——
-> Department 的嵌套集树靠 `creating/saving` 模型事件维护 `_lft/_rgt`，
-> 静默事件会建出坏树。
->
-> ⚠️ **坑 #15**：雪花主键下不存在 id=1 的天然 root（Gate 第 ① 优先级落空）。
-> 「系统管理员」角色必须授 `is_root` 字面量走第 ③ 优先级兜底（RoleSeeder 已带），
-> 否则开着 ACL 的系统里管理员自己也 403。
+> `DatabaseSeeder` 不要使用 `WithoutModelEvents`，否则 Department 的嵌套集字段无法维护。
+> 雪花主键也没有固定的 id=1 root，因此系统管理员角色必须包含 `is_root`。
 
 **ACL 白名单**：开着 ACL 接入 moo-system 后，`config/actions.php` 的 `whitelist`
-必须放行**个人中心**的 8 个动作（查看本人信息、改密码、改头像等，key 见仓库该文件
-的注释）——否则零授权角色登录后连自己的资料都 403，把自己锁死在门外（坑 #20）。
+必须放行**个人中心**的 8 个动作（查看资料、改密码、改头像等），否则普通用户会收到 403。
 刚才的 `moo:auth admin` 在当前版本会自动留下「本人信息」的
 `84470713dcb9a7c9`；在同一个 `admin.whitelist` 数组中手动补下面 7 个（已有的值不要删）：
 
@@ -419,8 +409,7 @@ cp "$REFERENCE_ENGINE/app/Http/Middleware/OperationLog.php" engine/app/Http/Midd
 **② 挂到两个组的末尾**：`admin` / `moo-system` 两个中间件组都注册在
 `engine/app/Providers/AppServiceProvider.php` 的 **`boot()`** 里（仓库版的
 `OperationLog::class` 已在两组末位，照抄即可）。注意组特意注册在 provider `boot()`
-而不是 `bootstrap/app.php` 的 `withMiddleware()`——后者的组不会同步给 Console 内核，
-`moo-system check` 在命令行就看不到（这正是坑 #7 的本体）。
+而不是 `bootstrap/app.php` 的 `withMiddleware()`，确保 Artisan 自检也能读取。
 
 ```php
 use App\Http\Middleware\OperationLog;
@@ -474,21 +463,8 @@ php artisan tinker --execute='$l=Mooeen\System\Models\OperationLog::latest("id")
 > 判定接入失败。上面故意用失败登录验证基础链路；要验证已登录业务操作，
 > 需要再建一个非 root 人员。对审计要求较高的业务，应重新评估「root 豁免审计」这条产品规则。
 
-> ⚠️ **坑 #13**：别照抄老项目用 `LARAVEL_START` 常量算耗时。注意这**不是**因为
-> Laravel 12 没有这个常量——`public/index.php` 和 `artisan` 入口至今都有
-> `define('LARAVEL_START', microtime(true))`。真正炸的场景是 **phpunit**：测试的
-> bootstrap 是 `vendor/autoload.php`，不经过 index.php / artisan，常量从未定义，
-> 测试一跑到这段老代码就报 `Undefined constant "LARAVEL_START"`。
-> 改用 `$request->server('REQUEST_TIME_FLOAT')`（仓库的 `OperationLog.php` 即如此），
-> 任何入口都有值。
->
-> ⚠️ **坑 #21（最隐蔽）**：日志表永远 0 条、又无报错？先确认 ③ 的
-> `OPERATION_LOG=true` 和 `QUEUE_CONNECTION=sync` 都加了没；如果生产不想用 `sync`，
-> 就必须真正起 queue worker，否则写库 Job 只会堆在 `jobs` 表。注：
-> **照本仓库 `engine/.env.example` 起步的不会踩**
-> （已预设 `sync`），此坑主要在从零自装、用 Laravel 默认 `.env` 时出现。
-> 另外**改完 `.env` 要把 `php artisan serve` 整个杀掉重启**——它底层就是
-> `php -S` 多进程（`PHP_CLI_SERVER_WORKERS=4`），老 worker 进程会一直持有旧环境变量。
+> 操作耗时使用 `$request->server('REQUEST_TIME_FLOAT')`，不要依赖测试入口未定义的
+> `LARAVEL_START`。异步队列环境还需启动 queue worker；修改 `.env` 后要重启开发服务。
 
 ## 7.7 测试换最终版
 
@@ -523,26 +499,18 @@ cp "$REFERENCE_ENGINE/tests/Feature/RegressionTest.php" engine/tests/Feature/Reg
 <env name="JWT_SECRET" value="testing-secret-do-not-use-in-production"/>
 ```
 
-仓库里另有四个守护测试：`MonitorTest`（第 1.7 节接入的监控：运行时异常落本地缓冲、
-BaseException 不上报）、`JwtAutoRefreshTest`（中间件对过期 token 的静默续签——挂
-`jwt.auth.refresh` 的路由收到过期 token 应 200 并经 `authorization` 响应头下发新
-token）、`SeederIntegrityTest`（部门嵌套集树完整性、岗位 JSON 关联等 seeder 回归）、
-`RegressionTest`（幻影路由、logout 幂等、跨守卫过期续签、筛选字段对齐、登录限流等审查修复的回归）：
+运行完整回归测试：
 
 ```bash
 php artisan test
-# 本轮按章节顺序做到本章的实测：Tests: 41 passed (144 assertions)
-# （当前最终态仓库是 64 passed / 230 assertions；后续章节继续增加了增量开发、监控、上传等守护测试。
-#   此刻以「全部绿色」和当次输出为准，不要为了凑历史数字删测试。）
 ```
 
-`FoodAclTest` 演示的正是授权存储的升级：第 5 章给 User 的 `actions` 列授 key，
-现在给「角色」授 key（`$role->role_actions = [...]`），人挂角色——Gate 一行没改。
+所有测试都应通过。`FoodAclTest` 的主体已从 User actions 切换为 Personnel 角色，
+Gate 契约不变。
 
 ## 7.8 在 scaffold 调试器里联调
 
-先把本地服务跑起来（`engine/.env.example` 注释里的标准命令；多 worker 是必须的，
-单线程 serve 会被调试器的代理回调死锁——坑 #4）：
+先用多 worker 启动本地服务，避免调试器回调被单线程服务阻塞：
 
 ```bash
 PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload
@@ -561,7 +529,7 @@ php artisan moo:api admin System
 登录拿 token——注意主体已是 Personnel，请求字段是 `account`（7.3 说过：
 控制器拿它同时匹配姓名或手机号）：`{"account":"13800000000","password":"admin888"}`。
 点开「岗位管理 → 岗位列表」，在 Header 区把 **Authorization 填成 `Bearer <token>`**
-（坑 #8：一定要带 `Bearer ` 前缀，否则报 `The token could not be parsed`），发送拿 200：
+（必须包含 `Bearer ` 前缀），发送后应返回 200：
 
 ![带 token 调通岗位列表 200](./images/04-system-positions-200.png)
 
@@ -585,16 +553,13 @@ curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
 
 ## 本章产出
 
-- moo-system 接入：10 张 `system_*` 表、`moo-system check` 5/5；
-- 后台主体 User → Personnel **只改了两个文件**：`config/auth.php`
-  （`admin` 守卫的 provider 改一行 + `providers` 新增 `personnels` 一项）
-  + `AuthController.php` 整个换掉；中间件 / 路由 / Gate / 移动端零改动——
-  这就是第 3 章骨架设计的价值；
+- moo-system 接入完成，`moo-system check` 全部通过；
+- 后台主体从 User 切换为 Personnel，原有中间件、路由、Gate 和移动端守卫保持不变；
 - 角色制授权接管 ACL（白名单放行个人中心），操作日志落库（记得 `OPERATION_LOG=true`）；
-- 测试换本章版后本轮实测 **41 passed (144 assertions)**，调试器联调通过。
+- 自动测试和调试器联调通过。
 
 **主线教程完成。** 你现在拥有：代码生成（moo-scaffold）+ 自建用户 JWT + 动作级 ACL +
 双守卫隔离的移动端 + 完整系统管理（moo-system）。
-踩坑速查表（31 条）见 [docs/README.md](./README.md)。
+踩坑速查见 [docs/README.md](./README.md)。
 
 下一章（可选）：把它部署到真正的服务器上。

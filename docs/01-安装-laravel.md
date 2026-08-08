@@ -3,20 +3,14 @@
 目标：在 `engine/` 子目录里创建一个 Laravel 12 应用，接入 Pint 统一代码格式，
 连接本机 MariaDB 数据库 `moo_engine_from_zero`，并在真实浏览器里打开它的欢迎页。
 
-> **先分清你走哪条路。** 仓库根 [README](../README.md) 定义了两种用法：
-> **方式 A = 用本仓库初始化自己的项目**（克隆后运行根目录 `./init-project`）；
-> **方式 B = 从 0 跟教程一步步搭**。本章及后续教程面向**方式 B**。
-> 方式 A 不要执行本章的 `composer create-project`：克隆后直接按根 README 运行
-> `./init-project --name=<vendor/project>`。初始化器会准备 SQLite、安装依赖、生成密钥、
-> 默认移除 Food、重建 ACL 并完成验证；完整说明见第 12 章。
+> 本章面向方式 B（从零搭建）。方式 A 请直接运行
+> `./init-project --name=<vendor/project>`，不要执行本章的 `composer create-project`。
 
 ---
 
 ## 1.1 准备环境
 
-方式 B 要在一个**独立的空工作目录**里操作，不要在正在提供本教程网页的
-`moo-engine-skeleton` 仓库里再建一层同名目录。如果你是在已克隆的教程仓库根目录启动网页引导器，
-新开终端后先回到它的父目录，再建教程工作目录：
+在教程仓库旁新建一个空目录，不要在仓库内部再套一层项目：
 
 ```bash
 # 当前在已克隆的 moo-engine-skeleton/ 教程仓库根目录
@@ -25,8 +19,7 @@ mkdir moo-engine-from-zero && cd moo-engine-from-zero  # 后文的「项目根�
 git init                                                   # 后续章节要用 git diff / git add
 ```
 
-> 如果你看的是线上教程，没有克隆本仓库，也可以在任意位置新建一个空目录；
-> 关键是里面不能已经存在 `engine/`。
+> 目录里不能已有 `engine/`。
 
 本教程在 macOS 上用 [Homebrew](https://brew.sh) 安装基础工具（已装好的请跳过）：
 
@@ -54,7 +47,8 @@ brew services start mariadb        # 启动 MariaDB，监听 127.0.0.1:3306
 > 1. 重试密码设置命令（可能未生效）
 > 2. 确认 `localhost` vs `127.0.0.1` 的区别：`ALTER USER 'root'@'localhost'` 只对 localhost 生效，
 >    连 `127.0.0.1` 需要 `ALTER USER 'root'@'127.0.0.1'` 或 `'root'@'%'`
-> 3. 如果仍然失败，检查 MariaDB 错误日志：`brew services log mariadb`
+> 3. 如果仍然失败，先用 `brew services info mariadb` 查看服务状态，再到
+>    `$(brew --prefix)/var/mysql/` 中查看 `.err` 错误日志
 
 然后确认本机工具齐全（在当前终端执行即可）：
 
@@ -377,7 +371,7 @@ php artisan config:clear
 理解为什么这里没有手写异常采集代码：
 
 ```php
-// 运行时异常采集:scaffold 3.9.0 起由 moo-monitor-laravel 的 MonitorProvider
+// 运行时异常采集由本节显式安装的 moo-monitor-laravel MonitorProvider
 // 自动挂 reportable 钩子,无需手动接入(落盘 storage/moo-monitor/runtimes,推送上云后在云端查看)。
 ```
 
@@ -464,15 +458,16 @@ context:
 
 ### 1.7.5 推送到云端（可选）
 
-先在 moo-scaffold-cloud 创建项目并取得该项目的接入 token：
+先在 moo-scaffold-cloud 创建项目并生成 Host Token：
 
 1. 浏览器访问 [https://c.mooeen.com](https://c.mooeen.com)，注册或登录账号。
 2. 登录后进入项目列表，点击「新建项目」。
-3. 填写项目名称（例如 `moo-engine-skeleton`），按需勾选 `runtimes`（运行时异常）和
-   `slow_queries`（慢 SQL），然后创建项目。
-4. 创建成功后，复制页面生成的 **接入 token**。token 以 `moo_` 开头，每个项目的 token
-   相互独立；请妥善保存，不要提交到 Git，也不要粘贴到日志或聊天记录中。
-5. 回到本地项目，把 token 写入 `engine/.env`，同时开启云端推送：
+3. 填写项目名称（例如 `moo-engine-skeleton`）并创建项目。
+4. 进入该项目的「接入 Token」页面，点击「新建 Host Token」，开启 `runtimes`
+   和 `slow_queries` 能力。如果还要使用第 10 章的 MCP，再同时开启 `mcp`。
+5. 复制以 `moo_` 开头的 token。它拥有所勾选能力，请妥善保存，不要提交到 Git，
+   也不要粘贴到日志或聊天记录中。
+6. 回到本地项目，把 token 写入 `engine/.env`，同时开启云端推送：
 
 ```dotenv
 MOO_MONITOR_CLOUD_ENABLED=true
