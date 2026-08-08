@@ -98,7 +98,7 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 |---|---|---|---|
 | `moo-scaffold` | 开源（MIT，发布到 Packagist） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
 | `moo-system` | 进阶 / 商业包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
-| `moo-monitor-laravel` | 开源（MIT） | **必装** | 监控采集 SDK（教程第 1.7 节接入；scaffold 3.9+ 也会依赖它） |
+| `moo-monitor-laravel` | 开源（MIT） | **必装** | 监控采集 SDK（教程第 1.7 节显式接入） |
 
 **为什么还要配置 VCS 仓库？**
 
@@ -174,8 +174,8 @@ composer require "charsen/moo-monitor-laravel:^0.1"
 composer require "charsen/moo-scaffold:^2.1.3" --with-all-dependencies
 php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force   # 发布 /scaffold 静态资源
 
-# 5. 迁移 + seed + 调试台账号
-php artisan migrate --seed      # 自建用户；装了 moo-system 还有角色/部门树/岗位/人员
+# 5. 本地学习环境：迁移 + 演示 seed + 调试台账号（生产禁止运行该 DatabaseSeeder）
+php artisan migrate --seed      # 创建公开演示账号，仅供 local/testing
 php artisan moo:account:add <用户名> --password=<密码> --role=admin   # 没有它登不进 /scaffold
 
 # 6. 启动（必须多 worker，原因见下方说明）
@@ -241,6 +241,8 @@ moo-engine-skeleton/
 教程目录页还附了一张**「踩过的坑」速查表**（31 条新手高频问题）：[docs/README.md](./docs/README.md)。
 
 ## 🔑 默认账号
+
+> 下列账号仅供本地教程和自动测试。生产环境不得运行通用 `DatabaseSeeder`，也不得保留这些凭据。
 
 | 用途 | 账号 | 密码 | 创建方式 |
 |---|---|---|---|

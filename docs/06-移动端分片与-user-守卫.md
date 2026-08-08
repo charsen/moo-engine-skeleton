@@ -1,9 +1,6 @@
 # 第 6 章　移动端分片与 user 守卫
 
-目标：启用一直空着的 `app/Api/` 分片（移动端，路由前缀 `app`），用 **user 守卫**登录，
-做到两件事：① 后台 token 和移动端 token **互不通用**（双向隔离）；
-② 移动端刷新是**无宽限严格轮换**（被刷新的旧 token 立即作废，没有 90 秒宽限——
-宽限是什么，6.2 会解释）。
+目标：启用 `app/Api/` 分片，让移动端使用 user 守卫，并验证 token 双向隔离和严格轮换。
 
 > 移动端的主体就是第 3 章自建的 User——它**永久**属于移动端，
 > 第 7 章接入 moo-system 后只有后台换 Personnel，这边一行不动。
@@ -22,15 +19,7 @@
 
 ## 6.2 写移动端登录控制器
 
-> 📦 **先说清「本章时间点，仓库哪些文件可参考」**（仓库代码都在 `engine/` 子目录下，
-> 仓库根目录只有 docs、README 等）：
-> `engine/app/Api/Controllers/AuthController.php` 和 `engine/tests/Feature/ApiAuthTest.php`
-> 是最终版，直接用；`engine/routes/api.php`（混入了后续章节的路由，见 6.3 的 📦 注）、
-> `engine/tests/TestCase.php` 和 `engine/app/Admin/Controllers/AuthController.php`
-> （这两个都是第 7 章 Personnel 最终版）**不能照搬**，差异在用到处各有 📦 注。
-
-新建 `app/Api/Controllers/AuthController.php`。不要只根据下面三条差异自己拼，先使用这份
-与本章时间点完全匹配的**完整文件**：
+新建 `app/Api/Controllers/AuthController.php`，使用下面的完整内容：
 
 ```php
 <?php
@@ -196,16 +185,12 @@ php artisan route:list --path=app -v
 > 生成器会把新模块的 `iResource` 路由自动写到这个位置——默认就落在保护圈里。
 > 删了它不影响运行，但生成器会找不到插入点。
 
-> 📦 仓库最终态的保护圈里还多了第 9 章生成的
-> `Route::iResource('food', FoodController::class)`；本章不要提前补。
-
 写好后在 `/scaffold/routes` 切到「客户端接口」应用，能看到移动端路由：
 
 ![客户端接口路由](./images/07-scaffold-routes-app.png)
 
-> 截图文件名的 `07` 是全教程截图的流水号（第 5 章用的是 `06-scaffold-routes-acl.png`），
-> 不是章节号。另外截图摄于教程完结时，里面带 food 路由——你此刻的页面**没有**它们，
-> 只会看到登录/退出/刷新/me 四件套，对不上不是你做错了。`/app`
+> 截图来自完成态，因此会多出第 9 章生成的 food 路由。本章只需看到
+> 登录、退出、刷新和 me。`/app`
 > 的 hello 是闭包路由，Laravel 的 `route:list` 中存在、浏览器也能访问，但 Scaffold
 > 这个按控制器整理的路由页不会展示它。可以再执行
 > `curl http://127.0.0.1:8088/app`，应输出 `Hello app api ~`。
@@ -259,11 +244,8 @@ curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Be
 curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
 ```
 
-> 📦 ④ 的 ADMIN_TOKEN：按教程顺序写到这里的读者，后台还是第 3 章的 email 版，
-> 用 `{"email":"admin@example.com","password":"password"}` 登录即可。但**直接跑仓库代码**
-> 的人注意：仓库 `engine/app/Admin/Controllers/AuthController.php` 已是第 7 章 Personnel
-> 最终版，登录字段是 `account`，拿 email 去打会 422——改发
-> `{"account":"13800000000","password":"admin888"}`（第 7 章的种子管理员）。
+> 完成第 7 章后，后台登录参数要改为
+> `{"account":"13800000000","password":"admin888"}`；移动端仍使用 email。
 
 最后把上面的手工验证固化成测试。不要直接抄仓库最终态的 `tests/TestCase.php`：
 那个文件已经进入第 7 章，会引用你此刻还没安装的 `Personnel`。本章时点请把
@@ -418,15 +400,10 @@ class ApiAuthTest extends TestCase
 
 ```bash
 php artisan test --filter=ApiAuthTest
-# Tests: 5 passed (18 assertions)
-
 php artisan test
-# 本轮从第 1 章顺序做到这里的实测：20 passed (46 assertions)
 ```
 
-> 数量是本轮实操记录：如果以后生成器又多产出测试，以「全部绿色」为验收标准，
-> 不要为了凑固定数字删用例。`freshJwtProcess()` 不是业务逻辑，它只是清掉测试进程里
-> JWT 单例的跨请求残留，让 Feature 测试更接近真实 PHP 请求的独立进程。
+两条命令都应通过。`freshJwtProcess()` 只用于清理测试进程中的 JWT 单例状态。
 
 ## 6.5 User 就是你的会员表雏形
 
@@ -441,7 +418,7 @@ php artisan test
 
 - `Api/` 分片启用：登录 / me / 刷新 / 登出四件套（user 守卫，自建 User，登录挂 `throttle:login` 限流）；
 - admin ↔ user token 双向隔离，移动端刷新采用无宽限严格轮换；
-- 5 个测试守护，curl 真机验证通过。
+- 自动测试和 curl 真机验证通过。
 
 下一章（可选 / 进阶）：接入 **moo-system**，后台升级成完整的系统管理
 （部门 / 岗位 / 人员 / 角色 / 授权 / 操作日志）。

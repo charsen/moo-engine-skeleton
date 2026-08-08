@@ -12,7 +12,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use LogicException;
 use Mooeen\System\Models\Department;
 use Mooeen\System\Models\Personnel;
 use Mooeen\System\Models\Position;
@@ -25,6 +27,16 @@ class SeederIntegrityTest extends TestCase
 
     /** 跑 DatabaseSeeder：User → 角色 → 部门 → 岗位 → 人员 */
     protected $seed = true;
+
+    public function test_demo_database_seeder_refuses_production(): void
+    {
+        $this->app->detectEnvironment(static fn (): string => 'production');
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('must not run in production');
+
+        (new DatabaseSeeder)->run();
+    }
 
     public function test_department_nested_set_tree_is_valid(): void
     {
