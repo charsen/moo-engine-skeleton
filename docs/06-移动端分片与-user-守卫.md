@@ -210,39 +210,142 @@ connection refused）；② `UserSeeder` 已执行——本章控制器多了激
 ```bash
 BASE=http://127.0.0.1:8088
 
-# ① 移动端登录（注意前缀是 app，不是 api/admin）
-APP_TOKEN=$(curl -s -X POST $BASE/app/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+# ① 分别登录移动端和后台。函数会显示响应正文、HTTP 状态，并验证 data.token。
+login_token() {
+  LOGIN_LABEL=$1
+  LOGIN_URL=$2
+  LOGIN_JSON=$3
+  LOGIN_TOKEN=
 
-# 同时拿一枚后台 token，下面才能完整验证「各回各家 + 双向隔离」
-ADMIN_TOKEN=$(curl -s -X POST $BASE/api/admin/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+  if ! LOGIN_RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$LOGIN_URL" \
+    -H 'Content-Type: application/json' -d "$LOGIN_JSON"); then
+    printf '[%s] 请求发送失败：请确认服务和 8088 端口。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
 
-# ② 解码 payload 看 guard。JWT 用的是 base64url（- _ 替代 + /，且不带 padding），
-#    先转回标准 base64，再按缺几位补几个 =（恰好不缺时一个不补）：
-P=$(echo $APP_TOKEN | cut -d. -f2 | tr '_-' '/+')
-P="$P$(printf '%*s' $(( (4 - ${#P} % 4) % 4 )) '' | tr ' ' '=')"
-echo $P | base64 -d
-# {"iss":...,"guard":"user",...}
+  LOGIN_STATUS=${LOGIN_RESULT##*$'\n'}
+  LOGIN_BODY=${LOGIN_RESULT%$'\n'*}
+  printf '\n[%s 登录响应]\n%s\nHTTP %s\n' "$LOGIN_LABEL" "$LOGIN_BODY" "$LOGIN_STATUS"
 
-# ③ 各回各家 200
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"          # 200
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $ADMIN_TOKEN" # 200
+  if [ "$LOGIN_STATUS" != 200 ]; then
+    printf '[%s] 登录失败：根据上面的 message / errors 排查。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
 
-# ④ 双向隔离 401
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $ADMIN_TOKEN"        # 401
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
+  LOGIN_TOKEN=$(printf '%s' "$LOGIN_BODY" | php -r '
+    $json = json_decode(stream_get_contents(STDIN), true);
+    echo is_string($json["data"]["token"] ?? null) ? $json["data"]["token"] : "";
+  ')
 
-# ⑤ 无宽限严格轮换：拿新 token 后，被刷新的旧 token 立刻 401
-NEW=$(curl -s -X POST $BASE/app/refresh -H "Authorization: Bearer $APP_TOKEN" \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $NEW"          # 200
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/app/me/info -H "Authorization: Bearer $APP_TOKEN"    # 401
+  if [ -z "$LOGIN_TOKEN" ]; then
+    printf '[%s] 响应中没有 data.token，请检查 AuthController。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
+
+  printf '[%s] 已拿到 token（长度 %s）。\n' "$LOGIN_LABEL" "${#LOGIN_TOKEN}"
+}
+
+# 移动端前缀是 app；后台前缀是 api/admin。
+login_token '移动端' "$BASE/app/authenticate" \
+  '{"email":"admin@example.com","password":"password"}' && APP_TOKEN=$LOGIN_TOKEN
+login_token '后台' "$BASE/api/admin/authenticate" \
+  '{"email":"admin@example.com","password":"password"}' && ADMIN_TOKEN=$LOGIN_TOKEN
+
+if [ -z "${APP_TOKEN:-}" ] || [ -z "${ADMIN_TOKEN:-}" ]; then
+  echo '至少一个守卫没有拿到 token，请先解决上面的登录错误，不要继续验证隔离。' >&2
+else
+  # ② 解码移动端 token 的 payload，并明确验证 guard=user。
+  # 使用项目已有的 PHP 解 base64url，避免 macOS/Linux 的 base64 参数差异。
+  printf '%s' "$APP_TOKEN" | php -r '
+    $token = stream_get_contents(STDIN);
+    $parts = explode(".", $token);
+    if (count($parts) !== 3) {
+        fwrite(STDERR, "JWT 格式错误：应当有三个点分段。\n");
+        exit(1);
+    }
+    $payload = strtr($parts[1], "-_", "+/");
+    $payload .= str_repeat("=", (4 - strlen($payload) % 4) % 4);
+    $json = json_decode((string) base64_decode($payload, true), true);
+    if (! is_array($json)) {
+        fwrite(STDERR, "JWT payload 不是有效 JSON。\n");
+        exit(1);
+    }
+    echo json_encode($json, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), PHP_EOL;
+    if (($json["guard"] ?? null) !== "user") {
+        fwrite(STDERR, "guard 校验失败：移动端 token 应为 user。\n");
+        exit(1);
+    }
+  '
+
+  # ③ 各回各家 → HTTP 200。保留正文，能看出实际认证成了谁。
+  curl -sS "$BASE/app/me/info" \
+    -H "Authorization: Bearer $APP_TOKEN" -w '\nHTTP %{http_code}\n'
+  curl -sS "$BASE/api/admin/me/info" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -w '\nHTTP %{http_code}\n'
+
+  # ④ token 交叉使用 → HTTP 401。正文应说明 guard 不匹配。
+  curl -sS "$BASE/app/me/info" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -w '\nHTTP %{http_code}\n'
+  curl -sS "$BASE/api/admin/me/info" \
+    -H "Authorization: Bearer $APP_TOKEN" -w '\nHTTP %{http_code}\n'
+fi
+
+# ⑤ 无宽限严格轮换：拿新 token 后，被刷新的旧 token 立即 401。
+refresh_app_token() {
+  NEW_TOKEN=
+
+  if [ -z "${APP_TOKEN:-}" ]; then
+    echo 'APP_TOKEN 为空，不能刷新；请先修复移动端登录。' >&2
+    return 1
+  fi
+
+  if ! REFRESH_RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$BASE/app/refresh" \
+    -H "Authorization: Bearer $APP_TOKEN"); then
+    echo '刷新请求发送失败：请确认服务仍在运行。' >&2
+    return 1
+  fi
+
+  REFRESH_STATUS=${REFRESH_RESULT##*$'\n'}
+  REFRESH_BODY=${REFRESH_RESULT%$'\n'*}
+  printf '\n[移动端刷新响应]\n%s\nHTTP %s\n' "$REFRESH_BODY" "$REFRESH_STATUS"
+
+  if [ "$REFRESH_STATUS" != 200 ]; then
+    echo '刷新失败：根据上面的 message 排查。' >&2
+    return 1
+  fi
+
+  NEW_TOKEN=$(printf '%s' "$REFRESH_BODY" | php -r '
+    $json = json_decode(stream_get_contents(STDIN), true);
+    echo is_string($json["data"]["token"] ?? null) ? $json["data"]["token"] : "";
+  ')
+
+  if [ -z "$NEW_TOKEN" ]; then
+    echo '刷新响应中没有 data.token。' >&2
+    return 1
+  fi
+
+  printf '已拿到新 token（长度 %s）。\n' "${#NEW_TOKEN}"
+}
+
+if refresh_app_token; then
+  curl -sS "$BASE/app/me/info" \
+    -H "Authorization: Bearer $NEW_TOKEN" -w '\nHTTP %{http_code}\n' # HTTP 200
+  curl -sS "$BASE/app/me/info" \
+    -H "Authorization: Bearer $APP_TOKEN" -w '\nHTTP %{http_code}\n' # HTTP 401
+fi
 ```
+
+结果不符合预期时，按响应状态和正文定位：
+
+| 现象 | 优先检查 |
+|---|---|
+| `/app/authenticate` 是 `HTTP 404` | `bootstrap/app.php` 是否把 `routes/api.php` 挂到 `app` 前缀 |
+| 登录是 `HTTP 422`「帐号尚未激活」 | `email_verified_at` 是否为空；重新执行或核对 UserSeeder |
+| 登录是 `HTTP 500`，控制器类不存在 | `routes/api.php` 是否导入 `App\Api\Controllers\AuthController` |
+| 移动端 token 的 guard 不是 `user` | `client` 组是否挂了 `jwt.assign.guard:user`，User 是否动态返回当前 guard |
+| token 交叉使用仍是 `HTTP 200` | `me/info` 是否挂了对应的 `jwt.guard.auth:user/admin` |
+| 刷新后的新 token 返回 `Guard Unverified` | `refresh(true, false)` 的第二个参数及 `persistent_claims=['guard']` 是否正确 |
+| 刷新后旧 token 仍是 `HTTP 200` | 第一个参数是否为 `true`、JWT 黑名单是否开启，以及是否清过业务缓存 |
 
 > 完成第 7 章后，后台登录参数要改为
 > `{"account":"13800000000","password":"admin888"}`；移动端仍使用 email。
@@ -260,23 +363,39 @@ namespace Tests;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Testing\TestResponse;
 
 abstract class TestCase extends BaseTestCase
 {
+    protected function tokenFromResponse(TestResponse $response, string $context): string
+    {
+        $response->assertOk()->assertJsonStructure(['data' => ['token']]);
+
+        $token = $response->json('data.token');
+        $this->assertIsString($token, "{$context}的 data.token 必须是字符串。");
+        $this->assertNotSame('', $token, "{$context}的 data.token 不能为空。");
+
+        return $token;
+    }
+
     protected function adminLogin(): string
     {
-        return $this->postJson('api/admin/authenticate', [
+        $response = $this->postJson('api/admin/authenticate', [
             'email' => 'admin@example.com',
             'password' => 'password',
-        ])->assertOk()->json('data.token');
+        ]);
+
+        return $this->tokenFromResponse($response, '后台登录响应');
     }
 
     protected function appLogin(): string
     {
-        return $this->postJson('app/authenticate', [
+        $response = $this->postJson('app/authenticate', [
             'email' => 'admin@example.com',
             'password' => 'password',
-        ])->assertOk()->json('data.token');
+        ]);
+
+        return $this->tokenFromResponse($response, '移动端登录响应');
     }
 
     protected function freshJwtProcess(): void
@@ -370,10 +489,9 @@ class ApiAuthTest extends TestCase
         $token = $this->appLogin();
         $this->freshJwtProcess();
 
-        $newToken = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$token}"])
-            ->assertOk()
-            ->json('data.token');
-        $this->assertNotSame($token, $newToken);
+        $response = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$token}"]);
+        $newToken = $this->tokenFromResponse($response, '移动端刷新响应');
+        $this->assertNotSame($token, $newToken, '刷新必须签发一枚不同的新 token。');
         $this->freshJwtProcess();
 
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$newToken}"])->assertOk();
@@ -385,11 +503,10 @@ class ApiAuthTest extends TestCase
     {
         $expired = $this->makeExpiredToken('user');
 
-        $response = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$expired}"])
-            ->assertOk()
-            ->assertHeaderMissing('authorization');
+        $response = $this->postJson('app/refresh', [], ['Authorization' => "Bearer {$expired}"]);
+        $response->assertHeaderMissing('authorization');
 
-        $newToken = $response->json('data.token');
+        $newToken = $this->tokenFromResponse($response, '过期 token 刷新响应');
         $this->freshJwtProcess();
         $this->getJson('app/me/info', ['Authorization' => "Bearer {$newToken}"])->assertOk();
     }
@@ -399,7 +516,7 @@ class ApiAuthTest extends TestCase
 现在运行本章的 5 个用例，然后再跑一次全量回归：
 
 ```bash
-php artisan test --filter=ApiAuthTest
+php artisan test --filter=ApiAuthTest --stop-on-failure
 php artisan test
 ```
 

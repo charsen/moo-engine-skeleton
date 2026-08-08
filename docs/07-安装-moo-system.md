@@ -7,6 +7,19 @@
 
 ---
 
+## 7.0 先选路线
+
+本章以后不再全部是新手必做项，先按目标选路线：
+
+| 你的目标 | 推荐入口 |
+|---|---|
+| 从零理解 moo-system 怎样接进已有 Laravel 项目 | 继续完成本章 7.1–7.8 |
+| 直接从骨架创建新的业务项目 | 跳到[第 12 章](./12-从骨架起手新项目.md)，用 `./init-project` 一次完成 |
+| 已有完成态项目，只想学习日常加字段/接口 | 跳到[第 9 章](./09-增量开发工作流.md)的 9.2–9.7 主线 |
+| 准备部署 | 完成本章测试后看[第 8 章](./08-部署上线.md) |
+
+本章仍保留逐项接线过程，因为它解释了包与 host 的边界；新项目不需要手工重演这些复制步骤。
+
 ## 7.1 接入包
 
 **前置：拿到私有仓库访问权。** `moo-system` 是商业包，安装前要先联系作者获取授权，
@@ -100,26 +113,26 @@ engine/app/Notifications/SendBlessMessage.php
 
 这 6 份是 host 契约，`moo-system` 目前不会通过 `vendor:publish` 自动写入你的项目。
 方式 B 的项目与教程仓库是两个并列目录；在你的项目根目录（`moo-engine-from-zero/`）
-执行下面的真实复制。如果你只在看线上教程，先把开源骨架仓库 clone 到旁边：
+执行第 7 章同步器。它会一次准备本章后续需要的 host 契约、Personnel 登录控制器、Seeder、
+操作日志、最终测试文件和 HTTP 诊断助手；默认只预览，`--execute` 才写入。
+
+如果你只在看线上教程，先把开源骨架仓库 clone 到旁边，并确保它与当前教程来自同一 tag/commit：
 
 ```bash
 # 只看线上教程、本机还没有参考仓库时才需要这行
 git clone https://gitee.com/charsen/moo-engine-skeleton.git ../moo-engine-skeleton
 
-REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 路径不同就改成你的实际位置
-test -f "$REFERENCE_ENGINE/app/Admin/Controllers/UploadController.php"
+REFERENCE_ROOT=../moo-engine-skeleton   # 路径不同就改成你的实际位置
 
-mkdir -p engine/app/Admin/Controllers/Traits engine/app/Models/Traits engine/app/Notifications
-cp "$REFERENCE_ENGINE/app/Admin/Controllers/UploadController.php" engine/app/Admin/Controllers/
-cp "$REFERENCE_ENGINE/app/Admin/Controllers/Traits/BaseActionTrait.php" engine/app/Admin/Controllers/Traits/
-cp "$REFERENCE_ENGINE/app/Admin/Controllers/Traits/UploaderTrait.php" engine/app/Admin/Controllers/Traits/
-cp "$REFERENCE_ENGINE/app/Models/Traits/MediaSynchronous.php" engine/app/Models/Traits/
-cp "$REFERENCE_ENGINE/app/Models/Notification.php" engine/app/Models/
-cp "$REFERENCE_ENGINE/app/Notifications/SendBlessMessage.php" engine/app/Notifications/
+# 先审阅 create / overwrite 清单，不写文件
+php "$REFERENCE_ROOT/tools/tutorial-sync-chapter7.php" --target=.
+
+# 确认后执行；旧文件自动备份到 .tutorial-backups/chapter7-时间戳-随机后缀/
+php "$REFERENCE_ROOT/tools/tutorial-sync-chapter7.php" --target=. --execute
 ```
 
-> `test -f` 没有任何输出才是通过；一旦报错就先修正 `REFERENCE_ENGINE`，不要继续执行
-> `cp`。第二条 `cp` 会覆盖第 2 章的精简 `BaseActionTrait`，这正是本节需要的升级。
+> 同步器只复制明确列出的本章文件，不改配置、数据库或其它业务代码。它会覆盖第 2 章的精简
+> `BaseActionTrait`，这正是本节需要的升级；如果目标有本地改动，先查看自动备份再继续。
 > 复制后可执行
 > `rg 'Mooeen\\Scaffold\\Concerns\\UsingSnowFlakePrimaryKey' engine/app/Models/Notification.php`
 > 做一次版本检查：当前版应复用 moo-scaffold 的共享雪花 ID 实现，不再依赖旧的
@@ -249,13 +262,8 @@ php -r "require 'vendor/autoload.php'; var_dump(function_exists('toLabelValue'))
 （需要将第 3 章的 User 版改为 Personnel 版）。与第 3 章 User 版的差异一目了然：
 
 这个控制器包含登录统计和登录 token 记录同步，不要凭差异描述手工猜着改。
-继续复用 7.2 已经验证过的参考仓库，在**项目根目录**执行：
-
-```bash
-REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 按你的实际位置调整
-test -f "$REFERENCE_ENGINE/app/Admin/Controllers/AuthController.php"
-cp "$REFERENCE_ENGINE/app/Admin/Controllers/AuthController.php" engine/app/Admin/Controllers/AuthController.php
-```
+7.2 的同步器已经换成同版本 Personnel 版；直接打开
+`engine/app/Admin/Controllers/AuthController.php` 对照下面四个验收点。
 
 复制后再读一遍下面四个差异，它们是验收点，不是让你自行补全代码的提示：
 
@@ -328,20 +336,8 @@ php artisan moo-system check    # 当前应 5/5 全绿
 
 ## 7.5 初始数据：角色 → 部门 → 岗位 → 人员
 
-4 个 seeder 完整代码见参考仓库 `engine/database/seeders/`，同时要把第 3 章的
-精简 `DatabaseSeeder` 换成仓库版（UserSeeder 之后按序调用四个）。在**项目根目录**
-执行：
-
-```bash
-REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 按你的实际位置调整
-test -f "$REFERENCE_ENGINE/database/seeders/PersonnelSeeder.php"
-
-cp "$REFERENCE_ENGINE/database/seeders/DatabaseSeeder.php" engine/database/seeders/
-cp "$REFERENCE_ENGINE/database/seeders/RoleSeeder.php" engine/database/seeders/
-cp "$REFERENCE_ENGINE/database/seeders/DepartmentSeeder.php" engine/database/seeders/
-cp "$REFERENCE_ENGINE/database/seeders/PositionSeeder.php" engine/database/seeders/
-cp "$REFERENCE_ENGINE/database/seeders/PersonnelSeeder.php" engine/database/seeders/
-```
+4 个 seeder 及按顺序调用它们的 `DatabaseSeeder` 已由 7.2 同步器准备好；完整代码位于
+`engine/database/seeders/`。本节只理解数据关系、补 ACL 白名单并执行 seed，不再重复复制文件。
 
 | Seeder | 内容 |
 |---|---|
@@ -396,15 +392,9 @@ php artisan tinker --execute='$p=Mooeen\System\Models\Personnel::where("mobile",
 
 moo-system 提供了 `system_operation_logs` 表和写库 Job，采集点由 host 决定。三步：
 
-**① 抄中间件**：仓库的 `app/Http/Middleware/OperationLog.php`
-（terminable、敏感参数 `[FILTERED]`、响应按 6 万字节做 UTF-8 安全截断）。在**项目根目录**
-执行：
-
-```bash
-REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 按你的实际位置调整
-test -f "$REFERENCE_ENGINE/app/Http/Middleware/OperationLog.php"
-cp "$REFERENCE_ENGINE/app/Http/Middleware/OperationLog.php" engine/app/Http/Middleware/
-```
+**① 中间件文件**：7.2 同步器已经准备好
+`app/Http/Middleware/OperationLog.php`（terminable、敏感参数 `[FILTERED]`、响应按 6 万字节做
+UTF-8 安全截断）。这里无需再次复制，确认文件存在后继续挂载。
 
 **② 挂到两个组的末尾**：`admin` / `moo-system` 两个中间件组都注册在
 `engine/app/Providers/AppServiceProvider.php` 的 **`boot()`** 里（仓库版的
@@ -449,10 +439,11 @@ PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-rel
 新开一个终端，发一次失败登录来验证「未登录身份 + 密码脱敏 + 同步落库」：
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8088/api/admin/authenticate \
+. ../tools/tutorial-http.sh
+
+tutorial_http_call 422 POST http://127.0.0.1:8088/api/admin/authenticate \
   -H "Content-Type: application/json" \
   -d '{"account":"nobody","password":"super-secret"}'
-# 422
 
 php artisan tinker --execute='$l=Mooeen\System\Models\OperationLog::latest("id")->firstOrFail(); dump(["personnel_id"=>$l->personnel_id,"method"=>$l->request_method,"url"=>$l->request_url,"status"=>$l->response_code,"request_param"=>$l->request_param]);'
 # personnel_id=null / POST / api/admin/authenticate / 422 / password="***"
@@ -478,20 +469,7 @@ php artisan tinker --execute='$l=Mooeen\System\Models\OperationLog::latest("id")
 | `tests/Feature/FoodAclTest.php` | 换角色版（授权写进 `$role->role_actions`） |
 | `tests/Feature/ApiAuthTest.php` | **不用动**（第 6 章的 User 版、email 登录，本就是终态） |
 
-同时把本章已具备前置条件的 4 个守护测试拿进来。在**项目根目录**执行：
-
-```bash
-REFERENCE_ENGINE=../moo-engine-skeleton/engine   # 按你的实际位置调整
-test -f "$REFERENCE_ENGINE/tests/Feature/RegressionTest.php"
-
-cp "$REFERENCE_ENGINE/tests/TestCase.php" engine/tests/TestCase.php
-cp "$REFERENCE_ENGINE/tests/Feature/AuthTest.php" engine/tests/Feature/AuthTest.php
-cp "$REFERENCE_ENGINE/tests/Feature/FoodAclTest.php" engine/tests/Feature/FoodAclTest.php
-cp "$REFERENCE_ENGINE/tests/Feature/MonitorTest.php" engine/tests/Feature/MonitorTest.php
-cp "$REFERENCE_ENGINE/tests/Feature/JwtAutoRefreshTest.php" engine/tests/Feature/JwtAutoRefreshTest.php
-cp "$REFERENCE_ENGINE/tests/Feature/SeederIntegrityTest.php" engine/tests/Feature/SeederIntegrityTest.php
-cp "$REFERENCE_ENGINE/tests/Feature/RegressionTest.php" engine/tests/Feature/RegressionTest.php
-```
+7.2 同步器已经把表格中的最终版和 4 个守护测试放进 `engine/tests/`，无需再逐个复制。
 
 同时确认 `phpunit.xml` 里有这行测试用 JWT 密钥（没有它 JWT 测试起不来）：
 
@@ -502,7 +480,7 @@ cp "$REFERENCE_ENGINE/tests/Feature/RegressionTest.php" engine/tests/Feature/Reg
 运行完整回归测试：
 
 ```bash
-php artisan test
+php artisan test --stop-on-failure
 ```
 
 所有测试都应通过。`FoodAclTest` 的主体已从 User actions 切换为 Personnel 角色，
@@ -536,17 +514,23 @@ php artisan moo:api admin System
 再用 curl 走一遍 CRUD（岗位名换个 seeder 里没有的，重名会撞唯一校验 422）：
 
 ```bash
-TOKEN=$(curl -s -X POST http://127.0.0.1:8088/api/admin/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"account":"13800000000","password":"admin888"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+. ../tools/tutorial-http.sh
+BASE=http://127.0.0.1:8088
 
-curl -s "http://127.0.0.1:8088/api/admin/departments?page=1&page_limit=10" \
-  -H "Accept: application/json" -H "Authorization: Bearer $TOKEN"      # 部门树
+system_crud_smoke() {
+  tutorial_http_token '后台登录' POST "$BASE/api/admin/authenticate" \
+    -H 'Content-Type: application/json' \
+    -d '{"account":"13800000000","password":"admin888"}' || return 1
+  TOKEN=$TUTORIAL_HTTP_TOKEN
 
-curl -s -X POST http://127.0.0.1:8088/api/admin/positions \
-  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
-  -d '{"position_name":"测试工程师"}'                                   # 201
+  tutorial_http_call 200 GET "$BASE/api/admin/departments?page=1&page_limit=10" \
+    -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN" || return 1
+
+  tutorial_http_call 201 POST "$BASE/api/admin/positions" \
+    -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+    -d '{"position_name":"测试工程师"}'
+}
+system_crud_smoke
 ```
 
 ---

@@ -209,7 +209,15 @@ if ($withFrontend) {
 
 headline('6/8 Project-owned documentation');
 if (! $keepTutorial) {
-    removeExplicitPaths($root, ['docs', 'dev-notes', 'plans', 'HANDOFF.md', 'overview.md']);
+    removeExplicitPaths($root, [
+        'docs',
+        'dev-notes',
+        'plans',
+        'HANDOFF.md',
+        'overview.md',
+        'tools/tutorial-http.sh',
+        'tools/tutorial-sync-chapter7.php',
+    ]);
 }
 writeProjectReadme($root . '/README.md', $appName, $description, $scaffoldUser);
 writeEngineReadme($engine . '/README.md', $appName, $description);
