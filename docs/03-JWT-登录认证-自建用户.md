@@ -648,29 +648,97 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
 ```bash
 BASE=http://127.0.0.1:8088
 
-# ① 无 token → 401
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info        # 401
+# ① 无 token → 401（这是预期结果，不是获取 token 的步骤）
+# 同时显示响应正文和 HTTP 状态，出错时不要只留下一个数字。
+curl -sS $BASE/api/admin/me/info -w '\nHTTP %{http_code}\n'
 
 # ② 登录拿 token
-TOKEN=$(curl -s -X POST $BASE/api/admin/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+# 先完整显示响应和状态，再提取 data.token；失败时 TOKEN 不会悄悄变成空字符串。
+login_for_token() {
+  if ! LOGIN_RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$BASE/api/admin/authenticate" \
+    -H 'Content-Type: application/json' \
+    -d '{"email":"admin@example.com","password":"password"}'); then
+    echo '登录请求发送失败：请确认服务仍在运行、端口是 8088。' >&2
+    return 1
+  fi
+
+  LOGIN_STATUS=${LOGIN_RESULT##*$'\n'}
+  LOGIN_BODY=${LOGIN_RESULT%$'\n'*}
+  printf '%s\nHTTP %s\n' "$LOGIN_BODY" "$LOGIN_STATUS"
+
+  if [ "$LOGIN_STATUS" != 200 ]; then
+    echo '登录失败：请根据上面的 message / errors 排查，先不要继续下一步。' >&2
+    return 1
+  fi
+
+  TOKEN=$(printf '%s' "$LOGIN_BODY" | php -r '
+    $json = json_decode(stream_get_contents(STDIN), true);
+    echo is_string($json["data"]["token"] ?? null) ? $json["data"]["token"] : "";
+  ')
+
+  if [ -z "$TOKEN" ]; then
+    echo '登录虽返回 200，但响应中没有 data.token；请检查 AuthController 的返回结构。' >&2
+    return 1
+  fi
+
+  printf '已拿到 token（长度 %s）。\n' "${#TOKEN}"
+}
+login_for_token
 
 # ③ 带 token → 200
-curl -s $BASE/api/admin/me/info -H "Authorization: Bearer $TOKEN"
+curl -sS "$BASE/api/admin/me/info" \
+  -H "Authorization: Bearer $TOKEN" \
+  -w '\nHTTP %{http_code}\n'
 # {"data":{"user":{"id":1,"name":"管理员","email":"admin@example.com"}}}
+# HTTP 200
 
 # ④ 刷新 → 旧 token 立即作废、新 token 可用
-NEW_TOKEN=$(curl -s -X POST $BASE/api/admin/refresh -H "Authorization: Bearer $TOKEN" \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $TOKEN"       # 401（旧 token 已被 refresh 拉黑）
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $NEW_TOKEN"   # 200
+refresh_for_token() {
+  if ! REFRESH_RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$BASE/api/admin/refresh" \
+    -H "Authorization: Bearer $TOKEN"); then
+    echo '刷新请求发送失败：请确认服务仍在运行。' >&2
+    return 1
+  fi
+
+  REFRESH_STATUS=${REFRESH_RESULT##*$'\n'}
+  REFRESH_BODY=${REFRESH_RESULT%$'\n'*}
+  printf '%s\nHTTP %s\n' "$REFRESH_BODY" "$REFRESH_STATUS"
+
+  if [ "$REFRESH_STATUS" != 200 ]; then
+    echo '刷新失败：请根据上面的 message 排查，先不要继续下一步。' >&2
+    return 1
+  fi
+
+  NEW_TOKEN=$(printf '%s' "$REFRESH_BODY" | php -r '
+    $json = json_decode(stream_get_contents(STDIN), true);
+    echo is_string($json["data"]["token"] ?? null) ? $json["data"]["token"] : "";
+  ')
+
+  if [ -z "$NEW_TOKEN" ]; then
+    echo '刷新虽返回 200，但响应中没有 data.token。' >&2
+    return 1
+  fi
+
+  printf '已拿到新 token（长度 %s）。\n' "${#NEW_TOKEN}"
+}
+refresh_for_token
+
+curl -sS "$BASE/api/admin/me/info" -H "Authorization: Bearer $TOKEN" -w '\nHTTP %{http_code}\n'       # HTTP 401（旧 token 已被 refresh 拉黑）
+curl -sS "$BASE/api/admin/me/info" -H "Authorization: Bearer $NEW_TOKEN" -w '\nHTTP %{http_code}\n'   # HTTP 200
 
 # ⑤ 登出 → 该 token 立即 401
-curl -s -X POST $BASE/api/admin/logout -H "Authorization: Bearer $NEW_TOKEN"                             # {"message":"ok"}
-curl -s -o /dev/null -w "%{http_code}\n" $BASE/api/admin/me/info -H "Authorization: Bearer $NEW_TOKEN"   # 401
+curl -sS -X POST "$BASE/api/admin/logout" -H "Authorization: Bearer $NEW_TOKEN" -w '\nHTTP %{http_code}\n' # {"message":"ok"} + HTTP 200
+curl -sS "$BASE/api/admin/me/info" -H "Authorization: Bearer $NEW_TOKEN" -w '\nHTTP %{http_code}\n' # HTTP 401
 ```
+
+如果第 ② 步失败，直接看它打印出的 HTTP 状态和响应正文：
+
+| 现象 | 优先检查 |
+|---|---|
+| `HTTP 500`，`Target class [AuthController] does not exist` | `routes/admin.php` 顶部是否有 `use App\Admin\Controllers\AuthController;` |
+| `HTTP 422`，提示字段必填 | JSON 是否使用本章的 `email` / `password` 字段 |
+| `HTTP 422`，提示帐号或密码错误 | 是否执行过 `php artisan db:seed --class=UserSeeder` |
+| 无法连接 `127.0.0.1:8088` | 启动命令是否仍在运行、实际端口是否为 `8088` |
 
 > 本章黑名单宽限期为 0，因此 refresh 后旧 token 立即失效。`logout` 是幂等接口，
 > 判断退出是否生效要再次访问受保护接口，不能只看 logout 返回的 200。

@@ -52,6 +52,8 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString("['php', 'artisan', 'config:clear']", $script);
         self::assertStringContainsString("['php', 'artisan', 'route:clear']", $script);
         self::assertStringNotContainsString("['php', 'artisan', 'optimize:clear']", $script);
+        self::assertStringContainsString("'tools/tutorial-http.sh'", $script);
+        self::assertStringContainsString("'tools/tutorial-sync-chapter7.php'", $script);
     }
 
     public function test_production_composer_clear_all_does_not_clear_business_cache(): void
@@ -63,5 +65,29 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString('config:clear', $composer);
         self::assertStringContainsString('route:clear', $composer);
         self::assertStringContainsString('@php artisan optimize', $composer);
+    }
+
+    public function test_tutorial_http_helper_loads_in_posix_shell(): void
+    {
+        $helper = dirname(__DIR__, 3) . '/tools/tutorial-http.sh';
+        $script = '. ' . escapeshellarg($helper)
+            . '; command -v tutorial_http_request >/dev/null'
+            . ' && command -v tutorial_http_call >/dev/null'
+            . ' && command -v tutorial_http_token >/dev/null';
+
+        exec('sh -c ' . escapeshellarg($script) . ' 2>&1', $output, $exitCode);
+
+        self::assertSame(0, $exitCode, implode("\n", $output));
+    }
+
+    public function test_chapter_seven_sync_is_dry_run_by_default_and_backs_up_overwrites(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 3) . '/tools/tutorial-sync-chapter7.php');
+
+        self::assertIsString($script);
+        self::assertStringContainsString("isset(\$options['execute'])", $script);
+        self::assertStringContainsString('DRY-RUN', $script);
+        self::assertStringContainsString('/.tutorial-backups/chapter7-', $script);
+        self::assertStringContainsString("if (\$action === 'overwrite')", $script);
     }
 }

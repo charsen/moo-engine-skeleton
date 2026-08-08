@@ -190,30 +190,65 @@ exit
 **① 无 token → 401：**
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10"
-# 401
+curl -sS "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" \
+  -w '\nHTTP %{http_code}\n'
+# {"message":"The token could not be parsed from the request"}
+# HTTP 401（预期结果）
 ```
 
-**② 管理员（is_root）→ 200**；**编辑小王 → 403**。按第 3 章的 sed 提取方式，
-两个账号各登录一次、分别赋给两个变量：
+**② 管理员（is_root）→ 200**；**编辑小王 → 403**。下面的登录函数会先显示每个账号的
+完整响应和 HTTP 状态，再提取 `data.token`；登录失败时不会静默留下空 token：
 
 ```bash
 BASE=http://127.0.0.1:8088
 
-ADMIN_TOKEN=$(curl -s -X POST $BASE/api/admin/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"password"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+login_token() {
+  LOGIN_LABEL=$1
+  LOGIN_EMAIL=$2
+  LOGIN_PASSWORD=$3
+  LOGIN_TOKEN=
 
-EDITOR_TOKEN=$(curl -s -X POST $BASE/api/admin/authenticate \
-  -H "Content-Type: application/json" \
-  -d '{"email":"editor@example.com","password":"editor888"}' \
-  | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+  if ! LOGIN_RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$BASE/api/admin/authenticate" \
+    -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$LOGIN_EMAIL\",\"password\":\"$LOGIN_PASSWORD\"}"); then
+    printf '[%s] 请求发送失败：请确认服务和 8088 端口。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
 
-curl -s -o /dev/null -w "%{http_code}\n" "$BASE/api/admin/food?page=1&page_limit=10" \
-  -H "Authorization: Bearer $ADMIN_TOKEN"     # 200
-curl -s "$BASE/api/admin/food?page=1&page_limit=10" \
-  -H "Authorization: Bearer $EDITOR_TOKEN"    # 403 This action is unauthorized.
+  LOGIN_STATUS=${LOGIN_RESULT##*$'\n'}
+  LOGIN_BODY=${LOGIN_RESULT%$'\n'*}
+  printf '\n[%s 登录响应]\n%s\nHTTP %s\n' "$LOGIN_LABEL" "$LOGIN_BODY" "$LOGIN_STATUS"
+
+  if [ "$LOGIN_STATUS" != 200 ]; then
+    printf '[%s] 登录失败：根据上面的 message / errors 排查。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
+
+  LOGIN_TOKEN=$(printf '%s' "$LOGIN_BODY" | php -r '
+    $json = json_decode(stream_get_contents(STDIN), true);
+    echo is_string($json["data"]["token"] ?? null) ? $json["data"]["token"] : "";
+  ')
+
+  if [ -z "$LOGIN_TOKEN" ]; then
+    printf '[%s] 响应中没有 data.token，请检查 AuthController。\n' "$LOGIN_LABEL" >&2
+    return 1
+  fi
+
+  printf '[%s] 已拿到 token（长度 %s）。\n' "$LOGIN_LABEL" "${#LOGIN_TOKEN}"
+}
+
+login_token '管理员' 'admin@example.com' 'password' && ADMIN_TOKEN=$LOGIN_TOKEN
+login_token '编辑小王' 'editor@example.com' 'editor888' && EDITOR_TOKEN=$LOGIN_TOKEN
+
+if [ -n "${ADMIN_TOKEN:-}" ] && [ -n "${EDITOR_TOKEN:-}" ]; then
+  curl -sS "$BASE/api/admin/food?page=1&page_limit=10" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -w '\nHTTP %{http_code}\n' # HTTP 200
+
+  curl -sS "$BASE/api/admin/food?page=1&page_limit=10" \
+    -H "Authorization: Bearer $EDITOR_TOKEN" -w '\nHTTP %{http_code}\n' # HTTP 403
+else
+  echo '至少一个账号没有拿到 token，请先解决上面的登录错误，不要继续下一步。' >&2
+fi
 ```
 
 > 调试模式（APP_DEBUG=true）下 403 会带很长的堆栈，生产是干净的 `{"message": ...}`。
@@ -234,17 +269,30 @@ exit
 
 ```bash
 # 编辑小王调列表 → 200（刚授的 index）
-curl -s -o /dev/null -w "%{http_code}\n" "$BASE/api/admin/food?page=1&page_limit=10" \
-  -H "Authorization: Bearer $EDITOR_TOKEN"    # 200
+curl -sS "$BASE/api/admin/food?page=1&page_limit=10" \
+  -H "Authorization: Bearer $EDITOR_TOKEN" \
+  -w '\nHTTP %{http_code}\n' # HTTP 200
 
 # 编辑小王新增 → 仍然 403（没授 store）。store 是 POST，必须带齐合法请求体才能
 # 越过表单校验后才会看到 403。必填字段可在
 # /scaffold 调试器或 app/Admin/Requests/Food/Food/StoreRequest.php 查到：
-curl -s -o /dev/null -w "%{http_code}\n" -X POST "$BASE/api/admin/food" \
+curl -sS -X POST "$BASE/api/admin/food" \
   -H "Authorization: Bearer $EDITOR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"food_name":"测试新菜品","food_category":1,"price":500,"food_status":1}'   # 403
+  -d '{"food_name":"测试新菜品","food_category":1,"price":500,"food_status":1}' \
+  -w '\nHTTP %{http_code}\n' # HTTP 403
 ```
+
+真机结果不符合预期时，先按状态定位，不要只反复重跑命令：
+
+| 现象 | 优先检查 |
+|---|---|
+| 登录 `HTTP 500` | 直接看响应里的异常类、文件和行号；先修登录链路再测 ACL |
+| 登录 `HTTP 422` | 用户是否已创建、密码和 `email` 字段是否正确 |
+| 两个账号访问 food 都是 `HTTP 401` | token 是否为空、请求头是否带完整的 `Authorization: Bearer ...` |
+| 管理员访问 food 是 `HTTP 403` | UserSeeder 是否给 `admin@example.com` 写入了 `actions=['is_root']` |
+| 编辑小王授权前就是 `HTTP 200` | `authorization.check` 是否为 `true`，修改后是否执行了 `config:clear` |
+| 新增接口返回 `HTTP 422` 而不是 `403` | 请求体没有通过 FormRequest；按错误正文补齐字段后再测 ACL |
 
 ## 5.4 两个容易误判的点
 
@@ -279,9 +327,14 @@ class FoodAclTest extends TestCase
 
     private function login(string $email, string $password): string
     {
-        return $this->postJson('api/admin/authenticate', compact('email', 'password'))
-            ->assertOk()
-            ->json('data.token');
+        $response = $this->postJson('api/admin/authenticate', compact('email', 'password'));
+        $response->assertOk()->assertJsonStructure(['data' => ['token']]);
+
+        $token = $response->json('data.token');
+        $this->assertIsString($token, '登录响应的 data.token 必须是字符串。');
+        $this->assertNotSame('', $token, '登录响应的 data.token 不能为空。');
+
+        return $token;
     }
 
     private function makeEditor(array $actions = []): User
@@ -350,7 +403,13 @@ class FoodAclTest extends TestCase
 }
 ```
 
-运行完整测试：
+先只运行本章测试；失败时 `--stop-on-failure` 会停在第一个根因，避免后续连锁错误淹没输出：
+
+```bash
+php artisan test --filter=FoodAclTest --stop-on-failure
+```
+
+本章测试通过后，再运行完整测试确认没有回归：
 
 ```bash
 php artisan test
