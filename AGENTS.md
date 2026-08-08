@@ -35,7 +35,7 @@
 
 ## Composer 与环境边界
 
-- 本地学习/开发和生产部署使用不同 Composer manifest/lock，二者要分别保持可解析，不能用一套 lock 覆盖另一套语义。
+- 本地学习/开发和生产部署使用不同 Composer manifest/lock，二者要分别保持可解析，不能用一套 lock 覆盖另一套语义。`engine/composer.lock` 仅本地生成并由 Git 忽略；`engine/composer.production.lock` 是发布输入，继续随仓库跟踪。
 - 开源包按公开发行渠道安装；商业 `moo-system` 才依赖授权的私有仓访问。文档不得暗示读者能匿名安装商业包。
 - 版本、PHP/Laravel 支持面和命令参数以当前 manifest、包发布状态和真实 `artisan` 输出为准，不沿用历史文档数字。
 - 生产部署涉及缓存、队列、多 worker、Redis、目录权限和独立 `.env`；不要把 SQLite、sync queue 或单进程教程默认值描述成生产方案。
