@@ -407,32 +407,38 @@ $PRIVATE_PKGS_MANIFEST
 EOF
 fi
 
-# ---- Step 4: 选择 Composer 配置与独立 lock（仅生产）------------------
+# ---- Step 4: 切换 composer.json 为 production（仅生产）---------------
 
-section "⚙️  Step 4: 选择 Composer 配置"
+section "⚙️  Step 4: 切换 composer.json 为 production 配置"
 COMPOSER_PROD="$ENGINE_DIR/composer.production.json"
-ACTIVE_COMPOSER_LOCK="$ENGINE_DIR/composer.lock"
+COMPOSER_BAK="$ENGINE_DIR/composer.json.pull-bak"
+SWITCHED=0
 
 if is_production; then
     if [ ! -f "$COMPOSER_PROD" ]; then
         error "找不到 $COMPOSER_PROD — 仓库不完整或被误删，无法生产部署"
         exit 1
     fi
-    # Composer 原生支持 COMPOSER=<file>，并自动使用同 basename 的独立 lock：
-    # composer.production.json ↔ composer.production.lock。无需覆盖 composer.json，
-    # 生产工作树不再长期脏，也不会拿开发 lock 校验生产约束产生 content-hash 警告。
-    export COMPOSER="$COMPOSER_PROD"
-    ACTIVE_COMPOSER_LOCK="$ENGINE_DIR/composer.production.lock"
-    success "⚙️  使用 composer.production.json + composer.production.lock"
+    if diff -q "$COMPOSER_PROD" "$ENGINE_DIR/composer.json" >/dev/null 2>&1; then
+        info "composer.json 已经是 production 配置，无需切"
+    else
+        cp "$ENGINE_DIR/composer.json" "$COMPOSER_BAK"
+        cp "$COMPOSER_PROD" "$ENGINE_DIR/composer.json"
+        SWITCHED=1
+        success "⚙️  composer.json 切换为 production（旧版备份到 composer.json.pull-bak）"
+    fi
 else
-    unset COMPOSER 2>/dev/null || true
-    info "非生产环境（.env APP_ENV ≠ production），使用 composer.json + composer.lock"
+    info "非生产环境（.env APP_ENV ≠ production），保持当前 composer.json"
     info "本地开发 path repo + symlink 不动"
 fi
 
-# Composer 配置不再覆盖文件，失败时无需回滚工作树。
+# Step 5 失败时回滚 Step 4 的切换，避免留下半切的生产 manifest。
 rollback_composer_on_fail() {
-    warn "composer 操作失败；配置文件未被覆盖，修复依赖或网络后可直接重跑 pull.sh"
+    if [ "$SWITCHED" = "1" ] && [ -f "$COMPOSER_BAK" ]; then
+        warn "composer 操作失败，回滚 Step 4 的 composer.json 切换"
+        mv "$COMPOSER_BAK" "$ENGINE_DIR/composer.json"
+        warn "vendor/ 状态可能半装，建议修复依赖或网络后重跑 pull.sh"
+    fi
 }
 
 # ---- Step 4.5: 清掉 Laravel 编译缓存（防 post-autoload-dump 启动 artisan 时撞死类引用）----
@@ -464,11 +470,7 @@ if [ -n "${COMPOSER_USER:-}" ] && [ "$(id -u)" = "0" ]; then
     if id "$COMPOSER_USER" >/dev/null 2>&1; then
         info "COMPOSER_USER=$COMPOSER_USER 显式指定，composer 段切到该用户跑"
         info "前置：1) git config --global --add safe.directory $PROJECT_DIR  2) $COMPOSER_USER 有可写 home"
-        if is_production; then
-            COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H env COMPOSER=$COMPOSER_PROD composer"
-        else
-            COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H composer"
-        fi
+        COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H composer"
     else
         warn "COMPOSER_USER=$COMPOSER_USER 用户不存在，回退 root 跑"
     fi
@@ -503,7 +505,7 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$ENGINE_DIR/composer.production.json" ]; th
     # update（composer 直接拒绝 "Cannot update only a partial set ... without a lock file"），
     # 直接全量 install。首次部署 / 清空 vendor 后可能尚无对应环境的 lock，
     # 不分支会必然踩这个 BUG（真实踩坑）。
-    if [ -f "$ACTIVE_COMPOSER_LOCK" ]; then
+    if [ -f "$ENGINE_DIR/composer.lock" ]; then
         info "（有 composer.lock → partial update 私包调和 lock 错配，再 install 同步）"
         # 一次性 update 全部私包（包含缺失 + 未缺失，composer 自己 dedupe）
         # shellcheck disable=SC2086
@@ -622,6 +624,11 @@ if ! update_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1)
     esac
 else
     printf '%s\n' "$update_out"
+fi
+
+# Composer 段成功，Step 4 的临时备份不再需要。
+if [ -f "$COMPOSER_BAK" ]; then
+    rm -f "$COMPOSER_BAK"
 fi
 
 # ---- Step 5.5: 同步私包 publish 副本（JS/CSS/images 等前端资源）-------

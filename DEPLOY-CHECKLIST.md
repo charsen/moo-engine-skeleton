@@ -74,8 +74,8 @@ _（本次上线高风险项：______________________ ；无则显式写"无"）
   cd <你的仓库>
   git remote -v   # 期望 git@... 不是 https://...
   ```
-- [ ] **不要先手动 `composer install`**：pull.sh Step 5 自动判 vendor/ 存在性 → 缺则 install、有则
-  update 私包。手动容易带入 dev 依赖，或忘记 `COMPOSER=composer.production.json` 而装到开发 lock。
+- [ ] **不要先手动 `composer install`**：pull.sh Step 4 会备份并切换生产 manifest，Step 5 自动判
+  vendor/ 存在性 → 缺则 install、有则 update 私包。手动容易带入 dev 依赖，或按开发约束安装。
 - [ ] **建 `.env`**（pull.sh 的 `is_production` 守卫依赖它）
   ```bash
   cp engine/.env.example engine/.env
@@ -97,11 +97,12 @@ _（本次上线高风险项：______________________ ；无则显式写"无"）
 ### O-1 ｜ 生产 DB migration 全 applied
 
 - [ ] `php artisan migrate:status`，所有 migration **状态 = Ran**
+- [ ] `php artisan app:check-infrastructure-tables`，队列、缓存、会话和密码重置表全部 **状态 = OK**
 - [ ] 有 Pending → 评估本次是否需应用（pull.sh Step 6.5 只告警不自动跑，人工决定后 `migrate --force`）
 
 ### O-2 ｜ Queue worker + after_commit
 
-- [ ] `config/queue.php` 各 connection `after_commit = true`
+- [ ] `config/queue.php` 的 database / beanstalkd / sqs / redis 四个异步 connection 均为 `after_commit = true`
 - [ ] 生产 supervisor 跑 `queue:work` 至少 1 个 worker
 - [ ] 操作日志 / 登录记录走队列 → 没 worker 会"日志永远 0 条且无报错"（docs 坑 #21）
 
@@ -132,6 +133,8 @@ _（本次上线高风险项：______________________ ；无则显式写"无"）
 ```bash
 cd engine
 php artisan migrate:status                          # 全 Ran
+php artisan app:check-infrastructure-tables         # 全 OK；缺表或连接异常时非零退出
+php artisan smoke:get-admin                         # 服务器 5xx=0（522 除外）；失败时非零退出
 php artisan route:list --except-vendor | \
   grep -cE 'GET|POST|PUT|PATCH|DELETE|HEAD'         # 与基线对齐（骨架基线 = 27，host 随业务增长更新）
 php artisan schedule:list | grep -c cron 2>/dev/null || \
@@ -147,14 +150,14 @@ sh ../release-check.sh                               # 机器闸门：脚本语�
 
 - [ ] 抽样 5 个高频 endpoint `curl` 检查响应字段集 + 200
 - [ ] `storage/logs/laravel-$(date +%Y-%m-%d).log` 无 5xx / Exception
-- [ ] `php artisan queue:failed` 数量与上线前对齐；`failed_jobs` 无 5 分钟内新增
+- [ ] `php artisan queue:failed` 数量与上线前对齐；`job_failed` 无 5 分钟内新增
 - [ ] `GET /up` → 200（健康检查）
 - [ ] 任一异常 → 准备 rollback
 
 ## 部署后 24h 守护
 
 - [ ] 富文本字段（若本次有）72h 内图片是否 404（cast 缺失的典型症状）
-- [ ] 抽查本次改动涉及的 ShouldQueue Job 跑过一次、`failed_jobs` 无新增
+- [ ] 抽查本次改动涉及的 ShouldQueue Job 跑过一次、`job_failed` 无新增
 - [ ] daily log 次日 00:00 翻篇后 PHP-FPM 仍能写入（验证 cache.sh 的 predcreate + cron 生效，无 `append mode` 报错）
 
 ## Rollback 触发条件与决策表
@@ -165,7 +168,7 @@ sh ../release-check.sh                               # 机器闸门：脚本语�
 | --- | --- | --- |
 | last-mile sanity 任一 fail | `release-check.sh` 非零 / route·schedule 基线不齐 / migrate 有 Pending | 不上线，回滚到上一个 tag |
 | 30 min 内 5xx 高于基线 | 错误日志 / 监控告警明显上升 | 立即 rollback |
-| 队列大面积失败 | `queue:failed` 骤增、`failed_jobs` 持续增长 | rollback + 排队列根因 |
+| 队列大面积失败 | `queue:failed` 骤增、`job_failed` 持续增长 | rollback + 排队列根因 |
 | 本次业务风险项被命中 | 🔴/🟡 段填写的验收判据未达成 | 按该项决策方预案处理 |
 
 **Rollback 流程**（tag 锚定发版天然可回退）：

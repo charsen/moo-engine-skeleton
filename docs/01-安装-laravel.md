@@ -248,6 +248,43 @@ php artisan config:clear
 
 ## 1.5 执行数据库迁移
 
+完成态骨架把 Laravel 默认的失败任务表 `failed_jobs` 统一命名为 `job_failed`。如果你走方式 B，
+先生成一条向前兼容的重命名迁移（生成文件的时间戳会按你的当前时间变化，这是正常的）：
+
+```bash
+php artisan make:migration rename_failed_jobs_table
+```
+
+打开刚生成的 `database/migrations/*_rename_failed_jobs_table.php`，把内容改为：
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (Schema::hasTable('failed_jobs') && ! Schema::hasTable('job_failed')) {
+            Schema::rename('failed_jobs', 'job_failed');
+        }
+    }
+
+    public function down(): void
+    {
+        if (Schema::hasTable('job_failed') && ! Schema::hasTable('failed_jobs')) {
+            Schema::rename('job_failed', 'failed_jobs');
+        }
+    }
+};
+```
+
+方式 A 已自带这条迁移，不要重复创建。
+
 把 Laravel 自带的基础表建到 `moo_engine_from_zero` 里（在 `engine/` 目录下执行）：
 
 ```bash
@@ -265,8 +302,19 @@ php artisan migrate
 mysql -uroot -p7777 -h127.0.0.1 moo_engine_from_zero -e "SHOW TABLES;"
 ```
 
-应能看到 **9 张表**（按字母序）：`cache`、`cache_locks`、`failed_jobs`、`job_batches`、
+应能看到 **9 张表**（按字母序）：`cache`、`cache_locks`、`job_batches`、`job_failed`、
 `jobs`、`migrations`、`password_reset_tokens`、`sessions`、`users`。
+
+如果你走的是方式 A（直接使用完成态骨架），再运行只读的配置契约检查：
+
+```bash
+php artisan app:check-infrastructure-tables
+```
+
+期望 jobs、job_batches、job_failed、cache、sessions 和 password_reset_tokens 全部显示 `OK`，
+命令最后输出“基础设施表契约检查通过”。若命令返回非零状态，表格会直接指出缺失的表或连接错误；
+先核对 `.env` 与对应 config，再运行 `php artisan migrate`。方式 B 此时还是裸 Laravel，尚未加入
+骨架自带命令，以前面的 `SHOW TABLES` 结果作为本节验收即可。
 
 ## 1.6 启动并真机访问
 

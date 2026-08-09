@@ -5,7 +5,7 @@
 ## 开工顺序
 
 1. 先读 `notes.md`，再按任务阅读 `README.md`、`docs/README.md`、对应章节、`engine/` 现码和测试。
-2. 涉及初始化器或发布时，同时读 `init-project`、`release-check.sh`、开发/生产两套 Composer manifest 与 lock。
+2. 涉及初始化器或发布时，同时读 `init-project`、`release-check.sh`、开发/生产两套 Composer manifest、部署脚本与本地 lock 策略。
 3. 涉及 moo 包时，以本仓 manifest 和相邻包现码核实当前契约；`../wisdomcity/PACKAGES.md` 只作生态索引，不复制 host 规则。
 4. 修改前读完目标文件及直接调用链。机械性、零语义且范围明确的小修可直接实施；非琐碎或涉及行为、接口、数据、权限、依赖、发布的改动先列计划并取得用户批准，范围或风险实质变化时重新确认。
 
@@ -35,7 +35,7 @@
 
 ## Composer 与环境边界
 
-- 本地学习/开发和生产部署使用不同 Composer manifest/lock，二者要分别保持可解析，不能用一套 lock 覆盖另一套语义。`engine/composer.lock` 仅本地生成并由 Git 忽略；`engine/composer.production.lock` 是发布输入，继续随仓库跟踪。
+- 本地学习/开发和生产部署使用不同 Composer manifest，但不跟踪 lock。`engine/composer.lock` 由各环境本地生成并由 Git 忽略；不得创建或提交 `engine/composer.production.lock`。生产部署由 `pull.sh` 暂时把 `composer.production.json` 覆盖到 `composer.json`，失败时回滚，随后使用当前环境的本地 lock 安装并显式更新私包。
 - 开源包按公开发行渠道安装；商业 `moo-system` 才依赖授权的私有仓访问。文档不得暗示读者能匿名安装商业包。
 - 版本、PHP/Laravel 支持面和命令参数以当前 manifest、包发布状态和真实 `artisan` 输出为准，不沿用历史文档数字。
 - 生产部署涉及缓存、队列、多 worker、Redis、目录权限和独立 `.env`；不要把 SQLite、sync queue 或单进程教程默认值描述成生产方案。

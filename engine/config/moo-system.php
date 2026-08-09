@@ -31,10 +31,4 @@ return [
         // jwt.assign.guard:admin + jwt.guard.auth:admin + jwt.auth.refresh）。
         'middleware' => 'moo-system',
     ],
-
-    /*
-     * 雪花算法主键参数已抽到独立文件 config/snowflake.php（1-3）——三条生产血泪注释在那边。
-     * 实际消费方是 moo-scaffold 的 scaffold.snowflake 单例（复用 SNOW_FLAKE_* env），与本包无耦合。
-     * host 只需在 .env 设 SNOW_FLAKE_DATA_CENTER_ID / SNOW_FLAKE_WORKER_ID / SNOW_FLAKE_START_TIME。
-     */
 ];

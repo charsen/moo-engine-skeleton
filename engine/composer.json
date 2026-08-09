@@ -18,7 +18,7 @@
         "laravel/tinker": "^2.10.1",
         "php-open-source-saver/jwt-auth": "~2.8.3",
         "predis/predis": "^3.5",
-        "tucker-eric/eloquentfilter": "^3.0"
+        "tucker-eric/eloquentfilter": "^3.5"
     },
     "repositories": {
         "system": {
@@ -27,6 +27,7 @@
         }
     },
     "require-dev": {
+        "beyondcode/laravel-dump-server": "^2.1",
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",

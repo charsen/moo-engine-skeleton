@@ -7,8 +7,8 @@
 #
 # 检查项：
 #   1) 所有 *.sh 语法（sh -n / bash -n 按 shebang 分流）+ db-yaml-drift-probe.php php -l
-#   2) 开发 / 生产 composer + 各自 lock 校验
-#   3) 开发 / 生产 lock 依赖审计
+#   2) 开发 / 生产 composer manifest 校验
+#   3) 当前本地 lock / 已安装依赖审计
 #   4) composer dump-autoload --classmap-authoritative（autoload 完整性）
 #   5) php artisan about / route:list（能 boot + 路由无异常）
 #   6) composer test（全量测试）
@@ -41,12 +41,6 @@ if [ -f composer.lock ]; then
     composer audit --locked
 else
     composer audit
-fi
-if [ -f composer.production.lock ]; then
-    COMPOSER=composer.production.json composer audit --locked
-else
-    printf '%s\n' 'Missing composer.production.lock' >&2
-    exit 1
 fi
 composer dump-autoload --classmap-authoritative --no-interaction
 php artisan about --only=environment

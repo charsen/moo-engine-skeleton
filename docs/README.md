@@ -112,7 +112,7 @@ moo-engine-skeleton/
 | 4 | 调试器代理一直转圈 | 单线程 serve 自我代理死锁，用 `PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=127.0.0.1 --port=8088 --no-reload` 启动 | 2 |
 | 5 | 装 moo-system 后 artisan 报 `Attribute [iResource] does not exist` | 第 2 章的完整反射版 `iResource` 宏未正确注册在 `AppServiceProvider::register()`；回到 2.3 修正后重跑 Composer | 2 / 7 |
 | 6 | 调部门列表报 `undefined function toLabelValue()` | 补 `app/Helpers/helpers.php` 并 `composer` files 自动加载 | 7 |
-| 7 | `moo-system check` 的中间件组那项总 FAIL | 中间件组要注册到 router（provider boot），否则 console 看不到 | 7 |
+| 7 | `moo-system check` 的中间件组那项总 FAIL | 组统一写在 `bootstrap/app.php::withMiddleware()`；`AppServiceProvider::boot()` 的 Console 分支还要解析 HTTP Kernel，才能把同一份配置同步到 Router | 3 / 7 |
 | 8 | 调试器里带了 token 仍 401 | Authorization 值要加 `Bearer ` 前缀 | 7 |
 | 9 | seed 后部门树 `_lft/_rgt` 错乱 | `DatabaseSeeder` 别用 `WithoutModelEvents`，否则静默 nestedset 事件 | 7 |
 | 10 | token 续签后报 401 `Guard Unverified` | `persistent_claims` 加入 `'guard'`，jwt-auth 固定为 `~2.8.3` | 4 |

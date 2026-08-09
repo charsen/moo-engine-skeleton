@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route as RouteFacade;
+use Illuminate\Support\Facades\Storage;
 use Mooeen\System\Models\Personnel;
 use Throwable;
 
@@ -29,15 +30,15 @@ use Throwable;
  *   - 平时：想快速确认「所有列表/详情页还活着」时的一键体检。
  *
  * ▍口径
- * 5xx 期望恒为 0。若现状已有 5xx（如某端点回归），**如实入基线**并在末尾列清单，
- * 不隐藏、不美化——基线要反映真相，才能对拍出「新引入的」回归。
+ * 5xx 期望恒为 0。若现状已有 5xx（如某端点回归），**如实入基线**、在末尾列清单并
+ * 返回非零状态，不隐藏、不美化，也不让部署脚本把失败误判为通过。
  */
 class SmokeGetAdmin extends Command
 {
     protected $signature = 'smoke:get-admin
                             {--id=1 : {id} 占位符替换值（默认 1）}
                             {--mobile= : 以该手机号的 admin 签发 token（默认取 id 最小者）}
-                            {--out=app/smoke/baseline.json : 输出文件（相对 storage_path 或绝对路径）}';
+                            {--out= : 输出文件（相对 storage_path 或绝对路径；留空则生成唯一时间戳文件）}';
 
     protected $description = '遍历全部 admin GET 路由，记录状态与响应体摘要，落 JSON 基线快照（5xx 如实入册并列清单），供升级前后对拍。';
 
@@ -49,11 +50,11 @@ class SmokeGetAdmin extends Command
             return self::FAILURE;
         }
 
+        // GET 路由中可能包含导出动作。冒烟只验证响应，不应把 XLSX 等产物写进真实 public 盘。
+        $publicDisk = Storage::fake('public');
+
         $fixtureId = (string) $this->option('id');
-        $outPath   = (string) $this->option('out');
-        if (! str_starts_with($outPath, '/')) {
-            $outPath = storage_path($outPath);
-        }
+        $outPath   = $this->resolveOutputPath((string) $this->option('out'));
 
         $kernel  = app(Kernel::class);
         $routes  = $this->collectGetRoutes();
@@ -110,7 +111,7 @@ class SmokeGetAdmin extends Command
             $counter[$this->bucket($status)]++;
         }
 
-        $fiveXx = array_values(array_filter($entries, fn ($e) => $e['status'] >= 500));
+        $fiveXx = array_values(array_filter($entries, fn ($e) => $this->isFailureStatus($e['status'])));
 
         $snapshot = [
             'generated_at' => now()->toDateTimeString(),
@@ -153,7 +154,45 @@ class SmokeGetAdmin extends Command
             $this->info('  5xx = 0 ✓');
         }
 
+        // 清掉 fake public 盘里的导出产物；真实 storage/app/public 从未被替换或写入。
+        $publicDisk->deleteDirectory('');
+
+        return $this->exitCodeFor($entries);
+    }
+
+    protected function resolveOutputPath(string $outPath): string
+    {
+        if ($outPath === '') {
+            $filename = sprintf(
+                'smoke-get-admin-%s-%s.json',
+                now()->format('Ymd-His-u'),
+                bin2hex(random_bytes(3)),
+            );
+
+            return storage_path('app/smoke/' . $filename);
+        }
+
+        return str_starts_with($outPath, '/') ? $outPath : storage_path($outPath);
+    }
+
+    /**
+     * @param array<int, array{status: int}> $entries
+     */
+    protected function exitCodeFor(array $entries): int
+    {
+        foreach ($entries as $entry) {
+            if ($this->isFailureStatus($entry['status'])) {
+                return self::FAILURE;
+            }
+        }
+
         return self::SUCCESS;
+    }
+
+    protected function isFailureStatus(int $status): bool
+    {
+        // 522 是本项目的业务异常契约，语义与 422 相同，不属于服务器故障。
+        return $status >= 500 && $status !== 522;
     }
 
     private function prepare(): bool

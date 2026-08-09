@@ -151,11 +151,7 @@ if (! $keepDemo) {
 }
 
 headline('3/8 Composer dependencies');
-run(['composer', 'update', '--lock', '--no-install', '--no-scripts', '--no-interaction'], $engine);
-run([
-    'env', 'COMPOSER=composer.production.json', 'composer',
-    'update', '--lock', '--no-install', '--no-scripts', '--no-interaction',
-], $engine);
+run(['composer', 'update', '--no-install', '--no-scripts', '--no-interaction'], $engine);
 run(['composer', 'install', '--no-interaction', '--prefer-dist'], $engine);
 
 headline('4/8 Application secrets and generated metadata');
@@ -218,6 +214,11 @@ if (! $keepTutorial) {
         'tools/tutorial-http.sh',
         'tools/tutorial-sync-chapter7.php',
     ]);
+    removeMarkedSection(
+        $engine . '/tests/Unit/DeploymentScriptTest.php',
+        '// init-project:start tutorial-helper-tests',
+        '// init-project:end tutorial-helper-tests',
+    );
 }
 writeProjectReadme($root . '/README.md', $appName, $description, $scaffoldUser);
 writeEngineReadme($engine . '/README.md', $appName, $description);
@@ -236,13 +237,13 @@ file_put_contents($marker, json_encode([
 
 headline('7/8 Verification');
 run(['php', 'artisan', 'moo-system', 'check'], $engine);
+run(['php', 'artisan', 'app:check-infrastructure-tables'], $engine);
 run(['php', 'artisan', 'test'], $engine);
 run(['php', 'artisan', 'migrate:status'], $engine);
 run(['php', 'artisan', 'route:list', '--except-vendor'], $engine);
 run(['composer', 'validate', '--no-check-publish', 'composer.json'], $engine);
 run(['composer', 'audit', '--locked'], $engine);
 run(['env', 'COMPOSER=composer.production.json', 'composer', 'validate', '--no-check-publish'], $engine);
-run(['env', 'COMPOSER=composer.production.json', 'composer', 'audit', '--locked'], $engine);
 run([$engine . '/vendor/bin/pint', '--test'], $engine);
 
 headline('8/8 Git ownership');
@@ -439,7 +440,7 @@ function removeFoodDemo(string $engine): void
     replaceExact($engine . '/tests/Feature/RouteMacroTest.php', [
         '`DELETE food/batch`' => '`DELETE resources/batch`',
     ]);
-    replaceExact($engine . '/app/Providers/AppServiceProvider.php', [
+    replaceExact($engine . '/bootstrap/app.php', [
         '（放行公开登录路由 + 演示 food 接口）' => '（放行公开登录路由）',
     ]);
     replaceExact($engine . '/app/Http/Middleware/SetLocale.php', [
@@ -548,6 +549,30 @@ function removeExplicitPaths(string $base, array $paths): void
     foreach ($paths as $relative) {
         removePath($base . '/' . $relative);
     }
+}
+
+function removeMarkedSection(string $path, string $startMarker, string $endMarker): void
+{
+    $content  = readFileOrFail($path);
+    $hasStart = str_contains($content, $startMarker);
+    $hasEnd   = str_contains($content, $endMarker);
+
+    // --force 重跑已初始化项目时，区段已经移除，保持幂等。
+    if (! $hasStart && ! $hasEnd) {
+        return;
+    }
+    if (! $hasStart || ! $hasEnd) {
+        fail("Incomplete marked section in {$path}: {$startMarker} / {$endMarker}");
+    }
+
+    $pattern = '/\R[ \t]*' . preg_quote($startMarker, '/')
+        . '\R.*?\R[ \t]*' . preg_quote($endMarker, '/') . '\R/s';
+    $updated = preg_replace($pattern, '', $content, 1, $count);
+    if (! is_string($updated) || $count !== 1) {
+        fail("Unable to remove marked section in {$path}: {$startMarker} / {$endMarker}");
+    }
+
+    writeFileOrFail($path, $updated);
 }
 
 function removePath(string $path): void

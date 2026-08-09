@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * 教学最小版：从 `Accept-Language` 取首选语言标签，只接受受支持集合内的值
  * （config('scaffold.languages')，默认 en / zh-CN），命中即 app()->setLocale()，
- * 否则回落到 config('app.locale')。挂在各路由中间件组上（见 AppServiceProvider::boot()）。
+ * 否则回落到 config('app.locale')。挂在各路由中间件组上（见 bootstrap/app.php::withMiddleware()）。
  *
  * 为什么要有它：Food 的 enum label、校验消息、moo-system 的多语言字段都靠 app locale 取值；
  * 没有它则永远用 config('app.locale') 单一语言，移动端切语言不生效。

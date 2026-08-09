@@ -25,7 +25,7 @@ Thumbs.db
 
 # moo-scaffold：发布的静态资源（用 `vendor:publish --tag=public --force` 重新生成，不入 git）
 /public/vendor/scaffold
-# moo-scaffold：账号 / 运行时数据（账号用 `php artisan moo:account:add` 重建，不入 git）
+# moo-scaffold：账号 / 运行时数据（各环境本地配置，不入 git）
 /scaffold/accounts.yaml
 /scaffold/.local/
 /scaffold/api/history/

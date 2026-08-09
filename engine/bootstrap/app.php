@@ -2,11 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\JWTAssignGuard;
+use App\Http\Middleware\JWTAuthOrRefresh;
+use App\Http\Middleware\JWTGuardAuth;
+use App\Http\Middleware\OperationLog;
+use App\Http\Middleware\SetLocale;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Mooeen\Scaffold\Exceptions\BaseException;
@@ -40,9 +46,41 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->throttleWithRedis();
         }
 
-        // JWT 中间件别名与各路由中间件组在 App\Providers\AppServiceProvider::boot() 里
-        // 直接注册到 router —— 这样 artisan 命令（console 内核）也能看到这些组，
-        // `php artisan moo-system check` 才能正确校验。详见该 provider 的注释。
+        $middleware->alias([
+            'jwt.assign.guard' => JWTAssignGuard::class,
+            'jwt.guard.auth'   => JWTGuardAuth::class,
+            'jwt.auth.refresh' => JWTAuthOrRefresh::class,
+            'set.locale'       => SetLocale::class,
+        ]);
+
+        // host 后台组：只指定 admin 守卫，不强制认证（放行公开登录路由 + 演示 food 接口）
+        $middleware->group('admin', [
+            'jwt.assign.guard:admin',
+            'throttle:admin',
+            'set.locale',
+            SubstituteBindings::class,
+            OperationLog::class,
+        ]);
+
+        // host 客户端（移动端）组：指定 user 守卫
+        $middleware->group('client', [
+            'jwt.assign.guard:user',
+            'throttle:client',
+            'set.locale',
+            SubstituteBindings::class,
+        ]);
+
+        // moo-system 包路由专用组：完整 JWT 强制认证链
+        // （config/moo-system.php 的 admin.middleware 指向这里）
+        $middleware->group('moo-system', [
+            'jwt.assign.guard:admin',
+            'jwt.guard.auth:admin',
+            'jwt.auth.refresh',
+            'throttle:admin',
+            'set.locale',
+            SubstituteBindings::class,
+            OperationLog::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 这些异常属于预期控制流，不上报；同一异常只报一次

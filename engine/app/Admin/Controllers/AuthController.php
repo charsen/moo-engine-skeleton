@@ -13,8 +13,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Mooeen\System\Jobs\SaveLoginJob;
 use Mooeen\System\Jobs\UpdateLoginTokenJob;
 use Mooeen\System\Models\Enums\AccountStatus;
+use Mooeen\System\Models\Enums\LastLoginEndpoint;
+use Mooeen\System\Models\LoginManagement;
 use Mooeen\System\Models\Personnel;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
@@ -56,10 +59,13 @@ class AuthController
         $token = Auth::guard('admin')->login($user);
 
         $user->forceFill([
-            'login_times'   => (int) $user->login_times + 1,
-            'last_login_at' => now(),
-            'last_login_ip' => $request->ip(),
+            'login_times'         => (int) $user->login_times + 1,
+            'last_login_at'       => now(),
+            'last_login_ip'       => $request->ip(),
+            'last_login_endpoint' => LastLoginEndpoint::WEB->value,
         ])->saveQuietly();
+
+        SaveLoginJob::dispatch($user, $token, ['user_agent' => $request->userAgent()]);
 
         return response()->json([
             'data' => [
@@ -134,8 +140,9 @@ class AuthController
      * JWTGuard::logout() 内部自己捕获了 JWTException（拉黑不了就当作已登出），
      * 所以本接口对任何输入都幂等返回 200——RegressionTest 守护了这个契约。
      */
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
+        LoginManagement::setInvalidStatus($request->bearerToken());
         Auth::guard('admin')->logout(true);
 
         return response()->json(['message' => 'ok']);
