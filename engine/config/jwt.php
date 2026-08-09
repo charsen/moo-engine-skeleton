@@ -1,9 +1,4 @@
-<?php
-
-declare(strict_types=1);
-use PHPOpenSourceSaver\JWTAuth\Providers\Auth\Illuminate;
-use PHPOpenSourceSaver\JWTAuth\Providers\JWT\Lcobucci;
-
+<?php declare(strict_types=1);
 /*
  * This file is part of jwt-auth.
  *
@@ -255,9 +250,9 @@ return [
 
     'providers' => [
 
-        'jwt' => Lcobucci::class,
+        'jwt' => PHPOpenSourceSaver\JWTAuth\Providers\JWT\Lcobucci::class,
 
-        'auth' => Illuminate::class,
+        'auth' => PHPOpenSourceSaver\JWTAuth\Providers\Auth\Illuminate::class,
 
         'storage' => PHPOpenSourceSaver\JWTAuth\Providers\Storage\Illuminate::class,
 

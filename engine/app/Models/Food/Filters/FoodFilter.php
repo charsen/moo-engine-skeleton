@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Models\Food\Filters;
 
-use App\Models\BaseFilter;
+use Mooeen\Scaffold\Foundation\BaseFilter;
 
 class FoodFilter extends BaseFilter
 {

@@ -4,16 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Http\Middleware\JWTAssignGuard;
-use App\Http\Middleware\JWTAuthOrRefresh;
-use App\Http\Middleware\JWTGuardAuth;
-use App\Http\Middleware\OperationLog;
-use App\Http\Middleware\SetLocale;
 use Exception;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Middleware\SubstituteBindings;
-use Illuminate\Routing\Router;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -90,8 +84,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        /** @var Router $router */
-        $router = $this->app['router'];
+        // withMiddleware() 的配置在解析 HTTP Kernel 时才会同步到 router。Artisan 只解析
+        // Console Kernel，moo-system check 会因此看不到自建组；Console 启动时显式解析一次
+        // HTTP Kernel，让 HTTP / Console 共用 bootstrap/app.php 中唯一一份中间件配置。
+        if ($this->app->runningInConsole()) {
+            $this->app->make(HttpKernel::class);
+        }
 
         // Collection 表单宏三件套：moo-scaffold 的 getFormConfig / moo-system 包控制器
         // 构建 form_widgets 时会在 Collection 上调 putMore/default/forgetMore —— 这是
@@ -155,46 +153,5 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
-        // JWT 中间件别名
-        $router->aliasMiddleware('jwt.assign.guard', JWTAssignGuard::class);
-        $router->aliasMiddleware('jwt.guard.auth', JWTGuardAuth::class);
-        $router->aliasMiddleware('jwt.auth.refresh', JWTAuthOrRefresh::class);
-
-        // 本地化：按请求头切 app locale（各业务组都挂，见下）
-        $router->aliasMiddleware('set.locale', SetLocale::class);
-
-        // 中间件组在这里注册（而非只写在 bootstrap/app.php 的 withMiddleware）。
-        // 原因：withMiddleware 的组只有在「HTTP 内核」实例化时才同步到 router；artisan 命令
-        // 走「Console 内核」，不会同步，导致 `moo-system check` 在命令行看不到这些组。
-        // 在 provider boot() 注册则 console / HTTP 都生效（生产若 route:cache 也无妨）。
-
-        // host 后台组：只指定 admin 守卫，不强制认证（放行公开登录路由 + 演示 food 接口）
-        $router->middlewareGroup('admin', [
-            'jwt.assign.guard:admin',
-            'throttle:admin',
-            'set.locale',
-            SubstituteBindings::class,
-            OperationLog::class,
-        ]);
-
-        // host 客户端（移动端）组：指定 user 守卫
-        $router->middlewareGroup('client', [
-            'jwt.assign.guard:user',
-            'throttle:client',
-            'set.locale',
-            SubstituteBindings::class,
-        ]);
-
-        // moo-system 包路由专用组：完整 JWT 强制认证链
-        // （config/moo-system.php 的 admin.middleware 指向这里）
-        $router->middlewareGroup('moo-system', [
-            'jwt.assign.guard:admin',
-            'jwt.guard.auth:admin',
-            'jwt.auth.refresh',
-            'throttle:admin',
-            'set.locale',
-            SubstituteBindings::class,
-            OperationLog::class,
-        ]);
     }
 }

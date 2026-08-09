@@ -431,45 +431,43 @@ class JWTAuthOrRefresh
 
 ### 3.4.4 注册中间件别名和组
 
-编辑 `app/Providers/AppServiceProvider.php`，在 `boot()` 方法里添加（如果文件还没有 `boot()` 方法，就新增一个）：
+编辑 `bootstrap/app.php`，在 `withMiddleware()` 回调里注册别名和组：
 
 ```php
-public function boot(): void
-{
-    $router = $this->app['router'];
-
-    // 注册 JWT 中间件别名
-    $router->aliasMiddleware('jwt.assign.guard', \App\Http\Middleware\JWTAssignGuard::class);
-    $router->aliasMiddleware('jwt.guard.auth',   \App\Http\Middleware\JWTGuardAuth::class);
-    $router->aliasMiddleware('jwt.auth.refresh', \App\Http\Middleware\JWTAuthOrRefresh::class);
+->withMiddleware(function (Middleware $middleware): void {
+    $middleware->alias([
+        'jwt.assign.guard' => \App\Http\Middleware\JWTAssignGuard::class,
+        'jwt.guard.auth'   => \App\Http\Middleware\JWTGuardAuth::class,
+        'jwt.auth.refresh' => \App\Http\Middleware\JWTAuthOrRefresh::class,
+    ]);
 
     // 注册中间件组
     // admin 组：只指定守卫、不强制认证（放行登录路由、第 2 章的 food 接口）
-    $router->middlewareGroup('admin', [
+    $middleware->group('admin', [
         'jwt.assign.guard:admin',
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
     ]);
 
     // client 组：移动端
-    $router->middlewareGroup('client', [
+    $middleware->group('client', [
         'jwt.assign.guard:user',
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
     ]);
 
     // moo-system 组：完整强制认证链（第 7 章给包路由用，现在先建好）
-    $router->middlewareGroup('moo-system', [
+    $middleware->group('moo-system', [
         'jwt.assign.guard:admin',
         'jwt.guard.auth:admin',
         'jwt.auth.refresh',
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
     ]);
-}
+})
 ```
 
-记得在文件顶部添加 use 语句（如果还没有的话）：
+记得在 `bootstrap/app.php` 顶部添加 use 语句（如果还没有的话）：
 
 ```php
-use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Foundation\Configuration\Middleware;
 ```
 
 > **命名对照**：
@@ -480,10 +478,26 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 > | 移动端 | `user` | `client` | `app` |
 >
 > `jwt.assign.guard:X` / `jwt.guard.auth:X` 中的 X 是**守卫名**；
-> `middlewareGroup('X', …)` 和 `Route::middleware('X')` 里的 X 是**组名**。
+> `$middleware->group('X', …)` 和 `Route::middleware('X')` 里的 X 是**组名**。
 
-> 中间件组必须在 provider 的 `boot()` 注册，确保 HTTP 和 Artisan 都能读取。
-> 第 4 章会加入限流，第 7 章再加入后台操作日志。
+`withMiddleware()` 是 HTTP 中间件配置的唯一入口。不过 Laravel 12 只有在解析 HTTP Kernel
+时才会把这里的组同步到 Router；普通 Artisan 命令只解析 Console Kernel。为了让第 7 章的
+`moo-system check` 也能读取同一份组配置，在 `AppServiceProvider.php` 顶部加入：
+
+```php
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
+```
+
+并在 `boot()` 开头加入：
+
+```php
+if ($this->app->runningInConsole()) {
+    $this->app->make(HttpKernel::class);
+}
+```
+
+这里只负责让 Console 解析 HTTP Kernel，不重复定义别名或组。第 4 章会在现有组中加入限流，
+第 7 章再加入后台操作日志。
 
 ### 3.4.5 修改 bootstrap/app.php 路由挂载
 

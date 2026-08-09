@@ -18,7 +18,7 @@
 1. **闭源包不能进公共 Packagist**（`moo-system` 商业授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
 2. **本地开发想改包源码即时生效**——这是下面「双 composer.json」的用武之地。
 
-目标：**本地开发体验顺 + 生产能装上锁定版 + 闭源包不外泄**。
+目标：**本地开发体验顺 + 生产按稳定约束安装 + 闭源包不外泄**。
 
 ## 2. 双 `composer.json` 机制（本地 path ↔ 生产 vcs）
 
@@ -27,7 +27,7 @@
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
 | `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包可用 `path`（联调）或 `vcs` | 改包源码两边实时可见 |
-| `composer.production.json` | 生产部署 | `vcs`（git clone 锁 `composer.production.lock` 版本） | 装成实体目录、版本可复现 |
+| `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
 
@@ -61,7 +61,7 @@
 
 | 脚本 | 职责 |
 | --- | --- |
-| `pull.sh` | 网络层：git pull + 验证私包权限（ssh + ls-remote）+ 选择生产 Composer 配置与独立 lock + `composer install/update` 私包 + `vendor:publish` + 调 cache.sh |
+| `pull.sh` | 网络层：git pull + 验证私包权限（ssh + ls-remote）+ 临时切换生产 Composer 配置 + `composer install/update` 私包 + `vendor:publish` + 调 cache.sh |
 | `cache.sh` | 本地层：清缓存 + dumpautoload + 权限修复（chown / setgid） |
 
 **生产 deploy 入口固定 `pull.sh`**（不要直接跑 cache.sh，它不验证私包权限）：
@@ -72,19 +72,24 @@ sudo sh pull.sh                 # 日常
 sudo sh pull.sh --production     # 首次部署（.env 未建，显式声明生产）
 ```
 
-### 3.1 生产配置与 lock 不覆盖开发文件
+### 3.1 生产配置切换与本地 lock
 
-`pull.sh` 在生产环境导出 `COMPOSER=engine/composer.production.json`。Composer 会自动配对使用
-`engine/composer.production.lock`，不会复制或修改 `engine/composer.json` / `engine/composer.lock`。
+`pull.sh` 在生产环境先备份 `engine/composer.json`，再把 `engine/composer.production.json` 覆盖过去。
+Composer 使用部署环境本地生成、被 Git 忽略的 `engine/composer.lock`；依赖步骤失败时脚本会恢复备份，
+成功后删除备份。下次拉代码前，脚本会先把受控的 `composer.json` 还原到 HEAD，再重新切换。
 
 手工复现生产安装时使用同一方式：
 
 ```bash
 cd engine
-COMPOSER=composer.production.json composer install --no-dev --optimize-autoloader
+cp composer.json composer.json.local-backup
+cp composer.production.json composer.json
+composer install --no-dev --optimize-autoloader
 ```
 
-两把 lock 都必须提交入库。修改任一 Composer 配置后，只刷新与它同 basename 的 lock。
+骨架不提交 `composer.lock`，也不创建 `composer.production.lock`。部署版本由生产 manifest 的稳定约束、
+私包已发布 tag 和部署当时生成的本地 lock 共同决定；需要逐字节复现时应保存构建产物，而不是在骨架仓库
+额外维护第二把 lock。
 
 ## 4. deploy key 生成与配置（`moo-system` 长期需要，一次性配）
 
@@ -147,9 +152,9 @@ ssh -T git@gitee.com
 - `ssh -T git@gitee.com` 通不通？deploy key 加进**那个 repo**没（不是随便一把全局 key）？仓库确是私有 + key 有读权限？
 
 **Q2：`Package charsen/moo-system could not be resolved`**
-- 是否真的在使用生产配置：`COMPOSER=composer.production.json composer validate --no-check-publish`？
+- `composer.json` 是否已由 `composer.production.json` 正确覆盖？先 `diff composer.json composer.production.json`。
 - `composer.production.json` 的仓库 URL、版本约束和 deploy key 权限是否匹配？
-- `composer.production.lock` 是否由当前 `composer.production.json` 生成并已提交？
+- 当前环境的本地 `composer.lock` 是否与生产约束冲突？必要时显式更新对应私包。
 
 **Q3：本地改了包但 host 看不到新代码**
 - vendor 是 symlink 吗？`readlink engine/vendor/charsen/moo-scaffold` 应指向你的 path 源
@@ -166,7 +171,7 @@ pull.sh 已把大部分坑**内化自动处理**，剩下几个是运维侧手�
 
 | 坑 | pull.sh 已防 |
 | --- | --- |
-| 生产配置污染开发 composer / lock | Step 4 使用 `COMPOSER=composer.production.json` 与独立 lock，不覆盖文件 |
+| 生产配置切换到一半失败 | Step 4 覆盖前备份 `composer.json`，Composer 失败时自动恢复 |
 | 前端 build / log 等 untracked 产物 block deploy | Step 1 `--untracked-files=no` |
 | sudo 重置 PATH 走 `/usr/bin/php` 老版 | `tools/_common.sh` 顶部 PATH 守卫补常见 PHP 路径 |
 | vendor 缺 ServiceProvider（chicken-egg） | Step 5.0 检测到自动 `--no-scripts` 救援 install |

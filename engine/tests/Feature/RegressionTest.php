@@ -8,7 +8,9 @@ declare(strict_types=1);
  *    审查曾误判为 500——这里把真实契约钉死，vendor 行为变化时能第一时间发现）；
  * ③ 过期 token 也要过 guard claim 校验——跨守卫的过期 token 不能在对方的 refresh 端点续签；
  * ④ Food IndexRequest 与 FoodFilter 字段对齐（price 等筛选不再是死代码）+ page_limit 上限；
- * ⑤ 登录双桶限流同时守住「同 IP 猜同账号」与「同 IP 换账号扫描」。
+ * ⑤ 登录双桶限流同时守住「同 IP 猜同账号」与「同 IP 换账号扫描」；
+ * ⑥ bootstrap/app.php 是中间件别名与组的唯一配置源，HTTP / Console 均能读取。
+ * ⑦ 失败队列迁移与 queue.failed.table 共同使用 job_failed，避免写入不存在的默认表。
  */
 
 namespace Tests\Feature;
@@ -21,6 +23,54 @@ class RegressionTest extends TestCase
     use RefreshDatabase;
 
     protected $seed = true;
+
+    public function test_bootstrap_registers_expected_middleware_aliases_and_groups(): void
+    {
+        $router  = $this->app->make('router');
+        $aliases = $router->getMiddleware();
+        $groups  = $router->getMiddlewareGroups();
+
+        self::assertSame(\App\Http\Middleware\JWTAssignGuard::class, $aliases['jwt.assign.guard'] ?? null);
+        self::assertSame(\App\Http\Middleware\JWTGuardAuth::class, $aliases['jwt.guard.auth'] ?? null);
+        self::assertSame(\App\Http\Middleware\JWTAuthOrRefresh::class, $aliases['jwt.auth.refresh'] ?? null);
+        self::assertSame(\App\Http\Middleware\SetLocale::class, $aliases['set.locale'] ?? null);
+
+        self::assertSame([
+            'jwt.assign.guard:admin',
+            'throttle:admin',
+            'set.locale',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\OperationLog::class,
+        ], $groups['admin'] ?? null);
+        self::assertSame([
+            'jwt.assign.guard:user',
+            'throttle:client',
+            'set.locale',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ], $groups['client'] ?? null);
+        self::assertSame([
+            'jwt.assign.guard:admin',
+            'jwt.guard.auth:admin',
+            'jwt.auth.refresh',
+            'throttle:admin',
+            'set.locale',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\OperationLog::class,
+        ], $groups['moo-system'] ?? null);
+    }
+
+    public function test_moo_system_check_can_read_bootstrap_middleware_group_in_console(): void
+    {
+        $this->artisan('moo-system', ['action' => 'check', '--fail-fast' => true])
+            ->assertExitCode(0);
+    }
+
+    public function test_failed_job_storage_uses_renamed_table(): void
+    {
+        self::assertSame('job_failed', config('queue.failed.table'));
+        self::assertTrue($this->app->make('db')->getSchemaBuilder()->hasTable('job_failed'));
+        self::assertFalse($this->app->make('db')->getSchemaBuilder()->hasTable('failed_jobs'));
+    }
 
     public function test_phantom_destroy_route_is_not_registered(): void
     {

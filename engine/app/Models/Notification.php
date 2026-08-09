@@ -14,6 +14,14 @@ use Mooeen\Scaffold\Concerns\GetSerializeDate;
 use Mooeen\Scaffold\Concerns\GetUpdatedAtHumanTime;
 use Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey;
 
+/**
+ * $notifications = \Auth::user()->notifications()->paginate($request->size);
+ * $user->notifications()->get() // 获取所有的通知
+ * $user->readNotifications()->get() // 获取已读
+ * $user->unreadNotifications()->get() // 获取未读
+ * $user->unreadNotifications->markAsRead() // 将未读标记为已读
+ * $user->readNotifications->markAsUnread() // 将已读标记为未读
+ */
 class Notification extends DatabaseNotification
 {
     use GetSerializeDate;

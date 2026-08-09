@@ -1,0 +1,12 @@
+# Scaffold Designer AI 翻译配置。
+# 本文件随骨架进入 Git；公开仓库必须保持 api_key 为空，真实密钥只能用于受控私有项目。
+# 可在 /scaffold/config/ai 中维护；删除本文件会恢复包内默认值并关闭 AI 翻译。
+
+ai:
+    base_url: 'https://api.deepseek.com/v1'
+    api_key: ''
+    model: deepseek-chat
+    timeout: 10
+    connect_timeout: 8
+    max_tokens: 8192
+    temperature: 0.2

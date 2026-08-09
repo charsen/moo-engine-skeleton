@@ -23,7 +23,7 @@ Artisan::command('inspire', function () {
 
 // ── 队列自愈 ─────────────────────────────────────────────────────────────
 // 把失败队列每 10 分钟整体重试一次（瞬时故障——网络抖动、第三方 5xx——自动恢复，
-// 不必人肉 queue:retry）。真正的死信在多次重试后仍留在 failed_jobs，人工排查。
+// 不必人肉 queue:retry）。真正的死信在多次重试后仍留在 job_failed，人工排查。
 Schedule::command('queue:retry all')->everyTenMinutes()->withoutOverlapping();
 
 // ── 每日备份挂载位 ───────────────────────────────────────────────────────

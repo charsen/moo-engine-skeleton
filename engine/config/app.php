@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Asia/Shanghai',
 
     /*
     |--------------------------------------------------------------------------
@@ -79,6 +79,11 @@ return [
     */
 
     'locale' => env('APP_LOCALE', 'en'),
+
+    'locales' => [
+        'en'    => 'EN',
+        'zh-CN' => '中文',
+    ],
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

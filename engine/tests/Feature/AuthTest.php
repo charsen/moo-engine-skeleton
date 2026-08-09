@@ -14,6 +14,9 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mooeen\System\Models\Enums\AccountStatus;
+use Mooeen\System\Models\Enums\LastLoginEndpoint;
+use Mooeen\System\Models\Enums\LoginStatus;
+use Mooeen\System\Models\LoginManagement;
 use Mooeen\System\Models\Personnel;
 use Tests\TestCase;
 
@@ -121,6 +124,38 @@ class AuthTest extends TestCase
         // logout(true) 强制拉黑（forceForever），不受 90 秒宽限期影响，立即 401
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$token}"])
             ->assertStatus(401);
+    }
+
+    public function test_login_refresh_and_logout_keep_login_management_in_sync(): void
+    {
+        $login = $this->postJson('api/admin/authenticate', [
+            'account'  => '13800000000',
+            'password' => 'admin888',
+        ])->assertOk();
+
+        $oldToken = $login->json('data.token');
+        $user     = Personnel::where('mobile', '13800000000')->firstOrFail();
+
+        self::assertSame(LastLoginEndpoint::WEB->value, $user->last_login_endpoint);
+
+        $session = LoginManagement::where('login_token_md5', md5($oldToken))->firstOrFail();
+        self::assertSame((string) $user->id, (string) $session->personnel_id);
+        self::assertSame(LoginStatus::VALID->value, $session->login_status);
+
+        $this->freshJwtProcess();
+        $newToken = $this->postJson('api/admin/refresh', [], ['Authorization' => "Bearer {$oldToken}"])
+            ->assertOk()
+            ->json('data.token');
+
+        $session->refresh();
+        self::assertSame(md5($newToken), $session->login_token_md5);
+        self::assertSame(1, $session->login_refreshed_times);
+
+        $this->freshJwtProcess();
+        $this->postJson('api/admin/logout', [], ['Authorization' => "Bearer {$newToken}"])
+            ->assertOk();
+
+        self::assertSame(LoginStatus::INVALID->value, $session->refresh()->login_status);
     }
 
     /**

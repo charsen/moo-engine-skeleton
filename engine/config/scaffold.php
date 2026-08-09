@@ -26,6 +26,18 @@ return [
     'snow_flake_id' => true,
 
     /**
+     * 雪花 ID 节点配置
+     *
+     * data_center_id / worker_id 的取值范围都是 0～31。未共享缓存的多机部署中，
+     * 每台机器必须使用不同组合；已投入使用后，不要修改同一组合的 start_time。
+     */
+    'snowflake' => [
+        'data_center_id' => (int) env('SNOW_FLAKE_DATA_CENTER_ID', 1),
+        'worker_id'      => (int) env('SNOW_FLAKE_WORKER_ID', 1),
+        'start_time'     => env('SNOW_FLAKE_START_TIME', '2021-10-10'),
+    ],
+
+    /**
      * 后台，授权验证
      */
     'authorization' => [
@@ -135,8 +147,7 @@ return [
      * Scaffold 路由配置
      */
     'route' => [
-        'enabled' => true,
-        'prefix'  => 'scaffold',
+        'prefix' => 'scaffold',
         // 默认不挂额外中间件组（[]）。需要 session 的认证路由已在 routes.php 内层 group 显式挂
         // StartSession / VerifyCsrfToken；外层默认成 ['web'] 会让 UI 路由吃全局 CSRF，曾踩 419
         // 「CSRF token mismatch」（见 routes.php 顶部注释）。要额外中间件用 SCAFFOLD_MIDDLEWARE env 注入。
@@ -201,26 +212,21 @@ return [
         'sensitive_keys' => ['PASSWORD', 'SECRET', 'KEY', 'TOKEN'],
     ],
 
-    /*
-     * Plan 19：Designer AI 翻译（DeepSeek 等 OpenAI 兼容上游）。
-     * 走 config() 而非 ScaffoldProvider 里 raw env()——config:cache 后 env() 返 null 会让 AI 失效，
-     * 固化进 config 缓存才安全；也让这几项在 config UI 可见。SCAFFOLD_AI_* env 仍是来源（向后兼容）。
+    /**
+     * Designer AI 配置文件
+     *
+     * 文件可随项目进入 Git。公开骨架只提交空 api_key；真实密钥只能进入受控私有项目。
      */
     'ai' => [
-        'base_url' => env('SCAFFOLD_AI_BASE_URL', 'https://api.deepseek.com/v1'),
-        'api_key'  => env('SCAFFOLD_AI_API_KEY', ''),
-        'model'    => env('SCAFFOLD_AI_MODEL', 'deepseek-chat'),
-        'timeout'  => (int) env('SCAFFOLD_AI_TIMEOUT', 10),
+        'yaml_path' => 'scaffold/ai.yaml',
     ],
 
     /*
      * Plan 18：开发人员账号（独立 YAML 存储）
      */
     'accounts' => [
-        // YAML 主文件，路径相对 base_path()；跟随 git 同步（团队共享 + 远程部署）
+        // YAML 主文件，路径相对 base_path()；包含密码哈希，由各环境自行创建，不进入 Git。
         'yaml_path' => env('SCAFFOLD_ACCOUNTS_YAML', 'scaffold/accounts.yaml'),
-        // 包内 stub 模板（首次导入 / artisan 命令时复制到 yaml_path）
-        'stub_path' => __DIR__ . '/../stubs/accounts.example.yaml',
     ],
 
 ];

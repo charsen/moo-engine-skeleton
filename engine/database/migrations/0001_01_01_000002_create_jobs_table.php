@@ -1,4 +1,11 @@
 <?php declare(strict_types=1);
+/*
+ * @Author: Charsen
+ * @Date: 2026-03-15 00:54
+ * @LastEditors: Charsen
+ * @LastEditTime: 2026-08-09 21:34
+ * @Description:
+ */
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

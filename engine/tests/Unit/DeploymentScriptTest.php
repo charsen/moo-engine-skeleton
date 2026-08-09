@@ -52,8 +52,41 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString("['php', 'artisan', 'config:clear']", $script);
         self::assertStringContainsString("['php', 'artisan', 'route:clear']", $script);
         self::assertStringNotContainsString("['php', 'artisan', 'optimize:clear']", $script);
+        self::assertStringContainsString("['php', 'artisan', 'app:check-infrastructure-tables']", $script);
+        self::assertStringNotContainsString("'scaffold/ai.yaml'", $script);
+        self::assertStringNotContainsString("['composer', 'update', '--lock'", $script);
+        self::assertStringNotContainsString("'COMPOSER=composer.production.json', 'composer',\n    'update'", $script);
+        self::assertStringNotContainsString("'COMPOSER=composer.production.json', 'composer', 'audit', '--locked'", $script);
+        self::assertStringContainsString('init-project:start tutorial-helper-tests', $script);
+        self::assertStringContainsString('removeMarkedSection(', $script);
         self::assertStringContainsString("'tools/tutorial-http.sh'", $script);
         self::assertStringContainsString("'tools/tutorial-sync-chapter7.php'", $script);
+    }
+
+    public function test_release_and_pull_scripts_do_not_require_a_production_lock(): void
+    {
+        $release = file_get_contents(dirname(__DIR__, 3) . '/release-check.sh');
+        $pull    = file_get_contents(dirname(__DIR__, 3) . '/pull.sh');
+
+        self::assertIsString($release);
+        self::assertIsString($pull);
+        self::assertFileDoesNotExist(dirname(__DIR__, 2) . '/composer.production.lock');
+        self::assertStringNotContainsString('composer.production.lock', $release);
+        self::assertStringNotContainsString('composer.production.lock', $pull);
+        self::assertStringContainsString('cp "$COMPOSER_PROD" "$ENGINE_DIR/composer.json"', $pull);
+        self::assertStringContainsString('rollback_composer_on_fail()', $pull);
+    }
+
+    public function test_ai_yaml_is_trackable_and_contains_no_public_secret(): void
+    {
+        $engine = dirname(__DIR__, 2);
+        $ignore = file_get_contents($engine . '/.gitignore');
+        $yaml   = file_get_contents($engine . '/scaffold/ai.yaml');
+
+        self::assertIsString($ignore);
+        self::assertIsString($yaml);
+        self::assertStringNotContainsString('/scaffold/ai.yaml', $ignore);
+        self::assertMatchesRegularExpression('/^\s*api_key:\s*[\'\"]{2}\s*$/m', $yaml);
     }
 
     public function test_production_composer_clear_all_does_not_clear_business_cache(): void
@@ -67,6 +100,7 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString('@php artisan optimize', $composer);
     }
 
+    // init-project:start tutorial-helper-tests
     public function test_tutorial_http_helper_loads_in_posix_shell(): void
     {
         $helper = dirname(__DIR__, 3) . '/tools/tutorial-http.sh';
@@ -90,4 +124,5 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString('/.tutorial-backups/chapter7-', $script);
         self::assertStringContainsString("if (\$action === 'overwrite')", $script);
     }
+    // init-project:end tutorial-helper-tests
 }

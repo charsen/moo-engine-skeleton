@@ -168,8 +168,9 @@ public function logout(): JsonResponse
 > 两处不矛盾，是各自场景的正确选择。
 >
 > refresh 本身就接受"过期但在续期窗口内"的 token，不需要前置强制认证。
-> 第 7 章接入 moo-system 后，`refresh()` 会接收 `Request $request` 参数，
-> 并在续签成功后补一段 `if (! empty($request->bearerToken())) { UpdateLoginTokenJob::dispatch($request->bearerToken(), $token); }`（同步包里的登录记录）。
+> 第 7 章接入 moo-system 后，登录、刷新、退出会分别派发 `SaveLoginJob`、
+> `UpdateLoginTokenJob`、调用 `LoginManagement::setInvalidStatus()`，让登录管理记录形成完整生命周期。
+> 四个异步队列连接统一使用 `after_commit=true`，外层事务回滚时这些任务不会提前入队。
 
 ## 4.5 异常采集与节流（`bootstrap/app.php`）
 
@@ -198,7 +199,7 @@ $exceptions->throttle(fn (Throwable $e) => Limit::perMinute(1000));
 
 ## 4.6 接口限流
 
-`AppServiceProvider::boot()` 里先定义，再挂进中间件组：
+先在 `AppServiceProvider::boot()` 定义限流器：
 
 ```php
 // use Illuminate\Cache\RateLimiting\Limit;
@@ -208,9 +209,10 @@ RateLimiter::for('admin', fn (Request $r) => Limit::perMinute(300)->by($r->user(
 RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
 ```
 
-`admin` / `moo-system` 组加一行 `'throttle:admin'`，`client` 组加 `'throttle:client'`
+再到 `bootstrap/app.php` 的 `withMiddleware()` 中，为 `admin` / `moo-system` 组加一行
+`'throttle:admin'`，为 `client` 组加 `'throttle:client'`
 （`moo-system` 组你现在就有——第 3 章注册中间件组时已为第 7 章的商业包**预先建好**，
-见第 3 章 `AppServiceProvider::boot()` 那段，不是你漏装了什么）。
+见第 3 章 `withMiddleware()` 那段，不是你漏装了什么）。
 
 **登录接口要再单独限**：组限流的 300 次/分钟对 `/authenticate` 等于不设防
 （爆破一分钟能试 300 个密码）。这里用两个计数桶：同一 IP 对同一账号最多 5 次/分钟，
@@ -375,23 +377,22 @@ grep '^DB_CONNECTION=' .env .env.example
 > scaffold / monitor 直接从 Packagist 解析，因此不需要它们的 `repositories`。
 > 第 7 章加入商业包 moo-system 时，才会增加对应的 VCS 仓库。
 
-真实生成并检查**独立的生产锁文件**：
+校验生产 manifest，并用 dry-run 确认依赖约束可解析：
 
 ```bash
 COMPOSER=composer.production.json composer validate --no-check-publish
-COMPOSER=composer.production.json composer update --no-install
-COMPOSER=composer.production.json composer show php-open-source-saver/jwt-auth --locked
-# versions : * v2.8.3
+COMPOSER=composer.production.json composer update --dry-run --no-install --no-scripts
 ```
 
-这会创建 `composer.production.lock`，不会覆盖开发用的 `composer.json` / `composer.lock`。
-部署机拿到这两个生产文件后执行：
+骨架不创建或提交 `composer.production.lock`。部署时先把生产 manifest 切换成 Composer 默认读取的
+`composer.json`，再由部署环境生成本地、被 Git 忽略的 `composer.lock`：
 
 ```bash
-COMPOSER=composer.production.json composer install --no-dev --optimize-autoloader
+cp composer.production.json composer.json
+composer install --no-dev --optimize-autoloader
 ```
 
-> 第 7 章会继续向生产依赖加入 `moo-system`。
+> 第 7 章会继续向生产依赖加入 `moo-system`。实际部署请使用第 8 章的 `pull.sh`，它会自动备份、切换并在失败时回滚 `composer.json`。
 
 ## 4.8 第一批接口测试
 

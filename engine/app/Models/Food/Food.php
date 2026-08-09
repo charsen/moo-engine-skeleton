@@ -13,13 +13,13 @@ namespace App\Models\Food;
 
 use App\Models\Food\Filters\FoodFilter;
 use App\Models\Food\Traits\FoodTrait;
-use App\Models\Traits\UsingSnowFlakePrimaryKey;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Mooeen\Scaffold\Concerns\GetSerializeDate;
 use Mooeen\Scaffold\Concerns\GetUpdatedAtHumanTime;
 use Mooeen\Scaffold\Concerns\Optional;
+use Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey;
 
 /**
  * Food Model

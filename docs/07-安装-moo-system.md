@@ -85,17 +85,13 @@ test -f "$REFERENCE_ENGINE/composer.production.json"
 
 cp "$REFERENCE_ENGINE/composer.production.json" engine/composer.production.json
 cd engine
-COMPOSER=composer.production.json composer update --no-install --no-scripts
 COMPOSER=composer.production.json composer validate --no-check-publish
-COMPOSER=composer.production.json composer show charsen/moo-system --locked
-# versions : * 1.6.17（或与你拿到的当前稳定版本一致）
+COMPOSER=composer.production.json composer update --dry-run --no-install --no-scripts
 cd ..
 ```
 
-这会刷新独立的 `engine/composer.production.lock`，不会覆盖开发用的
-`engine/composer.json` / `engine/composer.lock`。`--no-install --no-scripts` 只解析并锁定生产依赖，
-不会安装依赖，也不会提前触发生产 Composer 的 Artisan 脚本；当前开发目录的 `vendor/`
-仍保持开发版，不会删掉测试工具。
+这只校验并解析生产依赖，不会创建 `engine/composer.production.lock`，也不会安装依赖或提前触发
+生产 Composer 的 Artisan 脚本；当前开发目录的 `vendor/` 仍保持开发版，不会删掉测试工具。
 
 ## 7.2 提供 host 端契约（6 个文件 + 1 个全局函数）
 
@@ -263,16 +259,19 @@ php -r "require 'vendor/autoload.php'; var_dump(function_exists('toLabelValue'))
 
 这个控制器包含登录统计和登录 token 记录同步，不要凭差异描述手工猜着改。
 7.2 的同步器已经换成同版本 Personnel 版；直接打开
-`engine/app/Admin/Controllers/AuthController.php` 对照下面四个验收点。
+`engine/app/Admin/Controllers/AuthController.php` 对照下面六个验收点。
 
-复制后再读一遍下面四个差异，它们是验收点，不是让你自行补全代码的提示：
+复制后再读一遍下面六个差异，它们是验收点，不是让你自行补全代码的提示：
 
 - 查询主体：请求体字段统一叫 **`account`**，控制器拿它**同时匹配姓名或手机号**——
   `Personnel::where('real_name', $params['account'])->orWhere('mobile', $params['account'])`。
   所以 7.8 登录时传的是 `{"account":"13800000000",...}`，而不是 `mobile`；
 - 状态检查：字段是 int，必须与 `AccountStatus::FORBIDDEN->value` 比较；
-- 登录后更新 `login_times / last_login_at / last_login_ip`；
-- `refresh()` 补一行 `UpdateLoginTokenJob::dispatch($old, $new)`（同步包里的登录管理记录）。
+- 登录后更新 `login_times / last_login_at / last_login_ip / last_login_endpoint`，再派发
+  `SaveLoginJob` 创建 `system_logins` 记录；
+- `refresh()` 派发 `UpdateLoginTokenJob` 更新 token 与刷新次数；
+- `logout()` 在永久拉黑 JWT 前调用 `LoginManagement::setInvalidStatus()`，同步把当前登录记录标为失效；
+- database / beanstalkd / sqs / redis 四个异步连接统一配置 `after_commit=true`，避免事务回滚后 Job 已经入队。
 
 ## 7.4 包路由接线 + 迁移 + 自检
 
@@ -397,25 +396,27 @@ moo-system 提供了 `system_operation_logs` 表和写库 Job，采集点由 hos
 UTF-8 安全截断）。这里无需再次复制，确认文件存在后继续挂载。
 
 **② 挂到两个组的末尾**：`admin` / `moo-system` 两个中间件组都注册在
-`engine/app/Providers/AppServiceProvider.php` 的 **`boot()`** 里（仓库版的
-`OperationLog::class` 已在两组末位，照抄即可）。注意组特意注册在 provider `boot()`
-而不是 `bootstrap/app.php` 的 `withMiddleware()`，确保 Artisan 自检也能读取。
+`engine/bootstrap/app.php` 的 **`withMiddleware()`** 里（仓库版的
+`OperationLog::class` 已在两组末位，照抄即可）。`AppServiceProvider::boot()` 在 Console
+环境会解析 HTTP Kernel，因此 Artisan 自检读取的仍是这里的同一份组配置，不需要复制一套。
 
 ```php
 use App\Http\Middleware\OperationLog;
 
-$router->middlewareGroup('admin', [
+$middleware->group('admin', [
     'jwt.assign.guard:admin',
     'throttle:admin',
+    'set.locale',
     SubstituteBindings::class,
     OperationLog::class, // 放末尾
 ]);
 
-$router->middlewareGroup('moo-system', [
+$middleware->group('moo-system', [
     'jwt.assign.guard:admin',
     'jwt.guard.auth:admin',
     'jwt.auth.refresh',
     'throttle:admin',
+    'set.locale',
     SubstituteBindings::class,
     OperationLog::class, // 放末尾
 ]);
