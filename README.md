@@ -45,10 +45,16 @@
 ```bash
 git clone git@gitee.com:charsen/moo-engine-skeleton.git orders
 cd orders
-./init-project --name=acme/orders --app-name="Orders" --scaffold-user=developer --fresh-git
+./init-project \
+  --name=acme/orders \
+  --app-name="Orders" \
+  --author="你的名字" \
+  --app-url=http://orders.test \
+  --scaffold-user=developer \
+  --fresh-git
 ```
 
-默认输出是干净业务项目；需要保留 Food 教学样例时加 `--keep-demo`，需要连教程一起保留时加 `--keep-tutorial`。完整参数见 `./init-project --help`。
+默认输出是保留移动端 `/app` 的完整 API 项目；官网后端使用 `--profile=website`，会删除 User/JWT 移动端切片并保留公开 `/api` 生成区。需要保留 Food 教学样例时加 `--keep-demo`，需要连教程一起保留时加 `--keep-tutorial`。完整参数见 `./init-project --help`。
 
 ### 方式 B：从零跟教程搭（适合想深入学习的）
 
@@ -137,7 +143,7 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 > ② 需配好 **moo-system** 的 Gitee SSH 仓库访问权（商业私有包）；
 > ③ 仓库最终态已接入**商业包 moo-system**（第 7 章）——没有它的授权时
 >    `composer install` 会失败，请走方式 B 从第 1 章跟做，或联系作者获取授权；
-> ④ 初始化默认使用 SQLite；投产前再按项目实际情况切 MySQL/MariaDB 和 Redis。
+> ④ 初始化默认使用 SQLite；生产通常切 MySQL/MariaDB 和 Redis。单机低写入项目若明确继续使用 SQLite，按 `SQLITE-DEPLOYMENT-TEMPLATE.md` 把数据库放到代码目录外并建立备份。
 
 ```bash
 git clone git@gitee.com:charsen/moo-engine-skeleton.git orders
@@ -145,13 +151,17 @@ cd orders
 ./init-project \
   --name=acme/orders \
   --app-name="Orders" \
+  --author="你的名字" \
+  --app-url=http://orders.test \
   --scaffold-user=developer \
   --fresh-git
 ```
 
 初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和两份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
 
-> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**，当前最终态为 **64 passed / 230 assertions**。
+纯官网后端再加 `--profile=website`；该 profile 不包含移动端 User 模型、`/app` 路由或 user guard。受控私有仓如果确认要同步 Scaffold 调试账号的 bcrypt 文件，再显式加 `--track-scaffold-accounts`。
+
+> 💡 **关于 `php artisan test`**：phpunit.xml 把测试数据库定为 **sqlite `:memory:`**。
 > 完全不碰本机 MariaDB——所以 MariaDB 没装/没建库测试照样全绿，反过来测试通过也
 > **不代表** `.env` 的数据库配好了，两者别互相误判。仓库还自带 GitHub Actions CI
 > （`.github/workflows/tests.yml`），push 后自动跑同一套测试。
@@ -248,6 +258,7 @@ moo-engine-skeleton/
 |---|---|---|---|
 | 自建用户（User 守卫）：第 3~6 章作后台账号；第 7 章后台主体切到 Personnel 后它不再用于后台，但**一直是移动端**（`/app` 接口、user 守卫）的账号 | `admin@example.com` | `password` | `migrate --seed`（UserSeeder） |
 | 后台管理员（Personnel 守卫，第 7 章起，走 `/api/admin` 接口） | `13800000000` | `admin888` | `migrate --seed`（PersonnelSeeder） |
+| root 超级管理员（固定 `id=1`） | `root` 或 `13300000001` | 初始化时随机生成 | `moo-system reset-root-password`（缺少时创建，存在时重置） |
 | scaffold 调试台（<http://127.0.0.1:8088/scaffold> 的登录账号） | 自定 | 自定 | **seed 不创建**，需自行执行 `php artisan moo:account:add <用户名> --password=<密码> --role=admin`（快速开始 A/B 均已含此步） |
 
 > 后台账号的使用方式：后台是纯 API（前缀 `/api/admin`，无网页界面），拿着上表账号在

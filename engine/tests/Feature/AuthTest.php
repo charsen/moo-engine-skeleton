@@ -69,7 +69,8 @@ class AuthTest extends TestCase
 
         $this->getJson('api/admin/me/info', ['Authorization' => "Bearer {$token}"])
             ->assertOk()
-            ->assertJsonPath('data.user.mobile', '13800000000');
+            ->assertJsonPath('data.user.mobile', '13800000000')
+            ->assertJsonPath('data.actions.0', 'is_root');
     }
 
     public function test_refresh_token_keeps_guard_claim(): void
