@@ -981,6 +981,18 @@ Application URL: {$appUrl}. {$api}
 
 {$deployment}
 
+## moo-feedback example and package security
+
+The public example uses `GET /api/feedbacks/meta` and `POST /api/feedbacks`; set
+`MOO_FEEDBACK_PUBLIC=false` to disable that anonymous write surface. The admin routes
+use the dedicated `moo-feedback` middleware group configured by
+`config/moo-feedback.php` and `bootstrap/app.php`.
+
+Every extension package with admin routes must have its own host middleware group
+containing the complete authentication chain. Do not point package admin routes at
+the login-capable `admin` group or borrow `moo-system`. Verify anonymous `401`,
+authenticated-without-ACL `403`, and authorized success for each package.
+
 ## Quality gates
 
 ```bash
@@ -1029,6 +1041,7 @@ The Laravel application lives in `engine/`. Run Composer, Artisan, Pest/PHPUnit 
 - `routes/admin.php` and `routes/api.php`: keep the scaffold insertion markers
 - `composer.json`: local development package constraints
 - `composer.production.json`: production package constraints consumed by deployment scripts
+- Every package admin surface uses a dedicated complete-auth middleware group; never reuse the login-capable `admin` group or another package's group
 
 ## Required verification
 

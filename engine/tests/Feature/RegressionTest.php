@@ -57,6 +57,15 @@ class RegressionTest extends TestCase
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\OperationLog::class,
         ], $groups['moo-system'] ?? null);
+        self::assertSame([
+            'jwt.assign.guard:admin',
+            'jwt.guard.auth:admin',
+            'jwt.auth.refresh',
+            'throttle:admin',
+            'set.locale',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\OperationLog::class,
+        ], $groups['moo-feedback'] ?? null);
     }
 
     public function test_moo_system_check_can_read_bootstrap_middleware_group_in_console(): void

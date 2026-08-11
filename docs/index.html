@@ -280,6 +280,7 @@ const CHAPTERS = [
   { id: 'ch10',   file: '10-云端监控进阶.md',            title: '第 10 章 云端监控进阶', sub: 'AI 辅助处理 · MCP · 聚合告警 · 迁移' },
   { id: 'ch11',   file: '11-操作人身份契约.md',          title: '第 11 章 操作人身份契约', sub: 'OperatorResolver · HasOperator · null 语义' },
   { id: 'ch12',   file: '12-从骨架起手新项目.md',        title: '第 12 章 从骨架起手新项目', sub: 'clone→改名→配 env→跑通 · 双 composer · Food 去留 · 真机验证' },
+  { id: 'ch13',   file: '13-moo-feedback-扩展包用例.md', title: '第 13 章 moo-feedback 扩展包用例', sub: '匿名提交 · host 分类目录 · 独立后台认证组 · 401/403 验收' },
 ];
 const LS_KEY = 'moo-skeleton-tutorial-v4';
 const LEGACY_LS_KEY = 'moo-skeleton-tutorial-v3';
@@ -690,7 +691,7 @@ function showFetchError(e) {
          <pre>cd docs
 php -S 127.0.0.1:9999        # 或 python3 -m http.server 9999</pre>
          <p>然后访问 <a href="http://127.0.0.1:9999">http://127.0.0.1:9999</a>。</p>`
-      : `<p>请确认本页和 README 及 01~12 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
+      : `<p>请确认本页和 README 及 01~13 章的 .md 文件在同一目录，且服务正常（${escapeHtml(String(e))}）。</p>`}
   </div>`;
 }
 

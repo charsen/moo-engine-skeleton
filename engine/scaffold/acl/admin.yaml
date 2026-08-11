@@ -1,13 +1,13 @@
 meta:
     app: admin
     app_name: 后台管理
-    generated_at: '2026-06-11 14:43:19'
+    generated_at: '2026-08-11 16:11:30'
     generated_by: charsen
     stats:
-        module_count: 3
-        controller_count: 12
-        action_count: 74
-        whitelist_count: 7
+        module_count: 5
+        controller_count: 14
+        action_count: 85
+        whitelist_count: 9
 modules:
     -
         key: module-6e1ee1805962ce1b
@@ -189,7 +189,7 @@ modules:
             en: System
             zh-CN: 系统管理
         controller_count: 10
-        action_count: 59
+        action_count: 60
         whitelist_count: 3
         controllers:
             -
@@ -496,6 +496,36 @@ modules:
                         route_plain_key: admin-system-personnel-edit
                         acl_transformed: true
                     -
+                        key: 02b45d4094e6a333
+                        plain_key: admin-system-personnel-account
+                        action: setup
+                        title: 设置帐号表单
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
+                        keys:
+                            - 02b45d4094e6a333
+                        plain_keys:
+                            - admin-system-personnel-account
+                        route_plain_key: admin-system-personnel-setup
+                        acl_transformed: true
+                    -
+                        key: 02b45d4094e6a333
+                        plain_key: admin-system-personnel-account
+                        action: account
+                        title: 设置帐号
+                        name:
+                            en: 'Setup Account'
+                            zh-CN: 设置帐号
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
+                    -
                         key: 80138bd80609db61
                         plain_key: admin-system-personnel-update
                         action: update
@@ -572,36 +602,6 @@ modules:
                         plain_keys:
                             - admin-system-personnel-trashed
                         route_plain_key: admin-system-personnel-restore
-                        acl_transformed: true
-                    -
-                        key: 02b45d4094e6a333
-                        plain_key: admin-system-personnel-account
-                        action: account
-                        title: 设置帐号
-                        name:
-                            en: 'Setup Account'
-                            zh-CN: 设置帐号
-                        desc: ''
-                        whitelist: false
-                        acl_targets:
-                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
-                    -
-                        key: 02b45d4094e6a333
-                        plain_key: admin-system-personnel-account
-                        action: setup
-                        title: 设置帐号表单
-                        name:
-                            en: ''
-                            zh-CN: ''
-                        desc: ''
-                        whitelist: false
-                        acl_targets:
-                            - 'Mooeen\System\Http\Controllers\Admin\PersonnelController::account'
-                        keys:
-                            - 02b45d4094e6a333
-                        plain_keys:
-                            - admin-system-personnel-account
-                        route_plain_key: admin-system-personnel-setup
                         acl_transformed: true
             -
                 key: controller-bb701f9106045d51
@@ -732,7 +732,7 @@ modules:
                 name:
                     en: 'Management Role'
                     zh-CN: 角色管理
-                action_count: 5
+                action_count: 6
                 whitelist_count: 0
                 actions:
                     -
@@ -769,7 +769,7 @@ modules:
                         key: 0bc502f2c475c811
                         plain_key: admin-system-role-update
                         action: edit
-                        title: 编辑表单（关联岗位置灰回显，不可改）
+                        title: 编辑表单（关联岗位置灰回显，不可改；岗位派生角色的名称一并置灰）
                         name:
                             en: ''
                             zh-CN: ''
@@ -795,6 +795,18 @@ modules:
                         whitelist: false
                         acl_targets:
                             - 'Mooeen\System\Http\Controllers\Admin\RoleController::update'
+                    -
+                        key: e1c8cf49f438668c
+                        plain_key: admin-system-role-index
+                        action: index
+                        title: 角色列表
+                        name:
+                            en: 'Role List'
+                            zh-CN: 角色列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\System\Http\Controllers\Admin\RoleController::index'
                     -
                         key: aa00cbec75768ec9
                         plain_key: admin-system-role-destroy-batch
@@ -1162,10 +1174,130 @@ modules:
                         route_plain_key: admin-system-authorization-update-personnel
                         acl_transformed: true
     -
-        key: module-b3b87f7fadccdce7
+        key: module-0ed177064f20b4a3
         name:
-            en: ''
-            zh-CN: ''
+            en: Feedback
+            zh-CN: 意见反馈
+        controller_count: 1
+        action_count: 8
+        whitelist_count: 0
+        controllers:
+            -
+                key: controller-993f79ec16f5deb5
+                class: Mooeen\Feedback\Http\Controllers\Admin\FeedbackController
+                name:
+                    en: 'Management Feedback'
+                    zh-CN: 反馈管理
+                action_count: 8
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 652c84b03adbd74c
+                        plain_key: admin-feedback-feedback-show
+                        action: show
+                        title: 查看反馈（含整条话题串）
+                        name:
+                            en: 'Show Feedback'
+                            zh-CN: 查看反馈
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::show'
+                    -
+                        key: 5ca28ffefd824a06
+                        plain_key: admin-feedback-feedback-index
+                        action: index
+                        title: 反馈列表
+                        name:
+                            en: 'Feedback List'
+                            zh-CN: 反馈列表
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::index'
+                    -
+                        key: 87245788fdc15b7c
+                        plain_key: admin-feedback-feedback-trashed
+                        action: trashed
+                        title: 反馈回收站
+                        name:
+                            en: 'Feedback Trashed'
+                            zh-CN: 反馈回收站
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::trashed'
+                    -
+                        key: 345e34b8c381fddf
+                        plain_key: admin-feedback-feedback-destroy-batch
+                        action: destroyBatch
+                        title: 删除反馈
+                        name:
+                            en: 'Destroy Feedback'
+                            zh-CN: 删除反馈
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::destroyBatch'
+                    -
+                        key: 1d2e70b9a4e70aee
+                        plain_key: admin-feedback-feedback-force-destroy
+                        action: forceDestroy
+                        title: 永久删除反馈
+                        name:
+                            en: 'Destroy Forever Feedback'
+                            zh-CN: 永久删除反馈
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::forceDestroy'
+                    -
+                        key: 87245788fdc15b7c
+                        plain_key: admin-feedback-feedback-trashed
+                        action: restore
+                        title: 恢复反馈
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::trashed'
+                        keys:
+                            - 87245788fdc15b7c
+                        plain_keys:
+                            - admin-feedback-feedback-trashed
+                        route_plain_key: admin-feedback-feedback-restore
+                        acl_transformed: true
+                    -
+                        key: dfa736a713cb5912
+                        plain_key: admin-feedback-feedback-reply
+                        action: reply
+                        title: 回复反馈（受理侧发言）
+                        name:
+                            en: 'Reply Feedback'
+                            zh-CN: 回复反馈
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::reply'
+                    -
+                        key: 1eadb7dfdc8911ec
+                        plain_key: admin-feedback-feedback-transition
+                        action: transition
+                        title: 变更受理状态
+                        name:
+                            en: 'Transition Feedback Status'
+                            zh-CN: 变更受理状态
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::transition'
+    -
+        key: module-c42f7730e6da99c1
+        name:
+            en: RootPath
+            zh-CN: 根目录
         controller_count: 1
         action_count: 4
         whitelist_count: 4
@@ -1174,8 +1306,8 @@ modules:
                 key: controller-95b75dcac0c99d74
                 class: App\Admin\Controllers\AuthController
                 name:
-                    en: ''
-                    zh-CN: ''
+                    en: Authentication
+                    zh-CN: 登录鉴权
                 action_count: 4
                 whitelist_count: 4
                 actions:
@@ -1183,7 +1315,7 @@ modules:
                         key: 46c447ee55a627c6
                         plain_key: admin-auth-authenticate
                         action: authenticate
-                        title: '登录：校验帐号密码 → 手动签发 JWT。'
+                        title: 登录
                         name:
                             en: ''
                             zh-CN: ''
@@ -1195,7 +1327,7 @@ modules:
                         key: dffe71cfa5a3c405
                         plain_key: admin-auth-logout
                         action: logout
-                        title: '退出登录（拉黑当前 token）。'
+                        title: 退出登录
                         name:
                             en: ''
                             zh-CN: ''
@@ -1207,7 +1339,7 @@ modules:
                         key: e9532ad1cd13af0a
                         plain_key: admin-auth-me
                         action: me
-                        title: 当前登录人信息
+                        title: 登录用户信息
                         name:
                             en: ''
                             zh-CN: ''
@@ -1219,7 +1351,7 @@ modules:
                         key: 42f63e42d2308d4f
                         plain_key: admin-auth-refresh
                         action: refresh
-                        title: '主动刷新 token'
+                        title: '刷新 token'
                         name:
                             en: ''
                             zh-CN: ''
@@ -1227,3 +1359,45 @@ modules:
                         whitelist: true
                         acl_targets:
                             - 'App\Admin\Controllers\AuthController::refresh'
+    -
+        key: module-b3b87f7fadccdce7
+        name:
+            en: ''
+            zh-CN: ''
+        controller_count: 1
+        action_count: 2
+        whitelist_count: 2
+        controllers:
+            -
+                key: controller-f7d6ad66457d4adb
+                class: App\Admin\Controllers\UploadController
+                name:
+                    en: ''
+                    zh-CN: ''
+                action_count: 2
+                whitelist_count: 2
+                actions:
+                    -
+                        key: fd000cb23ec36f65
+                        plain_key: admin-upload-file
+                        action: file
+                        title: ''
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\UploadController::file'
+                    -
+                        key: 92129ebdd0548d1d
+                        plain_key: admin-upload-image
+                        action: image
+                        title: ''
+                        name:
+                            en: ''
+                            zh-CN: ''
+                        desc: ''
+                        whitelist: true
+                        acl_targets:
+                            - 'App\Admin\Controllers\UploadController::image'
