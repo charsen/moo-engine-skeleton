@@ -36,7 +36,7 @@
 "repositories": {
   "system": { "type": "path", "url": "../moo-system" }
 },
-"require": { "charsen/moo-system": "^1.6.17" }
+"require": { "charsen/moo-system": "^1.6.24" }
 ```
 
 ```jsonc
@@ -44,7 +44,7 @@
 "repositories": {
   "system": { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
 },
-"require": { "charsen/moo-system": "^1.6.17" }
+"require": { "charsen/moo-system": "^1.6.24" }
 ```
 
 > **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 仅保留 `moo-system`。

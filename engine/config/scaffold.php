@@ -50,6 +50,8 @@ return [
         'exclude_actions' => [
             'App\Admin\Controllers\AuthController@login',
             'App\Admin\Controllers\AuthController@authenticate',
+            'App\Api\Controllers\AuthController@login',
+            'App\Api\Controllers\AuthController@authenticate',
         ],
     ],
 

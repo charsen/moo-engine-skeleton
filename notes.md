@@ -24,6 +24,18 @@
 
 <!-- 新坑往下加；习惯把最新的放最上面也行，自己顺手为准 -->
 
+### 官网 profile 删除 User 时不能连带删除共享认证基础设施
+- **日期**：2026-08-11
+- **症状**：官网初始化删除 `create_users_table` 迁移后，空库能建立 moo-system 表，但基础设施检查报 `sessions` 与 `password_reset_tokens` 不存在；修完表后，后台 JWT 过期测试又因辅助方法签名已裁剪、调用点未同步而失败。
+- **根因**：Laravel 默认迁移把 User、密码重置 token、数据库 session 放在同一文件；按文件删除移动端主体扩大了业务裁剪范围，测试辅助方法也属于跨文件契约。
+- **解法**：website profile 把该迁移改写为只创建共享基础设施表，并保留 Personnel password broker；同步改写所有 JWT 测试调用点。每种 profile 都必须在隔离空库跑完初始化器自带全量验证。
+
+### 部署脚本必须在切换目标版本后解析私包 manifest
+- **日期**：2026-08-11
+- **症状**：按 tag 部署时，脚本先读当前工作树的 `composer.production.json`，再 checkout 目标 tag；目标版本新增或变更的私包可能绕过权限预检、强制更新和资源发布，publish 失败也只显示 warning 后返回成功。
+- **根因**：把 manifest 解析当成静态前置检查，没有把它视为目标版本的一部分；收尾失败状态也未汇总进退出码。
+- **解法**：checkout/pull 成功后才解析目标版本 manifest；私包 URL 统一用 `git ls-remote` 验证；publish、cache 或 pending migration 任一失败均以退出码 4 明确暴露。
+
 ### 初始化器删除教程工具时必须同步裁掉专属测试
 - **日期**：2026-08-09
 - **症状**：默认初始化会删除 `tools/tutorial-http.sh` 与 `tools/tutorial-sync-chapter7.php`，但第 7 步全量测试仍执行验证这两个文件的用例，导致新项目在其它检查全部正常时固定失败 2 条测试。
