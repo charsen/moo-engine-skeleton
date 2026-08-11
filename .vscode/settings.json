@@ -1,4 +1,13 @@
 {
+    "[php]": {
+        "editor.defaultFormatter": "open-southeners.laravel-pint",
+        "editor.formatOnSave": true
+    },
+    "laravel-pint.enable": true,
+    "laravel-pint.executablePath": "engine/vendor/bin/pint",
+    "laravel-pint.configPath": "engine/pint.json",
+    "laravel-pint.fallbackToGlobalBin": false,
+    "laravel-pint.preset": "auto",
     "workbench.colorCustomizations": {
         "activityBar.activeBackground": "#de6744",
         "activityBar.background": "#de6744",

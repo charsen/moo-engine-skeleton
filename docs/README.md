@@ -120,7 +120,7 @@ moo-engine-skeleton/
 | 12 | 前端跨域时拿不到续签的新 token | 新 token 在 `authorization` 响应头里，CORS 默认不暴露；发布 `config/cors.php` 设 `exposed_headers=['Authorization']` | 4 |
 | 13 | 操作日志中间件报 `Undefined constant "LARAVEL_START"` | HTTP / artisan 入口会定义它，但 phpunit 不经过这两个入口；统一改用 `$request->server('REQUEST_TIME_FLOAT')` | 7 |
 | 14 | Feature 测试测不出 refresh 丢 claim | 用 `freshJwtProcess()` 重置 JWT 服务，模拟跨进程请求 | 4 |
-| 15 | 开了 ACL 后管理员自己也 403 | 雪花主键下没有 id=1 的天然 root；给「系统管理员」角色授 `is_root` 字面量兜底（RoleSeeder 已带） | 7 |
+| 15 | 开了 ACL 后管理员自己也 403 | moo-system 1.6.24+ 用 `reset-root-password` 创建固定 id=1 root；教学普通管理员仍靠角色中的 `is_root`（RoleSeeder 已带） | 7 |
 | 16 | 带 token 调接口报 422 误以为 ACL 没生效 | FormRequest 校验先于控制器 boot() 的鉴权，参数不合法先 422；带齐合法参数才能看到 403 | 5 |
 | 17 | user 守卫发的 token 过不了 `jwt.guard.auth:user` | moo-system 旧版 `getJWTCustomClaims()` 硬编码 guard=admin（新版已动态化）；用旧版包给非 admin 守卫签发时要 `claims(['guard'=>...])` 内联覆盖 | 7 |
 | 18 | 过期 token 调 `/refresh` 后冒出两个有效新 token | `/refresh` 路由不能挂 `jwt.auth.refresh`——中间件和控制器各续签一次，响应头那个成孤儿 token；单独挂 `jwt.guard.auth` 即可 | 4 |
