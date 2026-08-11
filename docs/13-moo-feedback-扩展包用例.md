@@ -28,7 +28,23 @@ php artisan moo:auth admin
 
 `config/actions.php` 是再生成区。骨架里的 moo-system 个人中心白名单属于 host 手动策略，重生 ACL 后要按第 7 章恢复并运行 `FoodAclTest`，不能为了加入 Feedback 而让原有个人中心变成 403。
 
-## 13.2 为什么不能直接挂 `admin`
+## 13.2 先对齐扩展包的同名契约
+
+Moo 扩展包统一使用 `moo-<name>` 作为 stem。以一个虚构的 `foo` 包为例，下面五处必须保持一致：
+
+| 契约位置 | 约定值 |
+| --- | --- |
+| Composer 包名 | `charsen/moo-foo` |
+| Host 配置文件 | `config/moo-foo.php` |
+| 配置命名空间 | `config('moo-foo.*')` |
+| 配置发布标签 | `moo-foo-config` |
+| 后台中间件组 | `moo-foo` |
+
+Feedback 示例对应的是 `charsen/moo-feedback`、`config/moo-feedback.php`、`moo-feedback.*`、`moo-feedback-config` 和 `moo-feedback`。文件名看似只是外观，但 Laravel 按配置命名空间读取；其中一处仍使用旧名称时，Host 覆盖可能被静默忽略，后台路由也可能落到错误的中间件组。
+
+若包版本要破坏性修改这个 stem，包与所有 Host 接线必须同批交付：同步配置文件、所有 `config()` 消费点、发布标签与中间件组，部署后执行 `php artisan config:clear`，再检查真实路由和 401/403/成功三种响应。不要把保留旧配置别名当成默认兼容策略。
+
+## 13.3 为什么不能直接挂 `admin`
 
 骨架的 `admin` 组需要承载 `/api/admin/authenticate` 等登录前接口，因此只指定 admin 守卫，不强制已经登录。扩展包若把管理路由直接挂到这个组，匿名请求可能到达控制器，安全边界取决于每个 action 是否恰好又做了授权检查。
 
@@ -58,7 +74,7 @@ $middleware->group('moo-feedback', [
 
 不要为了省一段配置而指向 `moo-system`。两者即使当前中间件数组相同，也代表两个独立包的边界；后续某个包增加审计、租户或限流策略时，不会误伤另一个包。
 
-## 13.3 host 分类目录
+## 13.4 host 分类目录
 
 通用包不知道每个项目有哪些反馈类型，所以分类不写死在包内。`AppFeedbackTypes` 实现 `FeedbackTypeResolver`，再由 `FeedbackServiceProvider` 绑定：
 
@@ -72,7 +88,7 @@ return [
 
 更改分类后不需要修改包。删除已使用的历史分类前，应先决定旧数据的显示和迁移口径。
 
-## 13.4 手工验证
+## 13.5 手工验证
 
 在 `engine/` 运行：
 
@@ -102,12 +118,12 @@ curl -i -H 'Accept: application/json' http://127.0.0.1:8088/api/admin/feedbacks
 # 预期：HTTP 401
 ```
 
-完整验收不是只看 401：使用后台 token 再验证“无 Feedback ACL 返回 403、授予对应 ACL 后成功”。401 证明认证边界存在，403 才证明动作授权也生效。
+完整验收不是只看 401：使用后台 token 再验证“无 Feedback ACL 返回 403、授予对应 ACL 后成功”。401 证明认证边界存在，403 才证明动作授权也生效。若刚发布或改名过配置，先运行 `php artisan config:clear`，避免缓存中的旧命名空间掩盖接线错误。
 
-## 13.5 自动验证
+## 13.6 自动验证
 
 ```bash
 php artisan test --filter=FeedbackExampleTest
 ```
 
-该测试同时钉住四件事：配置指向 `moo-feedback`、组内含完整 JWT 链、匿名后台请求返回 401、公开提交真实落库但不回传 ID。关闭公开入口时可把 `.env` 的 `MOO_FEEDBACK_PUBLIC=false`；这不会关闭后台管理路由。
+该测试同时钉住五件事：配置文件、配置命名空间与发布标签使用同一个 stem；后台配置指向 `moo-feedback`；组内含完整 JWT 链；匿名后台请求返回 401；公开提交真实落库但不回传 ID。关闭公开入口时可把 `.env` 的 `MOO_FEEDBACK_PUBLIC=false`；这不会关闭后台管理路由。

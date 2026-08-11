@@ -249,7 +249,7 @@ moo-engine-skeleton/
 | [第 10 章 云端监控进阶](./docs/10-云端监控进阶.md) | 聚合告警、AI 辅助处理、MCP 与多项目管理 |
 | [第 11 章 操作人身份契约](./docs/11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义与扩展包接入 |
 | [第 12 章 从骨架起手新项目](./docs/12-从骨架起手新项目.md) | 方式 A 正式版：`./init-project` 自动完成改名、密钥、依赖、ACL、样例清理、验证与独立 Git 历史 |
-| [第 13 章 moo-feedback 用例](./docs/13-moo-feedback-扩展包用例.md) | 匿名提交、host 分类目录、独立后台认证组与 401/403 验收 |
+| [第 13 章 moo-feedback 用例](./docs/13-moo-feedback-扩展包用例.md) | 匿名提交、host 分类目录、扩展包一致命名契约、独立后台认证组与 401/403 验收 |
 
 教程目录页还附了一张**「踩过的坑」速查表**（31 条新手高频问题）：[docs/README.md](./docs/README.md)。
 

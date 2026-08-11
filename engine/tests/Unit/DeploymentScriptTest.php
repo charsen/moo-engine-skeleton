@@ -69,6 +69,10 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString('removeMarkedSection(', $script);
         self::assertStringContainsString("'tools/tutorial-http.sh'", $script);
         self::assertStringContainsString("'tools/tutorial-sync-chapter7.php'", $script);
+        self::assertStringContainsString('host file `config/moo-foo.php`', $script);
+        self::assertStringContainsString('config namespace `moo-foo.*`', $script);
+        self::assertStringContainsString('`moo-foo-config`, and middleware group `moo-foo`', $script);
+        self::assertStringContainsString('`php artisan config:clear` before checking routes', $script);
     }
 
     public function test_release_and_pull_scripts_do_not_require_a_production_lock(): void
