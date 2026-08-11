@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Admin\Controllers;
 
+use App\Admin\Requests\Auth\AuthenticateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,19 +23,23 @@ use Mooeen\System\Models\Personnel;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
+/**
+ * @package_name {zh-CN: 后台管理 | en: Admin}
+ * @module_name {zh-CN: 根目录 | en: RootPath}
+ * @controller_name {zh-CN: 登录鉴权 | en: Authentication}
+ */
 class AuthController
 {
     /**
-     * 登录：校验帐号密码 → 手动签发 JWT。
+     * 登录
+     *
+     * 校验帐号密码 → 手动签发 JWT。
      *
      * @throws ValidationException
      */
-    public function authenticate(Request $request): JsonResponse
+    public function authenticate(AuthenticateRequest $request): JsonResponse
     {
-        $params = $request->validate([
-            'account'  => ['required', 'string'],
-            'password' => ['required', 'string'],
-        ]);
+        $params = $request->validated();
 
         // 支持用姓名或手机号登录
         $user = Personnel::where('real_name', $params['account'])
@@ -82,7 +87,7 @@ class AuthController
     }
 
     /**
-     * 当前登录人信息
+     * 登录用户信息
      */
     public function me(): JsonResponse
     {
@@ -96,12 +101,13 @@ class AuthController
                     'mobile'    => $user->mobile,
                     'avatar'    => $user->avatar_url ?? null,
                 ],
+                'actions' => $user->getActions(),
             ],
         ]);
     }
 
     /**
-     * 主动刷新 token
+     * 刷新 token
      *
      * 本路由**故意不挂** jwt.auth.refresh（见 routes/admin.php）：那个中间件会先对过期
      * token 自动续签一次，控制器再续签第二次 —— 一个旧 token 派生出两个有效新 token，
@@ -134,8 +140,9 @@ class AuthController
     }
 
     /**
-     * 退出登录（拉黑当前 token）。
+     * 退出登录
      *
+     * 拉黑当前 token。
      * 路由是公开的（不挂 JWT 中间件）。无 token / 垃圾 token 也不会 500：
      * JWTGuard::logout() 内部自己捕获了 JWTException（拉黑不了就当作已登出），
      * 所以本接口对任何输入都幂等返回 200——RegressionTest 守护了这个契约。

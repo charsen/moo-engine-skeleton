@@ -53,6 +53,14 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString("['php', 'artisan', 'route:clear']", $script);
         self::assertStringNotContainsString("['php', 'artisan', 'optimize:clear']", $script);
         self::assertStringContainsString("['php', 'artisan', 'app:check-infrastructure-tables']", $script);
+        self::assertStringContainsString("['php', 'artisan', 'moo:init', \$author]", $script);
+        self::assertStringContainsString("['php', 'artisan', 'moo:fresh']", $script);
+        self::assertStringContainsString("'reset-root-password'", $script);
+        self::assertStringContainsString('convertToWebsiteProfile($engine)', $script);
+        self::assertStringContainsString('convertUserMigrationToInfrastructureMigration($migration)', $script);
+        self::assertStringContainsString("'passwords' => env('AUTH_PASSWORD_BROKER', 'personnels')", $script);
+        self::assertStringContainsString("'throttle:site-api'", $script);
+        self::assertStringContainsString("'track-scaffold-accounts'", $script);
         self::assertStringNotContainsString("'scaffold/ai.yaml'", $script);
         self::assertStringNotContainsString("['composer', 'update', '--lock'", $script);
         self::assertStringNotContainsString("'COMPOSER=composer.production.json', 'composer',\n    'update'", $script);
@@ -77,6 +85,22 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString('rollback_composer_on_fail()', $pull);
     }
 
+    public function test_pull_reads_target_manifest_after_checkout_and_surfaces_publish_failures(): void
+    {
+        $pull = file_get_contents(dirname(__DIR__, 3) . '/pull.sh');
+
+        self::assertIsString($pull);
+        $checkout = strpos($pull, 'success "🌐 主仓代码已更新"');
+        $manifest = strpos($pull, 'PRIVATE_PKGS_MANIFEST=$(jq');
+        self::assertIsInt($checkout);
+        self::assertIsInt($manifest);
+        self::assertGreaterThan($checkout, $manifest, '私包清单必须读取切换后的目标版本');
+        self::assertStringNotContainsString('require_command ssh', $pull);
+        self::assertStringContainsString('DEPLOY_BRANCH=${DEPLOY_BRANCH:-master}', $pull);
+        self::assertStringContainsString('PUBLISH_FAILED=1', $pull);
+        self::assertStringContainsString('${PUBLISH_FAILED:-0}', $pull);
+    }
+
     public function test_ai_yaml_is_trackable_and_contains_no_public_secret(): void
     {
         $engine = dirname(__DIR__, 2);
@@ -87,6 +111,30 @@ class DeploymentScriptTest extends TestCase
         self::assertIsString($yaml);
         self::assertStringNotContainsString('/scaffold/ai.yaml', $ignore);
         self::assertMatchesRegularExpression('/^\s*api_key:\s*[\'\"]{2}\s*$/m', $yaml);
+    }
+
+    public function test_admin_auth_debug_contract_is_present(): void
+    {
+        $engine = dirname(__DIR__, 2);
+        $menu   = file_get_contents($engine . '/scaffold/api/admin/_menus_transform.yaml');
+        $api    = file_get_contents($engine . '/scaffold/api/admin/Auth.yaml');
+
+        self::assertFileExists($engine . '/app/Admin/Requests/Auth/AuthenticateRequest.php');
+        self::assertIsString($menu);
+        self::assertIsString($api);
+        self::assertStringContainsString('controllers: [Auth]', $menu);
+        foreach (['authenticate_post:', 'logout_post:', 'me_get:', 'refresh_post:'] as $action) {
+            self::assertStringContainsString($action, $api);
+        }
+
+        $config = file_get_contents($engine . '/config/scaffold.php');
+        self::assertIsString($config);
+        self::assertStringContainsString('App\\Admin\\Controllers\\AuthController@authenticate', $config);
+        if (is_file($engine . '/app/Api/Controllers/AuthController.php')) {
+            self::assertStringContainsString('App\\Api\\Controllers\\AuthController@authenticate', $config);
+        } else {
+            self::assertStringNotContainsString('App\\Api\\Controllers\\AuthController@authenticate', $config);
+        }
     }
 
     public function test_production_composer_clear_all_does_not_clear_business_cache(): void

@@ -7,9 +7,9 @@
 #   - cache.sh：本地层（缓存清理 / dumpautoload / 权限修复 chown chmod）
 #
 # 用法：
-#   sh pull.sh                                            # 交互选 tag 发版（终端）；非交互等价 --latest
+#   sh pull.sh                                            # 交互选 tag 发版（终端）；非交互必须显式传 --tag/--latest
 #   sh pull.sh --tag 2.0.9                                # 锚定 tag 发版（批量发版由 pull-all 经 env 透传）
-#   sh pull.sh --latest                                   # 传统：追 master 最新
+#   sh pull.sh --latest                                   # 追 DEPLOY_BRANCH（默认 master）最新
 #   sudo sh pull.sh --production                          # 首次部署 .env 未建
 #   sh pull.sh --force-reset                              # 工作区脏丢弃本地
 #   sh pull.sh --help                                     # 看全部参数
@@ -18,17 +18,17 @@
 #   0  正常
 #   1  仓库状态异常 / 缺命令 / 私包权限不通 / composer.json 缺失 / .env 歧义
 #   3  composer install/update 失败
-#   4  pull.sh 主体成功但收尾有异常（cache.sh 失败，或检测到 pending 迁移未执行——
+#   4  pull.sh 主体成功但收尾有异常（publish/cache/pending migration 任一未收口——
 #      git working tree 已推进，缓存/权限/schema 未跟上）
 #
 # 注：composer.json ↔ composer.production.json 漂移校验已移交 DEPLOY-CHECKLIST / CI
 #     （v2 的 Step 2.5 parity / Step 2.6 PHP 预检 / Step 3c push 投毒探针 已下线）。
 #
 # 流程总览：
-#   私包 manifest 预解析  读 composer.production.json .extra（名 / URL / provider / publish-tag）
 #   Step 1   检查主仓工作区状态（脏则停 / --force-reset 丢弃）
-#   Step 2   版本选择（--tag 锚定 checkout / --latest 或非交互追 master / 终端交互列近 5 tag 选）
-#            + 拉码（composer.json 先还原到 HEAD；detached ↔ master 自动回轨）
+#   Step 2   版本选择（--tag 锚定 checkout / --latest 追 DEPLOY_BRANCH / 终端交互列近 5 tag 选）
+#            + 拉码（composer.json 先还原到 HEAD；detached ↔ DEPLOY_BRANCH 自动回轨）
+#   Step 2.9 私包 manifest 解析  读取切换后版本的 composer.production.json
 #   Step 3   验证私包 SSH 拉取权限（逐包 ls-remote fail-fast）
 #   Step 4   切 composer.json → production（仅 prod）+ 4.5 清 bootstrap/cache 防撞死类
 #   Step 5   composer install + 强制 update 私包（含 vendor 救援）+ 5.5 publish 前端副本
@@ -70,10 +70,13 @@ ENGINE_SUBDIR=${ENGINE_SUBDIR:-engine}
 # flock 文件路径（空 = 用 /tmp/${PROJECT_NAME}-pull.lock，自动派生）
 PULL_LOCK_FILE=${PULL_LOCK_FILE:-}
 # 发版版本锚定：非空 = checkout 该 tag（detached）发版；空 + 交互终端 = 列近 5 个 tag 让选；
-# 空 + 非交互 = 传统追 master（向后兼容）。批量发版由 pull-all 选一次后经 RELEASE_TAG/RELEASE_LATEST env 透传全部项目。
+# 空 + 非交互 = 拒绝执行，避免自动化忘传版本时误追部署分支。
 RELEASE_TAG=${RELEASE_TAG:-}
-# 显式传统模式（--latest）：跳过 tag 交互菜单，直接追 master 最新
+RELEASE_TAG_REQUESTED=0
+# 显式传统模式（--latest）：跳过 tag 交互菜单，直接追部署分支最新
 RELEASE_LATEST=${RELEASE_LATEST:-0}
+# 新项目默认部署 master；非标分支由目标项目或服务器环境显式覆盖。
+DEPLOY_BRANCH=${DEPLOY_BRANCH:-master}
 
 usage() {
     cat <<'EOF'
@@ -83,28 +86,29 @@ usage() {
   --production           强制按生产模式跑（等价 PRODUCTION=1）
   --force-reset          工作区脏时丢弃本地已跟踪改动后继续
   --skip-private-pkg     跳过私包权限验证（仅本地 path repo 调试）
-  --tag TAG              锚定发版：checkout 指定 tag（detached）；批量发版由 pull-all 选一次经 env 透传
-  --latest               显式追 master 最新（跳过 tag 交互菜单；detached 状态自动回轨 master）
+  --tag TAG              锚定发版：checkout 指定 tag（detached）
+  --latest               显式追 DEPLOY_BRANCH 最新（默认 master；detached 状态自动回轨）
   --lock-file PATH       flock 文件位置（默认 /tmp/${PROJECT_NAME}-pull.lock）
   --engine-subdir DIR    Laravel 后端子目录名（默认 engine）
   -h, --help             显示本帮助
 
 版本选择（三选一）：
   1) --tag 2.0.9         明确锚 tag
-  2) --latest            明确追 master
+  2) --latest            明确追 DEPLOY_BRANCH（默认 master）
   3) 都不传              交互终端 → 列最近 5 个 tag 选一个（回车/0 = 退出不发版）；
-                         非交互 → 等价 --latest（向后兼容）
+                         非交互 → 拒绝执行，必须显式传 --tag 或 --latest
 
 示例：
   sh pull.sh                                            # 交互选 tag 发版
   sh pull.sh --tag 2.0.9                                # 锚定 2.0.9 发版
-  sh pull.sh --latest                                   # 传统：追 master 最新
+  sh pull.sh --latest                                   # 追 master 最新
   sudo sh pull.sh --production                          # 首次部署
   sh pull.sh --force-reset                              # 覆盖本地改动
 
 环境变量等价：
   PRODUCTION=1 sudo sh pull.sh
   RELEASE_TAG=2.0.9 sh pull.sh
+  DEPLOY_BRANCH=dev sh pull.sh --latest
 EOF
 }
 
@@ -116,8 +120,9 @@ while [ $# -gt 0 ]; do
         --force-reset)          FORCE_RESET=1; shift;;
         --skip-private-pkg)     SKIP_PRIVATE_PKG=1; shift;;
         --tag)                  [ $# -ge 2 ] || { error "--tag 需要一个 tag 名参数"; exit 1; }
-                                RELEASE_TAG="$2"; shift 2;;
-        --tag=*)                RELEASE_TAG="${1#*=}"; shift;;
+                                case "$2" in ''|-*) error "--tag 后必须是有效 tag 名"; exit 1;; esac
+                                RELEASE_TAG_REQUESTED=1; RELEASE_TAG="$2"; shift 2;;
+        --tag=*)                RELEASE_TAG_REQUESTED=1; RELEASE_TAG="${1#*=}"; shift;;
         --latest)               RELEASE_LATEST=1; shift;;
         --lock-file)            [ $# -ge 2 ] || { error "--lock-file 需要一个路径参数"; exit 1; }
                                 PULL_LOCK_FILE="$2"; shift 2;;
@@ -129,6 +134,16 @@ while [ $# -gt 0 ]; do
         *) printf '❌ 未知参数: %s\n用 --help 看用法\n' "$1" >&2; exit 1;;
     esac
 done
+
+if [ "$RELEASE_TAG_REQUESTED" = "1" ] && [ -z "$RELEASE_TAG" ]; then
+    error "--tag 不能为空"
+    exit 1
+fi
+case "$RELEASE_TAG" in -*) error "--tag 后必须是有效 tag 名"; exit 1;; esac
+if [ -n "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" = "1" ]; then
+    error "--tag 与 --latest 不能同时使用"
+    exit 1
+fi
 
 # bug#1: export PRODUCTION，让子进程 cache.sh 的 is_production 与父进程判定一致。
 # 否则 .env 未建的首次部署路径上裸调 cache.sh，子进程读不到 PRODUCTION → 误跑 dev 模式
@@ -170,7 +185,6 @@ assert_env_decided() {
 # 不查 sh（自己就在 sh 里跑，多余）。
 require_command git
 require_command composer
-require_command ssh
 require_command jq
 
 if [ ! -d "$PROJECT_DIR/.git" ]; then
@@ -194,39 +208,8 @@ acquire_lock "$PULL_LOCK_FILE" "pull.sh"
 # 进入主流程前先把 .env 歧义场景拒绝
 assert_env_decided
 
-# ---- 私包 manifest 预解析（一次性，后续循环直接读，不再重复 jq 调 URL）----
-# 一条 jq 直接产五字段 manifest：name|repo-key|provider-rel|publish-tag|url。前四字段从
-# .extra."moo-private-packages" 逐项读，第五字段 url 就地从 .repositories.<repo-key>.url 关联
-# （URL 缺失时输出空第五字段，交给下面 awk 统一 fail-fast 校验）。
-# 后续 Step 3 / 5 / 5.5 所有循环直接读这个预解析串（v2 散在 6 处 jq，此处收敛为一次调用、
-# 免去逐包 jq + mktemp 临时文件累积回读）。加新私包零改动 pull.sh，只改各仓 composer json manifest 数组即可。
-if [ ! -f "$ENGINE_DIR/composer.production.json" ]; then
-    error "缺 $ENGINE_DIR/composer.production.json，无法解析私包 manifest / URL"
-    exit 1
-fi
-
-PRIVATE_PKGS_MANIFEST=$(jq -r '. as $root | .extra."moo-private-packages" // [] | .[] | [.name, ."repo-key", ."provider-rel", (.["publish-tag"] // ""), ($root.repositories[."repo-key"].url // "")] | join("|")' "$ENGINE_DIR/composer.production.json" 2>/dev/null)
-if [ -z "$PRIVATE_PKGS_MANIFEST" ]; then
-    error ".extra.\"moo-private-packages\" 缺失或为空 — 无法识别私包列表"
-    info "在 composer.production.json 加形如："
-    info '  "extra": { "moo-private-packages": [ {"name":"charsen/moo-x","repo-key":"x","provider-rel":"src/XProvider.php","publish-tag":"public"} ] }'
-    exit 1
-fi
-
-# URL fail-fast 校验：第五字段（url）为空即缺 .repositories.<repo-key>.url，不能等到 Step 3/5 才报。
-missing_url_pkgs=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '$5==""{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
-if [ -n "$missing_url_pkgs" ]; then
-    error "无法从 composer.production.json 解析 repositories.<repo-key>.url（对应: ${missing_url_pkgs}）"
-    info "应该有形如：\"repositories\": { \"x\": { \"type\": \"vcs\", \"url\": \"git@...\" } }"
-    exit 1
-fi
-
-# 提取所有包名空格分隔（Step 5 一次性 composer update 用）
-PRIVATE_PKG_NAMES=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
-PRIVATE_PKG_COUNT=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | grep -c .)
-info "私包 manifest 已解析（${PRIVATE_PKG_COUNT} 个：${PRIVATE_PKG_NAMES}）"
-
 # 删私包 vendor 目录，逼 composer 下次做全新克隆而非在旧 checkout 上 update。
+# （PRIVATE_PKG_NAMES 由 Step 2.9 的 manifest 解析填充，调用点全在 Step 5。）
 # 私包被换根 force-push（如清敏感数据 filter-branch/BFG）后，vendor 里残留的旧 checkout 的 master
 # 与新 origin/master 无共同祖先，composer update 覆盖前跑 getUnpushedChanges（git diff origin/master...master）
 # 会 fatal: no merge base 整体中断（真实踩坑：moo-monitor-laravel 换根后 fleet 部署全崩，clearcache 无效——
@@ -245,8 +228,8 @@ purge_private_vendor() {
 section "🔍 Step 1: 检查主仓工作区状态"
 branch_name=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '%s' "unknown")
 if [ "$branch_name" = "HEAD" ]; then
-    # 上次按 tag 锚定发版留下的 detached 状态；本次选 tag 会重新锚定，选 --latest 会自动回轨 master
-    info "当前状态: tag 锚定（detached @ $(git describe --tags --always 2>/dev/null || git rev-parse --short HEAD)）"
+    # 上次按 tag 锚定发版留下的 detached 状态；本次选 tag 会重新锚定，选 --latest 会自动回轨部署分支
+    info "当前状态: tag 锚定（detached @ $(git describe --tags --always --abbrev=8 2>/dev/null || git rev-parse --short=8 HEAD)）"
 else
     info "当前分支: $branch_name"
 fi
@@ -287,8 +270,7 @@ fi
 # 这些已云端化、服务器不再产生需提交/冲突的文件 → 源头消失，随云端化「砍本地」方向移除。
 # 万一仍撞上（理论上不再发生），git pull --ff-only 会带原生报错中止、Step 2 失败（set -e 退出），按提示人工处理。
 
-# ---- 版本选择：--tag 锚定 / --latest 追 master / 交互菜单 / 非交互兜底 latest ----
-# 批量发版（pull-all）选一次后经 --tag 透传，这里拿到即非交互直达；
+# ---- 版本选择：--tag 锚定 / --latest 追部署分支 / 交互菜单 -----------------
 # 手动单项目无参 + 交互终端 → 列最近 5 个 tag 让选（回车/0 = 退出，发版动作必须显式）。
 tags_fetched=0
 if [ -z "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" != "1" ]; then
@@ -298,8 +280,8 @@ if [ -z "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" != "1" ]; then
         tags_fetched=1
         tag_list=$(git for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags | sed -n '1,5p')
         if [ -z "$tag_list" ]; then
-            warn "仓库没有任何 tag，回退追 master 最新"
-            RELEASE_LATEST=1
+            error "仓库没有任何 tag；如确实要追 ${DEPLOY_BRANCH}，请显式重跑 sh pull.sh --latest"
+            exit 1
         else
             tag_count=$(printf '%s\n' "$tag_list" | wc -l | tr -d ' ')
             printf '\n🏷️  请选择发版版本：\n'
@@ -308,7 +290,7 @@ if [ -z "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" != "1" ]; then
                 printf '  %s) %s\n' "$i" "$t"
                 i=$((i + 1))
             done
-            printf '  m) 追 master 最新（传统模式）\n'
+            printf '  m) 追 %s 最新（传统模式）\n' "$DEPLOY_BRANCH"
             printf '  0) 🚪 退出，不发版\n\n'
             printf '👉 请输入序号（1-%s / m，回车或 0 退出）: ' "$tag_count"
             tag_choice=""
@@ -327,8 +309,9 @@ if [ -z "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" != "1" ]; then
             esac
         fi
     else
-        # 非交互（管道/自动化）且未显式指定版本：保持旧行为追 master，向后兼容
-        RELEASE_LATEST=1
+        # 自动化忘传版本时绝不能静默追部署分支，否则无法证明服务器部署的是哪个发布版本。
+        error "非交互环境必须显式指定版本：--tag TAG 或 --latest"
+        exit 1
     fi
 fi
 
@@ -341,17 +324,56 @@ if [ -n "$RELEASE_TAG" ]; then
     fi
     # detached 锚定：工作区 Step 1 已保证干净（composer.json 已还原），checkout 安全
     git checkout --detach -q "refs/tags/$RELEASE_TAG"
-    success "🏷️  已锚定 $RELEASE_TAG（$(git rev-parse --short HEAD)）"
-else
-    # 传统追 master：上次 tag 锚定留下的 detached 状态先回轨 master 再 pull
-    if [ "$(git rev-parse --abbrev-ref HEAD)" = "HEAD" ]; then
-        info "当前处于 tag 锚定（detached），回轨 master"
-        git checkout -q master
+    success "🏷️  已锚定 $RELEASE_TAG（$(git rev-parse --short=8 HEAD)）"
+
+    # 同步部署分支，避免下一次 --latest 从陈旧的本地分支开始。
+    if git fetch -q origin "${DEPLOY_BRANCH}:${DEPLOY_BRANCH}" 2>/dev/null; then
+        info "本地 ${DEPLOY_BRANCH} 已快进到 origin/${DEPLOY_BRANCH}（$(git rev-parse --short=8 "$DEPLOY_BRANCH")）"
+    else
+        warn "本地 ${DEPLOY_BRANCH} 未能快进（非快进或无 origin/${DEPLOY_BRANCH}）—— 不影响本次 tag 部署"
     fi
-    info "执行 git pull --ff-only"
-    git pull --ff-only
+else
+    # --latest 显式追部署分支；本地没有该分支时从 origin 建 tracking branch。
+    current_branch=$(git rev-parse --abbrev-ref HEAD)
+    if [ "$current_branch" != "$DEPLOY_BRANCH" ]; then
+        info "当前为 ${current_branch}，切换到部署分支 ${DEPLOY_BRANCH}"
+        if git show-ref --verify --quiet "refs/heads/${DEPLOY_BRANCH}"; then
+            git checkout -q "$DEPLOY_BRANCH"
+        else
+            git fetch -q origin "$DEPLOY_BRANCH"
+            git checkout -q -b "$DEPLOY_BRANCH" --track "origin/$DEPLOY_BRANCH"
+        fi
+    fi
+    info "执行 git pull --ff-only origin ${DEPLOY_BRANCH}"
+    git pull --ff-only origin "$DEPLOY_BRANCH"
 fi
 success "🌐 主仓代码已更新"
+
+# ---- Step 2.9: 解析目标版本的私包 manifest ------------------------------
+# 必须在 Step 2 之后读取；旧版本在 checkout 前解析会让新 tag 新增的私包漏过
+# 权限预检、强制更新和资源发布。
+if [ ! -f "$ENGINE_DIR/composer.production.json" ]; then
+    error "缺 $ENGINE_DIR/composer.production.json，无法解析私包 manifest / URL"
+    exit 1
+fi
+
+PRIVATE_PKGS_MANIFEST=$(jq -r '. as $root | .extra."moo-private-packages" // [] | .[] | [.name, ."repo-key", ."provider-rel", (.["publish-tag"] // ""), ($root.repositories[."repo-key"].url // "")] | join("|")' "$ENGINE_DIR/composer.production.json" 2>/dev/null)
+if [ -z "$PRIVATE_PKGS_MANIFEST" ]; then
+    error ".extra.\"moo-private-packages\" 缺失或为空 — 无法识别私包列表"
+    info "在 composer.production.json 加形如："
+    info '  "extra": { "moo-private-packages": [ {"name":"charsen/moo-x","repo-key":"x","provider-rel":"src/XProvider.php","publish-tag":"public"} ] }'
+    exit 1
+fi
+
+missing_url_pkgs=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '$5==""{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+if [ -n "$missing_url_pkgs" ]; then
+    error "无法从 composer.production.json 解析 repositories.<repo-key>.url（对应: ${missing_url_pkgs}）"
+    exit 1
+fi
+
+PRIVATE_PKG_NAMES=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+PRIVATE_PKG_COUNT=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | grep -c .)
+info "私包 manifest 已解析（${PRIVATE_PKG_COUNT} 个：${PRIVATE_PKG_NAMES}）"
 
 # ---- Step 3: 验证私包拉取权限 -------------------------------------------
 
@@ -360,47 +382,21 @@ if [ "$SKIP_PRIVATE_PKG" = "1" ]; then
     warn "已跳过私包权限验证。后续 composer 拉取可能因 deploy key 缺失失败"
 else
     section "🔐 Step 3: 验证私包拉取权限"
-
-    # 3a. 基础 SSH 联通（所有私包同 gitee host，只测一次）
-    # StrictHostKeyChecking=accept-new 首次 known_hosts 不报错。
-    # （本地开发机走 ssh-agent 管理 key；生产 box 防 deploy key 被覆盖应在 ~/.ssh/config
-    # 显式配 IdentitiesOnly + IdentityFile。）
-    ssh_out=$(ssh -o BatchMode=yes -o ConnectTimeout=10 \
-                  -o StrictHostKeyChecking=accept-new \
-                  -T git@gitee.com 2>&1 || true)
-    # gitee SSH 成功消息含 ANSI 色码，用两个 anchor 词跨过 ANSI 判通：
-    # "authenticated" + "GITEE"（GITEE.COM does not provide shell access，不会被 ANSI 切）。
-    case "$ssh_out" in
-        *authenticated*GITEE*)
-            success "🔐 SSH 到 gitee 已通"
-            ;;
-        *)
-            error "SSH 到 gitee 失败"
-            info "--- ssh 实际输出 ---"
-            printf '%s\n' "$ssh_out" >&2
-            info "--- 输出结束 ---"
-            info "含 'Permission denied' → 需配 deploy key（详 PRIVATE-COMPOSER-PACKAGES.md §4.3）"
-            info "含 'Host key verification' → ssh known_hosts 问题；其他 → 把输出贴给开发排查"
-            exit 1
-            ;;
-    esac
-
-    # 3b. 遍历每个私包 ls-remote 读权限 fail-fast。
-    # deploy key 是 per-repo 在 gitee 配的：SSH 通 ≠ 每个私包都有读权限。
+    # 按 manifest 的真实 URL 验证；兼容 SSH deploy key 与 HTTPS credential。
     while IFS='|' read -r pkg_name _ _ _ pkg_url; do
         [ -z "$pkg_name" ] && continue
         # 一次 ls-remote 同时判权限（exit code）+ 取 HEAD（输出），省掉旧版"先探权限再取 HEAD"
         # 的第二次 ls-remote —— 6 个包等于砍掉一半 SSH 握手（12 → 6 次）。
         # set -e 下把命令替换放进 if 条件豁免（失败不中止，走下面 error 分支自己 exit）。
         if ! pkg_head_line=$(git ls-remote "$pkg_url" HEAD 2>/dev/null); then
-            error "对 ${pkg_name} 私包无读权限（SSH 通但拉不到 repo）: $pkg_url"
+            error "对 ${pkg_name} 私包无读权限: $pkg_url"
             info "可能原因："
-            info "  - gitee 仓库 ${pkg_name} 不存在 / 不是你的"
-            info "  - deploy key 没加到这个具体 repo（个人 SSH key 不够，要在 repo 单独加 deploy key）"
-            info "  - SSH config 走的是别的 key（ssh -vT git@gitee.com 看用了哪把）"
+            info "  - 仓库不存在，或当前凭据没有读取权限"
+            info "  - HTTPS credential/token 未配置或已失效"
+            info "  - SSH deploy key 未加入该仓库，或 SSH config 选错 key"
             exit 1
         fi
-        pkg_head=$(printf '%s\n' "$pkg_head_line" | awk '{print substr($1, 1, 7)}')
+        pkg_head=$(printf '%s\n' "$pkg_head_line" | awk '{print substr($1, 1, 8)}')
         success "📦 ${pkg_name}: pull HEAD=${pkg_head}"
     done <<EOF
 $PRIVATE_PKGS_MANIFEST
@@ -638,6 +634,7 @@ section "📤 Step 5.5: 同步私包 publish 副本"
 # 重刷，否则包内 UI/JS 改动用户看不到。只 publish publish-tag 非空的包（空 = 无前端资源）。
 # set -e 下 `var=$(cmd)` 命令替换失败会直接中止脚本（POSIX sh 无 pipefail，`if X|tail` 判的是
 # tail 的 exit code、X 失败彻底静默）。把赋值放进 if 条件豁免 set -e，失败走 else 而非中止。
+PUBLISH_FAILED=0
 while IFS='|' read -r pkg_name _ _ publish_tag _; do
     [ -z "$pkg_name" ] && continue
     if [ -z "$publish_tag" ]; then
@@ -647,6 +644,7 @@ while IFS='|' read -r pkg_name _ _ publish_tag _; do
     if publish_output=$(php artisan vendor:publish --tag="$publish_tag" --force 2>&1); then
         success "📤 ${pkg_name} publish 副本已刷"
     else
+        PUBLISH_FAILED=1
         warn "📤 ${pkg_name} vendor:publish 失败，前端资源可能是旧版"
         warn "完整输出："
         printf '%s\n' "$publish_output" >&2
@@ -730,11 +728,15 @@ fi
 section "🎉 完成"
 # 退出码语义（cron 监控按这个写告警规则）：
 #   0  完全成功    1  仓库/权限/.env 异常    3  composer install/update 失败
-#   4  pull.sh 主体成功但收尾有异常（cache.sh 失败：缓存/权限/log 预创建/php-fpm reload
-#      没完成；或 pending 迁移未执行：schema 落后于代码）—— "看似绿其实坏"的盲区，
+#   4  pull.sh 主体成功但收尾有异常（vendor:publish、cache.sh 或 pending migration）——
+#      "看似绿其实坏"的盲区，
 #      cron 监控必须区分这态。
-if [ "${CACHE_FAILED:-0}" = "1" ] || [ "${MIGRATE_PENDING:-0}" = "1" ]; then
+if [ "${PUBLISH_FAILED:-0}" = "1" ] || [ "${CACHE_FAILED:-0}" = "1" ] || [ "${MIGRATE_PENDING:-0}" = "1" ]; then
     warn "================================================================"
+    if [ "${PUBLISH_FAILED:-0}" = "1" ]; then
+        warn "⚠️  私包 vendor:publish 未全部完成 → public/vendor 可能仍是旧资源"
+        warn "    根据上方失败 tag 的完整输出修复后，重跑 pull.sh 或对应 vendor:publish"
+    fi
     if [ "${CACHE_FAILED:-0}" = "1" ]; then
         warn "⚠️  pull.sh 主体完成但 cache.sh 收尾失败 → 凌晨 0:00 daily log 翻篇可能 500"
         warn "    cron 监控请同时 grep 'cache.sh 退出码' 不止 grep '❌ ERROR'"

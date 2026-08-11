@@ -38,7 +38,7 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 "require": {
     "charsen/moo-scaffold": "^2.1.3",
     "charsen/moo-monitor-laravel": "^0.1",
-    "charsen/moo-system": "^1.6.17"
+    "charsen/moo-system": "^1.6.24"
 },
 "repositories": [
     {
@@ -353,7 +353,8 @@ php artisan moo-system check    # 当前应 5/5 全绿
 > → ④ 精确匹配 acl key。
 
 > `DatabaseSeeder` 不要使用 `WithoutModelEvents`，否则 Department 的嵌套集字段无法维护。
-> 雪花主键也没有固定的 id=1 root，因此系统管理员角色必须包含 `is_root`。
+> 从 moo-system 1.6.24 起，超级管理员固定为 `id=1`；`reset-root-password` 在缺失时会创建
+> `real_name=root`、`mobile=13300000001` 的正常帐号。演示角色仍保留 `is_root`，用于教学普通角色授权。
 
 **ACL 白名单**：开着 ACL 接入 moo-system 后，`config/actions.php` 的 `whitelist`
 必须放行**个人中心**的 8 个动作（查看资料、改密码、改头像等），否则普通用户会收到 403。
@@ -378,6 +379,14 @@ php artisan tinker --execute='$w=config("actions.admin.whitelist",[]); $keys=["8
 
 php artisan db:seed
 ```
+
+再初始化本地 root；命令默认两次隐式输入密码，不把密码写进 shell history：
+
+```bash
+php artisan moo-system reset-root-password
+```
+
+生产非交互自动化只能在受控凭据注入场景使用 `--password=<新密码> --force`；不要把真实密码写进仓库脚本。
 
 seed 完不只看「DONE」，再检查组织树和管理员关联：
 

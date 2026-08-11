@@ -1,4 +1,13 @@
 {
+  "[php]": {
+    "editor.defaultFormatter": "open-southeners.laravel-pint",
+    "editor.formatOnSave": true
+  },
+  "laravel-pint.enable": true,
+  "laravel-pint.executablePath": "engine/vendor/bin/pint",
+  "laravel-pint.configPath": "engine/pint.json",
+  "laravel-pint.fallbackToGlobalBin": false,
+  "laravel-pint.preset": "auto",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#de6744",
     "activityBar.background": "#de6744",
@@ -25,12 +34,5 @@
     "statusBar.debuggingBackground": "#cb4a24",
     "statusBar.debuggingForeground": "#e7e7e7"
   },
-  "peacock.color": "#cb4a24",
-  "[php]": {
-    "editor.defaultFormatter": "open-southeners.laravel-pint"
-  },
-  "laravel-pint.enable": true,
-  "laravel-pint.executablePath": "vendor/bin/pint",
-  "laravel-pint.configPath": "pint.json",
-  "laravel-pint.preset": "auto"
+  "peacock.color": "#cb4a24"
 }
