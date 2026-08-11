@@ -6,7 +6,9 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\ServiceProvider;
 use Mooeen\Feedback\Models\Feedback;
+use Mooeen\Feedback\MooeenFeedbackServiceProvider;
 use Tests\TestCase;
 
 class FeedbackExampleTest extends TestCase
@@ -16,6 +18,26 @@ class FeedbackExampleTest extends TestCase
     // 测试套件的其它 Feature 用例依赖同一份教学 seed；本类若先迁移但不 seed，
     // RefreshDatabase 的进程级迁移缓存会让后续类看到空库。
     protected $seed = true;
+
+    public function test_feedback_package_uses_one_stem_for_config_and_publish_contracts(): void
+    {
+        $published = ServiceProvider::pathsToPublish(
+            MooeenFeedbackServiceProvider::class,
+            'moo-feedback-config',
+        );
+        $source      = array_key_first($published);
+        $destination = $source === null ? null : $published[$source];
+
+        self::assertFileExists(config_path('moo-feedback.php'));
+        self::assertCount(1, $published);
+        self::assertIsString($source);
+        self::assertSame(
+            realpath(base_path('vendor/charsen/moo-feedback/config/moo-feedback.php')),
+            realpath($source),
+        );
+        self::assertSame(config_path('moo-feedback.php'), $destination);
+        self::assertIsArray(config('moo-feedback'));
+    }
 
     public function test_feedback_admin_routes_use_their_own_complete_authentication_group(): void
     {

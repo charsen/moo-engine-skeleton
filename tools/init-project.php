@@ -988,6 +988,12 @@ The public example uses `GET /api/feedbacks/meta` and `POST /api/feedbacks`; set
 use the dedicated `moo-feedback` middleware group configured by
 `config/moo-feedback.php` and `bootstrap/app.php`.
 
+Keep every package on one `moo-<name>` stem: Composer package `charsen/moo-foo`,
+host file `config/moo-foo.php`, config namespace `moo-foo.*`, publish tag
+`moo-foo-config`, and middleware group `moo-foo`. Treat a rename as a public
+contract change: update the package and host together, then run
+`php artisan config:clear` before checking routes.
+
 Every extension package with admin routes must have its own host middleware group
 containing the complete authentication chain. Do not point package admin routes at
 the login-capable `admin` group or borrow `moo-system`. Verify anonymous `401`,
@@ -1041,6 +1047,7 @@ The Laravel application lives in `engine/`. Run Composer, Artisan, Pest/PHPUnit 
 - `routes/admin.php` and `routes/api.php`: keep the scaffold insertion markers
 - `composer.json`: local development package constraints
 - `composer.production.json`: production package constraints consumed by deployment scripts
+- Keep each extension package's config file, config namespace, publish tag and middleware group aligned on the same `moo-<name>` stem
 - Every package admin surface uses a dedicated complete-auth middleware group; never reuse the login-capable `admin` group or another package's group
 
 ## Required verification
