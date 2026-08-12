@@ -38,7 +38,7 @@ git ls-remote git@gitee.com:charsen/moo-system.git
 "require": {
     "charsen/moo-scaffold": "^2.1.3",
     "charsen/moo-monitor-laravel": "^0.1",
-    "charsen/moo-system": "^1.6.24"
+    "charsen/moo-system": "^1.6.25"
 },
 "repositories": [
     {
@@ -93,21 +93,23 @@ cd ..
 这只校验并解析生产依赖，不会创建 `engine/composer.production.lock`，也不会安装依赖或提前触发
 生产 Composer 的 Artisan 脚本；当前开发目录的 `vendor/` 仍保持开发版，不会删掉测试工具。
 
-## 7.2 提供 host 端契约（6 个文件 + 1 个全局函数）
+## 7.2 提供 host 端契约与默认头像上传入口（6 个文件 + 1 个全局函数）
 
-moo-system 的控制器/模型会 `use` host 侧的几个 trait 和类（叫「host 契约」）。
-需要提供以下 6 个文件：
+moo-system 1.6.25 的控制器/模型只依赖 3 个 host 业务契约；本教程另外提供默认头像上传入口，
+并让 host 的 Notification 继续解析自身媒体 URL。共准备以下 6 个文件：
 
 ```
-engine/app/Admin/Controllers/UploadController.php          ← 最小上传端点，供头像/附件表单控件使用
-engine/app/Admin/Controllers/Traits/BaseActionTrait.php   ← 覆盖第 2 章 scaffold 生成的精简版
-engine/app/Admin/Controllers/Traits/UploaderTrait.php
-engine/app/Models/Traits/MediaSynchronous.php
-engine/app/Models/Notification.php
-engine/app/Notifications/SendBlessMessage.php
+engine/app/Admin/Controllers/Traits/BaseActionTrait.php  ← 必需契约；覆盖第 2 章 scaffold 生成的精简版
+engine/app/Models/Notification.php                       ← 必需契约
+engine/app/Notifications/SendBlessMessage.php            ← 必需契约
+engine/app/Admin/Controllers/UploadController.php         ← 默认头像临时上传入口，不是包的硬依赖
+engine/app/Support/TemporaryUploadPruner.php              ← 只清理过期头像临时文件
+engine/app/Models/Traits/MediaSynchronous.php             ← 只供 host Notification 解析媒体 URL
 ```
 
-这 6 份是 host 契约，`moo-system` 目前不会通过 `vendor:publish` 自动写入你的项目。
+前三份是 moo-system 的必需 host 契约；后两份是本教程选择的 Host 实现，不会由包通过
+`vendor:publish` 自动写入你的项目。人员头像本身统一走包内 `PersonnelAvatarManager`，因此不再要求
+Host 提供 `UploaderTrait` 或让 `Personnel` 使用 `MediaSynchronous`。
 方式 B 的项目与教程仓库是两个并列目录；在你的项目根目录（`moo-engine-from-zero/`）
 执行第 7 章同步器。它会一次准备本章后续需要的 host 契约、Personnel 登录控制器、Seeder、
 操作日志、最终测试文件和 HTTP 诊断助手；默认只预览，`--execute` 才写入。
@@ -134,19 +136,35 @@ php "$REFERENCE_ROOT/tools/tutorial-sync-chapter7.php" --target=. --execute
 > 做一次版本检查：当前版应复用 moo-scaffold 的共享雪花 ID 实现，不再依赖旧的
 > `App\Models\Traits\UsingSnowFlakePrimaryKey`。
 
-`UploaderTrait::getUploadImageControl()` 会把头像控件的上传地址指向
+包内默认 `PersonnelAvatarManager` 会把头像控件指向
 `api/admin/upload/image?field=avatar`；因此还要在 `routes/admin.php` 的登录保护组内注册：
 
 ```php
 use App\Admin\Controllers\UploadController;
 
-Route::post('upload/image', [UploadController::class, 'image'])->name('upload.image');
-Route::post('upload/file', [UploadController::class, 'file'])->name('upload.file');
+Route::post('upload/image', [UploadController::class, 'image'])
+    ->middleware('throttle:20,1')
+    ->name('upload.image');
 ```
 
-> 注意第一个是**覆盖**而非新增。7.4 的 `moo-system check` 只验证这些 trait/class
-> **存在**，不校验内容——忘了覆盖、还在用第 2 章精简版时自检照样全绿，
-> 问题会推迟到调用包接口时才暴露。这一步务必以仓库文件为准。
+> `UploadController` 返回 `temp/...` 相对路径；提交人员表单后，包内默认头像管理器会把文件搬到
+> `personnels/{人员ID}/...`。不要改成 `tmp/...`，也不要让客户端直接提交任意正式路径。
+> 控制器只接受 JPEG、PNG、WebP，且按服务端检测的 MIME 决定扩展名，不信任客户端文件名。
+> 7.4 的 `moo-system check` 只验证 3 个必需契约**存在**，不会替代下面的真实上传闭环测试。
+
+同步器还会复制 `App\Support\TemporaryUploadPruner`。在 `routes/console.php` 注册每天一次的临时
+文件清理，防止用户上传图片后未提交表单而长期堆积；清理范围只能是头像临时目录：
+
+```php
+use App\Support\TemporaryUploadPruner;
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::call(fn () => app(TemporaryUploadPruner::class)->prune(
+    'public',
+    'temp/images',
+    now()->subDay(),
+))->dailyAt('02:20')->name('prune-temporary-avatar-uploads')->withoutOverlapping();
+```
 
 还差一个全局函数 `toLabelValue()`（部门控制器在用）。
 **新建文件** `engine/app/Helpers/helpers.php`，内容如下：
@@ -322,7 +340,7 @@ php artisan moo-system check    # 当前应 5/5 全绿
 ✓ Auth provider 配置真实 FQN
 ✓ 包路由使用的 middleware group 含 jwt.auth.refresh
 ✓ Composer classmap 不含已删除的 App\Models\System\*
-✓ Host 端 5 个必需契约 trait/class 全部存在
+✓ Host 端 3 个必需契约 trait/class 全部存在
 ✓ config:cache 与 source 一致
 🎉  All 5 required checks passed. moo-system 配置健康。
 ```
