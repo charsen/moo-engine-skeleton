@@ -284,7 +284,8 @@ tests/Feature/Admin/Food/FoodControllerTest.php
   （YAML 里的 `module.folder: Food`），第二层是表模型名（`Food`）——
   本例俩恰好同名才显得重复；模块目录换个名（比如 `Catalog`）就是 `Catalog/Food/`。
 - 📌 **对照仓库时的两处差异**：① `app/Models/Traits/` 里仓库还有一个
-  `MediaSynchronous.php`——那是**第 7 章** host 契约抄进去的，本章不会生成；
+  `MediaSynchronous.php`——那是**第 7 章**为 Host Notification 准备的媒体 URL helper，
+  不是 moo-system 契约，也不是本章生成物；
   ② 「没有单独的 FoodResource」是本章时点的事实，**第 9 章 9.9 节**为定制列表字段
   新增了 `app/Admin/Resources/Food/FoodResource.php`，`FoodController` 的
   index/show 改用了它（store/update 等仍用 BaseResource）。本章生成完没有这两样，正常。

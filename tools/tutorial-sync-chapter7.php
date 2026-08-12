@@ -8,7 +8,6 @@ declare(strict_types=1);
  * 默认 dry-run；传 --execute 才写入。被覆盖的旧文件会先备份到：
  *   <target>/.tutorial-backups/chapter7-YYYYmmdd-HHMMSS/
  */
-
 $options = getopt('', ['target:', 'execute', 'help']);
 
 if (isset($options['help'])) {
@@ -45,10 +44,10 @@ if (! is_file($targetRoot.'/engine/artisan') || ! is_file($targetRoot.'/engine/c
 }
 
 $paths = [
-    // 7.2 host 契约
+    // 7.2 三个必需 host 契约 + 教程默认头像上传/Notification 媒体实现
     'engine/app/Admin/Controllers/UploadController.php',
     'engine/app/Admin/Controllers/Traits/BaseActionTrait.php',
-    'engine/app/Admin/Controllers/Traits/UploaderTrait.php',
+    'engine/app/Support/TemporaryUploadPruner.php',
     'engine/app/Models/Traits/MediaSynchronous.php',
     'engine/app/Models/Notification.php',
     'engine/app/Notifications/SendBlessMessage.php',
@@ -74,9 +73,14 @@ $paths = [
     'engine/tests/Feature/JwtAutoRefreshTest.php',
     'engine/tests/Feature/SeederIntegrityTest.php',
     'engine/tests/Feature/RegressionTest.php',
+    'engine/tests/Feature/UploadTest.php',
 
     // 7.6 起复用的 HTTP 诊断助手
     'tools/tutorial-http.sh',
+];
+
+$deprecatedPaths = [
+    'engine/app/Admin/Controllers/Traits/UploaderTrait.php',
 ];
 
 foreach ($paths as $relative) {
@@ -92,12 +96,23 @@ foreach ($paths as $relative) {
     $target = $targetRoot.'/'.$relative;
     if (is_file($target) && hash_file('sha256', $source) === hash_file('sha256', $target)) {
         printf("  = unchanged  %s\n", $relative);
+
         continue;
     }
 
     $action = is_file($target) ? 'overwrite' : 'create';
     printf("  %s  %s\n", $action === 'overwrite' ? '~ overwrite' : '+ create   ', $relative);
     $changes[] = [$relative, $source, $target, $action];
+}
+
+foreach ($deprecatedPaths as $relative) {
+    $target = $targetRoot.'/'.$relative;
+    if (! is_file($target)) {
+        continue;
+    }
+
+    printf("  - delete    %s\n", $relative);
+    $changes[] = [$relative, null, $target, 'delete'];
 }
 
 if ($changes === []) {
@@ -115,13 +130,21 @@ $backedUp = 0;
 $copied = 0;
 
 foreach ($changes as [$relative, $source, $target, $action]) {
-    if ($action === 'overwrite') {
+    if ($action === 'overwrite' || $action === 'delete') {
         $backup = $backupRoot.'/'.$relative;
         ensureDirectory(dirname($backup));
         if (! copy($target, $backup)) {
             fail("备份失败：{$relative}");
         }
         $backedUp++;
+    }
+
+    if ($action === 'delete') {
+        if (! unlink($target)) {
+            fail("删除弃用文件失败：{$relative}");
+        }
+
+        continue;
     }
 
     ensureDirectory(dirname($target));

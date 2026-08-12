@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use Illuminate\Filesystem\Filesystem;
 use PHPUnit\Framework\TestCase;
 
 class DeploymentScriptTest extends TestCase
@@ -174,7 +175,56 @@ class DeploymentScriptTest extends TestCase
         self::assertStringContainsString("isset(\$options['execute'])", $script);
         self::assertStringContainsString('DRY-RUN', $script);
         self::assertStringContainsString('/.tutorial-backups/chapter7-', $script);
-        self::assertStringContainsString("if (\$action === 'overwrite')", $script);
+        self::assertStringContainsString("\$action === 'overwrite' || \$action === 'delete'", $script);
+        self::assertStringContainsString("'engine/app/Admin/Controllers/Traits/UploaderTrait.php'", $script);
+    }
+
+    public function test_chapter_seven_sync_dry_run_preserves_and_execute_backs_up_then_deletes_deprecated_files(): void
+    {
+        $root       = dirname(__DIR__, 3);
+        $target     = sys_get_temp_dir() . '/moo-chapter7-sync-' . bin2hex(random_bytes(6));
+        $deprecated = $target . '/engine/app/Admin/Controllers/Traits/UploaderTrait.php';
+
+        mkdir(dirname($deprecated), 0777, true);
+        file_put_contents($target . '/engine/artisan', '#!/usr/bin/env php');
+        file_put_contents($target . '/engine/composer.json', '{}');
+        file_put_contents($deprecated, 'legacy-uploader');
+
+        try {
+            exec(
+                sprintf(
+                    '%s %s --target=%s 2>&1',
+                    escapeshellarg(PHP_BINARY),
+                    escapeshellarg($root . '/tools/tutorial-sync-chapter7.php'),
+                    escapeshellarg($target),
+                ),
+                $dryRunOutput,
+                $dryRunCode,
+            );
+
+            self::assertSame(0, $dryRunCode, implode("\n", $dryRunOutput));
+            self::assertFileExists($deprecated);
+            self::assertStringContainsString('- delete', implode("\n", $dryRunOutput));
+
+            exec(
+                sprintf(
+                    '%s %s --target=%s --execute 2>&1',
+                    escapeshellarg(PHP_BINARY),
+                    escapeshellarg($root . '/tools/tutorial-sync-chapter7.php'),
+                    escapeshellarg($target),
+                ),
+                $executeOutput,
+                $executeCode,
+            );
+
+            self::assertSame(0, $executeCode, implode("\n", $executeOutput));
+            self::assertFileDoesNotExist($deprecated);
+            $backups = glob($target . '/.tutorial-backups/chapter7-*/engine/app/Admin/Controllers/Traits/UploaderTrait.php');
+            self::assertCount(1, $backups);
+            self::assertSame('legacy-uploader', file_get_contents($backups[0]));
+        } finally {
+            (new Filesystem)->deleteDirectory($target);
+        }
     }
     // init-project:end tutorial-helper-tests
 }

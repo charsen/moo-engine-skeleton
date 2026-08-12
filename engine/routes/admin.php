@@ -37,8 +37,9 @@ Route::group(['middleware' => ['jwt.guard.auth:admin', 'jwt.auth.refresh']], fun
     Route::iResource('food', FoodController::class);
 
     Route::post('food/{id}/toggle-status', [FoodController::class, 'toggleStatus']);
-    Route::post('upload/image', [UploadController::class, 'image'])->name('upload.image');
-    Route::post('upload/file', [UploadController::class, 'file'])->name('upload.file');
+    Route::post('upload/image', [UploadController::class, 'image'])
+        ->middleware('throttle:20,1')
+        ->name('upload.image');
 
     // :insert_code_here:do_not_delete
 });

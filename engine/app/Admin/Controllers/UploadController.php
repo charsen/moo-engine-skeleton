@@ -8,41 +8,45 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class UploadController
 {
     public function image(Request $request): JsonResponse
     {
-        return $this->store($request, 'images', ['image', 'max:5120']);
-    }
+        $request->validate([
+            'file' => ['required', 'file', 'max:5120'],
+        ]);
 
-    public function file(Request $request): JsonResponse
-    {
-        return $this->store($request, 'files', ['file', 'max:10240']);
+        $file      = $request->file('file');
+        $mimeType  = (new \finfo(FILEINFO_MIME_TYPE))->file($file->getPathname());
+        $extension = match ($mimeType) {
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            default      => throw ValidationException::withMessages([
+                'file' => '仅支持 JPEG、PNG 或 WebP 图片。',
+            ]),
+        };
+
+        return $this->store($request, 'images', $extension, $mimeType);
     }
 
     /**
-     * Minimal host upload endpoint used by moo-system form widgets.
+     * Minimal host upload endpoint used by the default moo-system avatar manager.
      *
-     * The returned path is intentionally temporary; UploaderTrait::saveUploadFile()
-     * moves it into the target business folder when the form is submitted.
-     *
-     * @param array<int, string> $rules
+     * The returned path is intentionally temporary; PersonnelAvatarManager moves
+     * it into the Personnel-scoped directory when the form is submitted.
      */
-    private function store(Request $request, string $folder, array $rules): JsonResponse
+    private function store(Request $request, string $folder, string $extension, string $mimeType): JsonResponse
     {
-        $request->validate([
-            'file' => ['required', ...$rules],
-        ]);
-
         $field = (string) $request->query('field', 'file');
         if (! preg_match('/^[A-Za-z0-9_.-]+$/', $field)) {
             $field = 'file';
         }
 
-        $file      = $request->file('file');
-        $extension = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin';
-        $path      = $file->storeAs('tmp/' . $folder, (string) Str::uuid() . '.' . $extension, 'public');
+        $file = $request->file('file');
+        $path = $file->storeAs('temp/' . $folder, (string) Str::uuid() . '.' . $extension, 'public');
 
         return response()->json([
             'data' => [
@@ -52,7 +56,7 @@ class UploadController
                 'url'           => Storage::disk('public')->url($path),
                 'original_name' => $file->getClientOriginalName(),
                 'size'          => $file->getSize(),
-                'mime_type'     => $file->getMimeType(),
+                'mime_type'     => $mimeType,
             ],
         ]);
     }

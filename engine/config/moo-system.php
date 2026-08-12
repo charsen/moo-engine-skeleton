@@ -26,9 +26,18 @@ return [
      */
     'admin' => [
         'prefix' => 'api/admin',
-        'name'   => 'admin.',
+        'name' => 'admin.',
         // 指向 bootstrap/app.php 里自建的 'moo-system' 组（含完整 JWT 强制认证链：
         // jwt.assign.guard:admin + jwt.guard.auth:admin + jwt.auth.refresh）。
         'middleware' => 'moo-system',
+    ],
+
+    'personnel' => [
+        'avatar' => [
+            'disk' => 'public',
+            'temp_prefix' => 'temp/',
+            'directory' => 'personnels',
+            'upload_url' => 'api/admin/upload/image?field=avatar',
+        ],
     ],
 ];
