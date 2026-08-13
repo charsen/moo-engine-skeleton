@@ -31,13 +31,4 @@ return [
         // jwt.assign.guard:admin + jwt.guard.auth:admin + jwt.auth.refresh）。
         'middleware' => 'moo-system',
     ],
-
-    'personnel' => [
-        'avatar' => [
-            'disk' => 'public',
-            'temp_prefix' => 'temp/',
-            'directory' => 'personnels',
-            'upload_url' => 'api/admin/upload/image?field=avatar',
-        ],
-    ],
 ];

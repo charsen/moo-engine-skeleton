@@ -16,7 +16,7 @@
 
 **教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
 
-> **跑通前的硬前置**（只读本篇容易忽略）：`engine/composer.json` 当前过渡期通过 Composer VCS 解析 `moo-scaffold` / `moo-monitor-laravel` / `moo-system`。`moo-scaffold`、`moo-monitor-laravel` 是开源包，目标发布到 Packagist；`moo-system` 是商业包，必须通过 VCS 授权分发。Packagist 同步目标版本前，只克隆本仓库且没有相应 VCS 权限时，`composer install` 仍会失败（完整环境步骤见 `HANDOFF.md` §1~3 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要商业包，不等于"零前置"。
+> **跑通前的硬前置**（只读本篇容易忽略）：`moo-scaffold`、`moo-monitor-laravel` 是开源包，目标发布到 Packagist；`moo-system` 与 `moo-upload` 是私有包，必须通过 VCS 授权分发。只克隆本仓库但没有两个私有仓库权限时，完成态的 `composer install` 会失败（完整环境步骤见 `HANDOFF.md` §1~3 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要私有包，不等于完成态零前置。
 
 ## 二、技术栈与运行环境
 
@@ -26,7 +26,7 @@
 | 数据库 | MariaDB 12 / MySQL 8 | 实测均可；骨架库名 `moo_skeleton` |
 | 认证 | php-open-source-saver/jwt-auth ^2.8 | tymon/jwt-auth 的维护分支，composer 直接依赖 |
 | 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
-| 系统管理 | charsen/moo-system（**商业包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块 |
+| 系统管理 | charsen/moo-system（**私有包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块；头像上传依赖私有 moo-upload |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
 | 测试 | Pest 3 + PHPUnit 11，`php artisan test` 64 passed / 230 assertions | Feature 14 个文件 + Unit 2 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
 
@@ -68,7 +68,7 @@ Laravel 12 标准工程加生态约定的固化。
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
 | `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、批量删除 `destroyBatch`、回收站 `/trashed`（先于 `/{id}` 注册）、恢复 `restore`、`DELETE /forever/{id}` 永久删除；且**用反射检查控制器，action 真实存在且为 public 才注册对应路由**，杜绝"幻影路由"（声明了却 404 的路由） |
 | 通用 Model Traits | `UsingSnowFlakePrimaryKey`（雪花字符串主键）、`HasOperator`（操作人追踪）、`BaseFilter`（query string → 查询条件） |
-| moo-* 包接入 | 当前过渡期 host 显式声明三个 VCS 仓库以保证可安装；目标状态为 `moo-scaffold` / `moo-monitor-laravel` 走 Packagist，只有 `moo-system` 保留 VCS |
+| moo-* 包接入 | `moo-scaffold` / `moo-monitor-laravel` 走 Packagist；私有 `moo-system` 与 `moo-upload` 走授权源，Host 为每个管理包配置独立安全组 |
 
 ### 模块 2：代码生成器接入（moo-scaffold）
 
@@ -163,7 +163,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 | 功能点 | 介绍 |
 |---|---|
-| Feature 测试（14 文件） | `AuthTest`、`ApiAuthTest`、`FoodAclTest`、`JwtAutoRefreshTest`、`RegressionTest`、`SeederIntegrityTest`、`FoodIncrementalTest` / `ApiFoodTest`、`MonitorTest`、`OperatorResolverTest`、`RouteMacroTest`、`HelpersTest`、`UploadTest`、`ExampleTest`；`php artisan test` 64 passed 全绿 |
+| Feature 测试 | 覆盖认证、ACL、双守卫、系统管理、监控、操作人契约、扩展包安全组与 `MooUploadIntegrationTest` 头像上传闭环；验收以当前全量测试真实结果为准 |
 | 跨进程行为模拟 | 测试基类 `tests/TestCase.php` 的 `freshJwtProcess()` 用 `forgetInstance` 重置整条 jwt 服务链单例（`tymon.jwt.*` + `auth.driver`），使同进程测试能复现真实跨进程的续签丢 claim 问题 |
 | MCP 真机验证流程 | 开发约定以浏览器 MCP 驱动 `/scaffold` 接口调试器 + curl + 数据库查询对活服务验证，而非仅靠单测 |
 | 代码规范 | Laravel Pint 统一格式化 |
@@ -191,7 +191,7 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 ```bash
 cd engine/
-composer install                  # 当前过渡期解析 moo-* VCS；目标状态开源包走 Packagist、moo-system 走 VCS
+composer install                  # 开源包走 Packagist；moo-system / moo-upload 走授权私有源
 cp .env.example .env              # 已预设 QUEUE_CONNECTION=sync 等
 php artisan key:generate
 php artisan jwt:secret --force

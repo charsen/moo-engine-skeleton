@@ -36,7 +36,7 @@
 ## Composer 与环境边界
 
 - 本地学习/开发和生产部署使用不同 Composer manifest，但不跟踪 lock。`engine/composer.lock` 由各环境本地生成并由 Git 忽略；不得创建或提交 `engine/composer.production.lock`。生产部署由 `pull.sh` 暂时把 `composer.production.json` 覆盖到 `composer.json`，失败时回滚，随后使用当前环境的本地 lock 安装并显式更新私包。
-- 开源包按公开发行渠道安装；商业 `moo-system` 才依赖授权的私有仓访问。文档不得暗示读者能匿名安装商业包。
+- 开源包按公开发行渠道安装；私有 `moo-system` 与 `moo-upload` 依赖授权仓访问。文档不得暗示读者能匿名安装私有包。
 - 版本、PHP/Laravel 支持面和命令参数以当前 manifest、包发布状态和真实 `artisan` 输出为准，不沿用历史文档数字。
 - 生产部署涉及缓存、队列、多 worker、Redis、目录权限和独立 `.env`；不要把 SQLite、sync queue 或单进程教程默认值描述成生产方案。
 
@@ -52,7 +52,7 @@
 - 后台与移动端 guard 必须隔离，JWT 的 guard claim、persistent claims、blacklist、refresh 和退出语义不可混用。
 - Moo 扩展包使用同一个 `moo-<name>` stem 对齐 Composer 包名、Host 配置文件、配置命名空间、配置发布标签和后台中间件组；例如 `charsen/moo-foo`、`config/moo-foo.php`、`moo-foo.*`、`moo-foo-config`、`moo-foo`。改变其中任一名称都按公共契约变更处理，同时核查包、Host 与部署缓存。
 - 每个带后台路由的扩展包都由 Host 注册独立的完整认证组；不得复用可承载登录接口的 `admin` 组或借用其他包的组。至少验收匿名 401、已认证但无动作权限 403，以及授权成功。
-- 公开业务包需要图片/文件时只定义窄媒体契约并提供可独立运行的默认实现，不硬依赖私有上传包。安装 `moo-upload` 的 Host 应在自身 Provider 绑定适配器，并让上传 intent/reference、purpose、临时对象和厂商存储只由 `moo-upload` 管理；业务包继续拥有发布状态、业务归属和删除语义，不能再复制第二套上传状态机。
+- 公开业务包需要图片/文件时只定义窄媒体契约并提供可独立运行的默认实现，不硬依赖私有上传包；私有业务包可直接依赖 `moo-upload`，并在自身 Provider 注册 namespaced purpose、消费适配器与审计 verifier。Host 只负责私包仓库解析、`moo-upload` 独立安全组、ACL/API 元数据和环境配置，不复制第二套上传状态机。
 - 成功响应沿用当前 Resource/控制器形态，不自行增加统一 `{code,data}` 包装；验证错误为 422、未认证为 401，业务错误沿用既有 522 契约。
 - Snowflake ID 对外按字符串处理；枚举保持 raw int，由调用点显式转换。
 - 第 7 章 host 胶水、路由、ACL 和 seed 顺序须与当前 `moo-system` 契约一致。组织树 seed 不得用会跳过模型事件的捷径。

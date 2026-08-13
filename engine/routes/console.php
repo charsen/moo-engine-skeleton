@@ -12,7 +12,6 @@ declare(strict_types=1);
  * 防慢任务堆叠把 worker/DB 压垮（幂等性再好也别省这一句）。
  */
 
-use App\Support\TemporaryUploadPruner;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -26,13 +25,6 @@ Artisan::command('inspire', function () {
 // 把失败队列每 10 分钟整体重试一次（瞬时故障——网络抖动、第三方 5xx——自动恢复，
 // 不必人肉 queue:retry）。真正的死信在多次重试后仍留在 job_failed，人工排查。
 Schedule::command('queue:retry all')->everyTenMinutes()->withoutOverlapping();
-
-// 未提交表单的头像仍停留在 temp/images；每天限量清理超过 24 小时的孤儿临时文件。
-Schedule::call(fn () => app(TemporaryUploadPruner::class)->prune(
-    'public',
-    'temp/images',
-    now()->subDay(),
-))->dailyAt('02:20')->name('prune-temporary-avatar-uploads')->withoutOverlapping();
 
 // ── 每日备份挂载位 ───────────────────────────────────────────────────────
 // 备份 Job 属于 P3 运维资产（backup.sh / BackupSQLJob 尚未入库）。就位后按下述挂载，

@@ -82,6 +82,16 @@ return Application::configure(basePath: dirname(__DIR__))
             OperationLog::class,
         ]);
 
+        $middleware->group('moo-upload', [
+            'jwt.assign.guard:admin',
+            'jwt.guard.auth:admin',
+            'jwt.auth.refresh',
+            'throttle:admin',
+            'set.locale',
+            SubstituteBindings::class,
+            OperationLog::class,
+        ]);
+
         // moo-feedback 管理面使用自己的完整认证组；匿名提交仍走包的 public.middleware。
         // 不能回落到为登录接口保留的 admin，也不借用 moo-system 的安全边界。
         $middleware->group('moo-feedback', [

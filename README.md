@@ -89,8 +89,8 @@ php -S 127.0.0.1:9999
 ## 配套包（必读）
 
 本骨架依赖作者的另外几个包。`moo-scaffold`、`moo-monitor-laravel` 是开源包，
-目标通过 **Packagist** 直接安装；只有商业包 `moo-system` 必须通过 Composer **VCS 仓库**接入。
-这些包都不走本地 path，也不需要 clone 到同级目录。
+目标通过 **Packagist** 直接安装；私有 `moo-system` 及其上传基础依赖 `moo-upload` 必须通过 Composer
+授权仓库接入。正式使用不要求 clone 到同级目录；本仓本地联调可用 path repository。
 
 **访问前提**：
 
@@ -98,23 +98,24 @@ php -S 127.0.0.1:9999
 # 克隆本仓库
 git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
-# 只有 moo-system（第 7 章商业包）需要 Gitee SSH 仓库访问权。
+# 第 7 章需要 moo-system 与 moo-upload 两个私有仓库的访问权。
 ```
 
 | 包 | 定位 | 是否必装 | 说明 |
 |---|---|---|---|
 | `moo-scaffold` | 开源（MIT，发布到 Packagist） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
-| `moo-system` | 进阶 / 商业包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
+| `moo-system` | 进阶 / 私有包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
+| `moo-upload` | 私有基础包 | 随 moo-system 接入 | purpose 约束上传、引用消费与清理；Host 配独立安全组 |
 | `moo-monitor-laravel` | 开源（MIT） | **必装** | 监控采集 SDK（教程第 1.7 节显式接入） |
 | `moo-feedback` | 开源（MIT，发布到 Packagist） | 示例内置 | 意见反馈扩展包；第 13 章演示公开提交与独立后台认证组 |
 
 **为什么还要配置 VCS 仓库？**
 
 开源包发布到 Packagist 且目标版本可解析后，不需要额外 `repositories` 配置。
-`moo-system` 是商业包，不在 Packagist 公开分发，接入第 7 章时仍需要在
-`composer.json` 的 `repositories` 里声明 `git@gitee.com:charsen/moo-system.git`。
+`moo-system` 与 `moo-upload` 都不在 Packagist 公开分发，接入第 7 章时需要在
+`composer.json` 的 `repositories` 分别声明两个授权仓库；Composer 不继承依赖包自己的仓库配置。
 
-> 本仓库口径：开源包统一使用正式版本约束安装；只有 `moo-system` 保留私有 VCS。
+> 本仓库口径：开源包统一使用正式版本约束安装；`moo-system` 与 `moo-upload` 使用授权私有源。
 
 ---
 
@@ -142,8 +143,8 @@ git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
 > ⚠️ **前置**：
 > ① 需 **PHP 8.2+**；
-> ② 需配好 **moo-system** 的 Gitee SSH 仓库访问权（商业私有包）；
-> ③ 仓库最终态已接入**商业包 moo-system**（第 7 章）——没有它的授权时
+> ② 需配好 **moo-system / moo-upload** 的 Gitee SSH 仓库访问权（私有包）；
+> ③ 仓库最终态已接入 **moo-system / moo-upload**（第 7 章）——没有它们的授权时
 >    `composer install` 会失败，请走方式 B 从第 1 章跟做，或联系作者获取授权；
 > ④ 初始化默认使用 SQLite；生产通常切 MySQL/MariaDB 和 Redis。单机低写入项目若明确继续使用 SQLite，按 `SQLITE-DEPLOYMENT-TEMPLATE.md` 把数据库放到代码目录外并建立备份。
 
@@ -215,7 +216,7 @@ Laravel 应用放在 **`engine/`**（与作者其它项目的目录约定一致�
 ```
 moo-engine-skeleton/
 ├── README.md                # 本文，仓库入口
-├── HANDOFF.md               # 换机/交接速查（Packagist + moo-system VCS + 初始化清单）
+├── HANDOFF.md               # 换机/交接速查（Packagist + Moo 私有 VCS + 初始化清单）
 ├── overview.md              # 立项说明
 ├── CLAUDE.md                # AI 协作约定
 ├── .github/workflows/       # CI：GitHub Actions 自动跑 php artisan test

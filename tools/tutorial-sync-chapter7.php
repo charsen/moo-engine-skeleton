@@ -44,10 +44,8 @@ if (! is_file($targetRoot.'/engine/artisan') || ! is_file($targetRoot.'/engine/c
 }
 
 $paths = [
-    // 7.2 三个必需 host 契约 + 教程默认头像上传/Notification 媒体实现
-    'engine/app/Admin/Controllers/UploadController.php',
+    // 7.2 三个必需 host 契约 + Notification 媒体实现
     'engine/app/Admin/Controllers/Traits/BaseActionTrait.php',
-    'engine/app/Support/TemporaryUploadPruner.php',
     'engine/app/Models/Traits/MediaSynchronous.php',
     'engine/app/Models/Notification.php',
     'engine/app/Notifications/SendBlessMessage.php',
@@ -73,14 +71,17 @@ $paths = [
     'engine/tests/Feature/JwtAutoRefreshTest.php',
     'engine/tests/Feature/SeederIntegrityTest.php',
     'engine/tests/Feature/RegressionTest.php',
-    'engine/tests/Feature/UploadTest.php',
+    'engine/tests/Feature/MooUploadIntegrationTest.php',
 
     // 7.6 起复用的 HTTP 诊断助手
     'tools/tutorial-http.sh',
 ];
 
 $deprecatedPaths = [
+    'engine/app/Admin/Controllers/UploadController.php',
     'engine/app/Admin/Controllers/Traits/UploaderTrait.php',
+    'engine/app/Support/TemporaryUploadPruner.php',
+    'engine/tests/Feature/UploadTest.php',
 ];
 
 foreach ($paths as $relative) {

@@ -22,35 +22,42 @@
 
 ## 7.1 接入包
 
-**前置：拿到私有仓库访问权。** `moo-system` 是商业包，安装前要先联系作者获取授权，
-并确保本机 / 部署机的 Gitee SSH key 能读取仓库：
+**前置：拿到私有仓库访问权。** `moo-system` 与其上传基础依赖 `moo-upload` 都是私有包，
+安装前要先联系作者获取授权，并确保本机 / 部署机的 Gitee SSH key 能读取两个仓库：
 
 ```bash
 git ls-remote git@gitee.com:charsen/moo-system.git
+git ls-remote git@gitee.com:charsen/moo-upload.git
 ```
 
 没有访问权，下面的 `composer update` 第一步就会失败（Composer 拉不到 VCS 仓库）。
 
 把 `system` 仓库加进 `engine/composer.json` 的 `repositories`。下面片段只示意要**新增**
-`system` 这一项；开源包保持正式版本约束安装，只有商业私有包 `moo-system` 保留 VCS：
+`system` 与 `upload` 两项；开源包保持正式版本约束安装，私有包使用授权 VCS：
 
 ```json
 "require": {
     "charsen/moo-scaffold": "^2.1.3",
     "charsen/moo-monitor-laravel": "^0.1",
-    "charsen/moo-system": "^1.6.25"
+    "charsen/moo-system": "^1.6.25",
+    "charsen/moo-upload": "^0.1.1"
 },
 "repositories": [
     {
         "name": "system",
         "type": "vcs",
         "url": "git@gitee.com:charsen/moo-system.git"
+    },
+    {
+        "name": "upload",
+        "type": "vcs",
+        "url": "git@gitee.com:charsen/moo-upload.git"
     }
 ]
 ```
 
-> composer **不会**读依赖包自带的 repositories 声明；本仓库约定只为 `moo-system`
-> 保留私有仓库声明。
+> composer **不会**读依赖包自带的 repositories 声明；即使 `moo-upload` 是
+> `moo-system` 的直接依赖，Host 仍必须声明它的私有仓库。
 
 安装前先检查第 2 章的 `iResource` 契约：
 
@@ -66,7 +73,7 @@ php artisan tinker --execute="dump(Route::hasMacro('iResource'));"
 检查通过后安装（会自动带入 kalnoy/nestedset、maatwebsite/excel、jenssegers/agent 等依赖）：
 
 ```bash
-composer update charsen/moo-system --with-all-dependencies
+composer update charsen/moo-system charsen/moo-upload --with-all-dependencies
 ```
 
 > 如果 Composer 末尾仍报 `Attribute [iResource] does not exist`，不是“预期坑”，而是第 2 章
@@ -93,23 +100,21 @@ cd ..
 这只校验并解析生产依赖，不会创建 `engine/composer.production.lock`，也不会安装依赖或提前触发
 生产 Composer 的 Artisan 脚本；当前开发目录的 `vendor/` 仍保持开发版，不会删掉测试工具。
 
-## 7.2 提供 host 端契约与默认头像上传入口（6 个文件 + 1 个全局函数）
+## 7.2 提供 host 端契约（4 个文件 + 1 个全局函数）
 
-moo-system 1.6.25 的控制器/模型只依赖 3 个 host 业务契约；本教程另外提供默认头像上传入口，
-并让 host 的 Notification 继续解析自身媒体 URL。共准备以下 6 个文件：
+moo-system 的控制器/模型只依赖 3 个 host 业务契约；人员头像上传已统一由包内
+`MooUploadPersonnelAvatarManager` 与私有 `moo-upload` 完成。另保留 Host Notification 的媒体 URL 解析，共准备以下 4 个文件：
 
 ```
 engine/app/Admin/Controllers/Traits/BaseActionTrait.php  ← 必需契约；覆盖第 2 章 scaffold 生成的精简版
 engine/app/Models/Notification.php                       ← 必需契约
 engine/app/Notifications/SendBlessMessage.php            ← 必需契约
-engine/app/Admin/Controllers/UploadController.php         ← 默认头像临时上传入口，不是包的硬依赖
-engine/app/Support/TemporaryUploadPruner.php              ← 只清理过期头像临时文件
 engine/app/Models/Traits/MediaSynchronous.php             ← 只供 host Notification 解析媒体 URL
 ```
 
-前三份是 moo-system 的必需 host 契约；后两份是本教程选择的 Host 实现，不会由包通过
-`vendor:publish` 自动写入你的项目。人员头像本身统一走包内 `PersonnelAvatarManager`，因此不再要求
-Host 提供 `UploaderTrait` 或让 `Personnel` 使用 `MediaSynchronous`。
+前三份是 moo-system 的必需 host 契约；`MediaSynchronous` 是本教程选择的 Host 实现，不会由包通过
+`vendor:publish` 自动写入你的项目。人员头像统一走包内 `PersonnelAvatarManager`，Host 不再提供
+上传控制器、临时清理器、`UploaderTrait`，也不让 `Personnel` 使用 `MediaSynchronous`。
 方式 B 的项目与教程仓库是两个并列目录；在你的项目根目录（`moo-engine-from-zero/`）
 执行第 7 章同步器。它会一次准备本章后续需要的 host 契约、Personnel 登录控制器、Seeder、
 操作日志、最终测试文件和 HTTP 诊断助手；默认只预览，`--execute` 才写入。
@@ -136,35 +141,8 @@ php "$REFERENCE_ROOT/tools/tutorial-sync-chapter7.php" --target=. --execute
 > 做一次版本检查：当前版应复用 moo-scaffold 的共享雪花 ID 实现，不再依赖旧的
 > `App\Models\Traits\UsingSnowFlakePrimaryKey`。
 
-包内默认 `PersonnelAvatarManager` 会把头像控件指向
-`api/admin/upload/image?field=avatar`；因此还要在 `routes/admin.php` 的登录保护组内注册：
-
-```php
-use App\Admin\Controllers\UploadController;
-
-Route::post('upload/image', [UploadController::class, 'image'])
-    ->middleware('throttle:20,1')
-    ->name('upload.image');
-```
-
-> `UploadController` 返回 `temp/...` 相对路径；提交人员表单后，包内默认头像管理器会把文件搬到
-> `personnels/{人员ID}/...`。不要改成 `tmp/...`，也不要让客户端直接提交任意正式路径。
-> 控制器只接受 JPEG、PNG、WebP，且按服务端检测的 MIME 决定扩展名，不信任客户端文件名。
-> 7.4 的 `moo-system check` 只验证 3 个必需契约**存在**，不会替代下面的真实上传闭环测试。
-
-同步器还会复制 `App\Support\TemporaryUploadPruner`。在 `routes/console.php` 注册每天一次的临时
-文件清理，防止用户上传图片后未提交表单而长期堆积；清理范围只能是头像临时目录：
-
-```php
-use App\Support\TemporaryUploadPruner;
-use Illuminate\Support\Facades\Schedule;
-
-Schedule::call(fn () => app(TemporaryUploadPruner::class)->prune(
-    'public',
-    'temp/images',
-    now()->subDay(),
-))->dailyAt('02:20')->name('prune-temporary-avatar-uploads')->withoutOverlapping();
-```
+头像控件默认指向 `api/admin/uploads?purpose=moo-system.personnel.avatar`。临时对象、引用消费、
+过期恢复与清理由 `moo-upload` 统一管理；Host 不再注册另一套 `upload/image` 路由或临时目录。
 
 还差一个全局函数 `toLabelValue()`（部门控制器在用）。
 **新建文件** `engine/app/Helpers/helpers.php`，内容如下：
@@ -304,7 +282,20 @@ php artisan vendor:publish --tag=moo-system-config
 'admin' => ['prefix' => 'api/admin', 'name' => 'admin.', 'middleware' => 'moo-system'],
 ```
 
-顺手把 moo-system 的控制器登记进 scaffold（`config/scaffold.php`）——
+发布 `moo-upload` 配置并将管理路由指向独立安全组：
+
+```bash
+php artisan vendor:publish --tag=moo-upload-config
+```
+
+```php
+// config/moo-upload.php
+'admin' => ['prefix' => 'api/admin', 'name' => 'admin.upload.', 'middleware' => 'moo-upload'],
+```
+
+`bootstrap/app.php` 还要定义独立 `moo-upload` 组，内容与 `moo-system` 的强制认证链等价，但不能借用另一个包名。
+
+把 moo-system 与 moo-upload 的控制器都登记进 scaffold（`config/scaffold.php`）——
 ACL key 的命名空间反查、接口文档、调试器联调都依赖这一步，**必须在跑测试之前做**：
 
 ```php
@@ -313,6 +304,7 @@ ACL key 的命名空间反查、接口文档、调试器联调都依赖这一步
         // ...
         'extra_modules' => [
             'System' => 'Mooeen\\System\\Http\\Controllers\\Admin',
+            'Upload' => 'Mooeen\\Upload\\Http\\Controllers\\Admin',
         ],
     ],
 ],

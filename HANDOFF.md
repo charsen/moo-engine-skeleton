@@ -61,7 +61,7 @@ mysql -uroot -p -e "CREATE DATABASE moo_skeleton CHARACTER SET utf8mb4 COLLATE u
 ```
 
 **仓库访问权是前置**：当前过渡期 `moo-scaffold` / `moo-monitor-laravel` 仍可通过 VCS 解析，
-`moo-system` 必须通过 VCS 授权分发。先联系作者把你的 Gitee 账号加为相应仓库成员/协作者；
+`moo-system` 与 `moo-upload` 必须通过 VCS 授权分发。先联系作者把你的 Gitee 账号加为相应仓库成员/协作者；
 Packagist 同步开源包目标版本后，开源包将不再需要 Gitee 权限。
 
 ## 2. 克隆
@@ -73,7 +73,7 @@ git clone https://gitee.com/charsen/moo-engine-skeleton.git
 ```
 
 > ⚠ **依赖获取方式**：`engine/composer.json` 当前通过 VCS 解析三个 moo-* 包，不再依赖本地同级 path。
-> `moo-system` 是商业包，缺授权时第 3 节 `composer install` 会失败。开源包目标走 Packagist；
+> `moo-system` 与 `moo-upload` 是私有包，缺任一授权时第 3 节 `composer install` 会失败。开源包目标走 Packagist；
 > 在 Packagist 同步目标版本前，若 VCS 无权限也会安装失败。
 
 ## 3. skeleton 初始化（同 README「方式 A」）
@@ -122,7 +122,7 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 ## 5. 关键决策与守则（新会话必读，CLAUDE.md 有完整版）
 
 1. **包定位**：moo-scaffold / moo-monitor-laravel 开源（MIT，目标发 Packagist）；
-   moo-system 商业（proprietary，必须 VCS 授权）。
+   moo-system / moo-upload 私有（proprietary，必须 VCS 授权）。
    教程第 1~6 章零付费依赖是核心卖点。
 2. **脱敏守则**：本仓库一切资料不得出现作者具体生产项目名称（统一"作者生产项目"指代）。
    工作树已全量脱敏；**历史提交信息未清**（见待办 #2）。
@@ -138,7 +138,7 @@ curl -s -X POST http://127.0.0.1:8088/app/authenticate \
 
 | # | 事项 | 等什么 |
 |---|---|---|
-| 1 | 开源包发布同步：moo-scaffold 3.x 与 moo-monitor-laravel 0.1.x 在 Packagist 可解析后，删除 `engine/composer.json` / docs 里的 scaffold+monitor VCS 过渡配置，只保留 moo-system VCS | 作者操作 |
+| 1 | 开源包发布同步：moo-scaffold 3.x 与 moo-monitor-laravel 0.1.x 在 Packagist 可解析后，删除 `engine/composer.json` / docs 里的 scaffold+monitor VCS 过渡配置，只保留 moo-system / moo-upload 私有 VCS | 作者操作 |
 | 2 | 本仓库公开时的历史脱敏：历史压缩 vs 推新公开仓库，二选一 | 作者决策 |
 | 3 | moo-system 商业化：LICENSE 授权条款、分发凭证机制（现状只能找作者人肉给源码，见第 2 节）。原列的「`--tag=moo-system-stubs` 修复」经核疑为过时待办——该 tag 已存在且可用（`MooeenSystemServiceProvider` 发布 6 个契约 stub，`Doctor` 仍引导使用），需作者确认已完成或补最小复现后再派工 | 作者决策 |
 | 4 | CI 首跑：GitHub 镜像后配 secret `MOO_PACKAGES_DEPLOY_KEY`，按报错微调 `.github/workflows/tests.yml`（未实测） | 镜像后 |

@@ -108,6 +108,7 @@ return [
                 // moo-system 包的后台控制器（位于 vendor/，不在 host 的 controller.admin.path 下）
                 // 登记进来后即纳入 ACL（moo:auth）/ API 文档（moo:api）/ 路由调试 / 接口调试。
                 'System' => 'Mooeen\\System\\Http\\Controllers\\Admin',
+                'Upload' => 'Mooeen\\Upload\\Http\\Controllers\\Admin',
                 // moo-feedback 管理面也位于 vendor/；登记后才能生成 ACL 与接口文档。
                 'Feedback' => 'Mooeen\\Feedback\\Http\\Controllers\\Admin',
             ],

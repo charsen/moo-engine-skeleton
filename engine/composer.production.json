@@ -11,6 +11,7 @@
         "charsen/moo-scaffold": "^2.1.3",
         "charsen/moo-monitor-laravel": "^0.1",
         "charsen/moo-system": "^1.6.25",
+        "charsen/moo-upload": "^0.1.1",
         "ext-fileinfo": "*",
         "godruoyi/php-snowflake": "^3.2",
         "laravel/framework": "^12.0",
@@ -23,6 +24,10 @@
         "system": {
             "type": "vcs",
             "url": "https://gitee.com/charsen/moo-system.git"
+        },
+        "upload": {
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-upload.git"
         }
     },
     "require-dev": {
@@ -77,6 +82,12 @@
                 "name": "charsen/moo-system",
                 "repo-key": "system",
                 "provider-rel": "src/MooeenSystemServiceProvider.php",
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-upload",
+                "repo-key": "upload",
+                "provider-rel": "src/MooeenUploadServiceProvider.php",
                 "publish-tag": null
             }
         ]
