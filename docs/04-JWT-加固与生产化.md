@@ -375,7 +375,7 @@ grep '^DB_CONNECTION=' .env .env.example
 ```
 
 > scaffold / monitor 直接从 Packagist 解析，因此不需要它们的 `repositories`。
-> 第 7 章加入商业包 moo-system 时，才会增加对应的 VCS 仓库。
+> 第 7 章加入私有 moo-system 与 moo-upload 时，才会增加对应的授权仓库。
 
 校验生产 manifest，并用 dry-run 确认依赖约束可解析：
 

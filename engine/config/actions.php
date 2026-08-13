@@ -1,7 +1,4 @@
 <?php
-
-declare(strict_types=1);
-
 // 本文件由 `php artisan moo:auth <app>` 再生成。重跑 admin 后，必须把下面标注的
 // moo-system 个人中心白名单重新合并，避免零授权角色登录后连自己的资料也无法访问。
 return [
@@ -14,8 +11,6 @@ return [
             'dffe71cfa5a3c405',
             'e9532ad1cd13af0a',
             '42f63e42d2308d4f',
-            'fd000cb23ec36f65',
-            '92129ebdd0548d1d',
             '90a2d391c09ff58d',
             // moo-system AdminController 个人中心（手动合并，生成器不会自动加入）
             'f6d488cc41bea74a',
@@ -24,7 +19,7 @@ return [
             '88e610dbb210a3dc',
             '1fcbfd9524aebb83',
             'd59a5622ff031201',
-            'e389e65e330e8af2',
+            'e389e65e330e8af2'
         ],
         'actions' => [
             'module-6e1ee1805962ce1b' => [
@@ -35,15 +30,15 @@ return [
                     'd84c4f5251f855f0',
                     '2fbd315bd61d3ab8',
                     '5e41325cb846c3b7',
-                    '72046d8c7e9dfa85',
-                ],
+                    '72046d8c7e9dfa85'
+                ]
             ],
             'module-3be4816a2540436b' => [
                 'controller-dc555af4f0bdfd3c' => [
                     'b3ada2315ab43aa3',
                     '07f5f537472dab96',
                     '268ea0fecc6f1e44',
-                    'b5b9ad9e015f0fde',
+                    'b5b9ad9e015f0fde'
                 ],
                 'controller-b9c6987c4df140c8' => [
                     'be99d97e69677bb8',
@@ -52,39 +47,44 @@ return [
                     '5649fe2faeff1d6e',
                     '367fcecbd5ccd47e',
                     '0af2ab276b350948',
-                    'fb4ddbb02186c8f5',
+                    'fb4ddbb02186c8f5'
                 ],
                 'controller-bb701f9106045d51' => [
                     '38ebec893018260f',
                     '008bb467fb6436f0',
                     '28b3c41c6235eea9',
                     'c3cc14385f0293d8',
-                    '56f6db0ccd99c914',
+                    '56f6db0ccd99c914'
                 ],
                 'controller-2fae3a4efe34b803' => [
                     '550a8dacdcee12f3',
                     '0bc502f2c475c811',
                     'e1c8cf49f438668c',
-                    'aa00cbec75768ec9',
+                    'aa00cbec75768ec9'
                 ],
                 'controller-fec08700f2af8413' => [
                     '8a244c37457907f6',
-                    'feac3caa733783bd',
+                    'feac3caa733783bd'
                 ],
                 'controller-01335606d5a5d365' => [
-                    '48d3ca3e656e3566',
+                    '48d3ca3e656e3566'
                 ],
                 'controller-ac28ebe832d23721' => [
                     'd59a5622ff031201',
                     'b00ef1ce449c970b',
                     '84470713dcb9a7c9',
-                    '88e610dbb210a3dc',
+                    '88e610dbb210a3dc'
                 ],
                 'controller-6351cb0893e9beeb' => [
                     '260134192d792203',
                     '80e08bf5dfe5b440',
-                    'ec2cd321a60acaee',
-                ],
+                    'ec2cd321a60acaee'
+                ]
+            ],
+            'module-f7d6ad66457d4adb' => [
+                'controller-29ad9b2ec5c315dc' => [
+                    '81a7090a4e00c848'
+                ]
             ],
             'module-0ed177064f20b4a3' => [
                 'controller-993f79ec16f5deb5' => [
@@ -94,10 +94,10 @@ return [
                     '345e34b8c381fddf',
                     '1d2e70b9a4e70aee',
                     'dfa736a713cb5912',
-                    '1eadb7dfdc8911ec',
-                ],
-            ],
-        ],
+                    '1eadb7dfdc8911ec'
+                ]
+            ]
+        ]
     ],
     'mobi' => [
         'whitelist' => [
@@ -106,8 +106,8 @@ return [
             '3f326e7170416c8e',
             '893f7015c92d55f6',
             'fca1a653d0ebc08a',
-            '8b182a3d251b771a',
+            '8b182a3d251b771a'
         ],
-        'actions' => [],
-    ],
+        'actions' => []
+    ]
 ];

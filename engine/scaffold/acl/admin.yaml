@@ -1,13 +1,13 @@
 meta:
     app: admin
     app_name: 后台管理
-    generated_at: '2026-08-11 16:11:30'
+    generated_at: '2026-08-13 22:17:04'
     generated_by: charsen
     stats:
         module_count: 5
         controller_count: 14
-        action_count: 85
-        whitelist_count: 9
+        action_count: 84
+        whitelist_count: 7
 modules:
     -
         key: module-6e1ee1805962ce1b
@@ -1174,6 +1174,36 @@ modules:
                         route_plain_key: admin-system-authorization-update-personnel
                         acl_transformed: true
     -
+        key: module-f7d6ad66457d4adb
+        name:
+            en: Upload
+            zh-CN: 上传
+        controller_count: 1
+        action_count: 1
+        whitelist_count: 0
+        controllers:
+            -
+                key: controller-29ad9b2ec5c315dc
+                class: Mooeen\Upload\Http\Controllers\Admin\UploadController
+                name:
+                    en: 'Upload Management'
+                    zh-CN: 上传管理
+                action_count: 1
+                whitelist_count: 0
+                actions:
+                    -
+                        key: 81a7090a4e00c848
+                        plain_key: admin-upload-upload-store
+                        action: store
+                        title: 上传临时文件
+                        name:
+                            en: 'Upload File'
+                            zh-CN: 上传文件
+                        desc: ''
+                        whitelist: false
+                        acl_targets:
+                            - 'Mooeen\Upload\Http\Controllers\Admin\UploadController::store'
+    -
         key: module-0ed177064f20b4a3
         name:
             en: Feedback
@@ -1359,45 +1389,3 @@ modules:
                         whitelist: true
                         acl_targets:
                             - 'App\Admin\Controllers\AuthController::refresh'
-    -
-        key: module-b3b87f7fadccdce7
-        name:
-            en: ''
-            zh-CN: ''
-        controller_count: 1
-        action_count: 2
-        whitelist_count: 2
-        controllers:
-            -
-                key: controller-f7d6ad66457d4adb
-                class: App\Admin\Controllers\UploadController
-                name:
-                    en: ''
-                    zh-CN: ''
-                action_count: 2
-                whitelist_count: 2
-                actions:
-                    -
-                        key: fd000cb23ec36f65
-                        plain_key: admin-upload-file
-                        action: file
-                        title: ''
-                        name:
-                            en: ''
-                            zh-CN: ''
-                        desc: ''
-                        whitelist: true
-                        acl_targets:
-                            - 'App\Admin\Controllers\UploadController::file'
-                    -
-                        key: 92129ebdd0548d1d
-                        plain_key: admin-upload-image
-                        action: image
-                        title: ''
-                        name:
-                            en: ''
-                            zh-CN: ''
-                        desc: ''
-                        whitelist: true
-                        acl_targets:
-                            - 'App\Admin\Controllers\UploadController::image'

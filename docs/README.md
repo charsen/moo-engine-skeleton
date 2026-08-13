@@ -99,8 +99,8 @@ moo-engine-skeleton/
 | [第 12 章 从骨架起项目](./12-从骨架起手新项目.md) | 使用初始化器快速开工 | 实用 |
 | [第 13 章 moo-feedback 用例](./13-moo-feedback-扩展包用例.md) | 匿名提交与独立后台认证组 | 实用 |
 
-> moo-scaffold 和 moo-monitor-laravel 从 Packagist 安装。moo-system 是可选商业包，
-> 通过 VCS 授权安装；前 6 章不依赖它。
+> moo-scaffold 和 moo-monitor-laravel 从 Packagist 安装。moo-system 与其上传基础依赖 moo-upload
+> 通过私有源授权安装；前 6 章不依赖这两个私包。
 
 ## 踩过的坑速查
 

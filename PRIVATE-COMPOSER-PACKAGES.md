@@ -2,20 +2,21 @@
 
 > 适用：项目依赖**不在公共 Packagist**的 Composer 包（商业闭源，deploy key 授权分发）。
 >
-> 骨架当前接入 3 个 `charsen/*` 包，只有商业包走私有 VCS：
+> 骨架接入的私有包由授权源分发：
 >
 > | 包 | 定位 | 当前来源 | 目标来源 |
 > | --- | --- | --- | --- |
 > | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | Packagist | Packagist |
 > | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | Packagist | Packagist |
-> | `charsen/moo-system` | **商业包**（proprietary） | 商业 Gitee VCS + deploy key | **保持** VCS 授权分发 |
+> | `charsen/moo-system` | **私有业务包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
+> | `charsen/moo-upload` | **私有基础包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 >
-> 换句话说：开源包不需要任何 VCS 配置，只有 `moo-system` 长期走 deploy key VCS——
+> 换句话说：开源包不需要任何 VCS 配置，`moo-system` 与 `moo-upload` 长期走 deploy key VCS——
 > 本文档 §4 的 deploy key 流程对它长期有效。
 
 ## 1. 解决什么问题
 
-1. **闭源包不能进公共 Packagist**（`moo-system` 商业授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
+1. **闭源包不能进公共 Packagist**（`moo-system` / `moo-upload` 授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
 2. **本地开发想改包源码即时生效**——这是下面「双 composer.json」的用武之地。
 
 目标：**本地开发体验顺 + 生产按稳定约束安装 + 闭源包不外泄**。
@@ -34,21 +35,29 @@
 ```jsonc
 // composer.json —— 本地
 "repositories": {
-  "system": { "type": "path", "url": "../moo-system" }
+  "system": { "type": "path", "url": "../moo-system" },
+  "upload": { "type": "path", "url": "../moo-upload" }
 },
-"require": { "charsen/moo-system": "^1.6.24" }
+"require": {
+  "charsen/moo-system": "^1.6.24",
+  "charsen/moo-upload": "^0.1.1"
+}
 ```
 
 ```jsonc
 // composer.production.json —— 生产
 "repositories": {
-  "system": { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" }
+  "system": { "type": "vcs", "url": "git@gitee.com:charsen/moo-system.git" },
+  "upload": { "type": "vcs", "url": "git@gitee.com:charsen/moo-upload.git" }
 },
-"require": { "charsen/moo-system": "^1.6.24" }
+"require": {
+  "charsen/moo-system": "^1.6.24",
+  "charsen/moo-upload": "^0.1.1"
+}
 ```
 
-> **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 仅保留 `moo-system`。
-> 若本地要改 `moo-system` 源码，可把 `composer.json` 的 `system` 仓库临时改成 `path`，
+> **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 保留私有 `moo-system` 与 `moo-upload`。
+> 若本地要改私包源码，可把 `composer.json` 对应仓库临时改成 `path`，
 > `composer.production.json` 保持 VCS 不动。
 
 **pull.sh 的私包 manifest** 从 `composer.production.json` 的 `extra."moo-private-packages"` 读（字段
@@ -91,9 +100,9 @@ composer install --no-dev --optimize-autoloader
 私包已发布 tag 和部署当时生成的本地 lock 共同决定；需要逐字节复现时应保存构建产物，而不是在骨架仓库
 额外维护第二把 lock。
 
-## 4. deploy key 生成与配置（`moo-system` 长期需要，一次性配）
+## 4. deploy key 生成与配置（私有包长期需要，一次性配）
 
-商业包 `moo-system` 从私有 Gitee 仓库分发，生产 box 必须有能读该仓库的 SSH deploy key。
+`moo-system` 与 `moo-upload` 从私有 Gitee 仓库分发，生产 box 必须有能读取两个仓库的 SSH deploy key。
 
 ### 4.1 生产 box 生成 deploy key
 
@@ -108,7 +117,7 @@ cat ~/.ssh/gitee_deploy.pub          # 复制全部输出
 
 ### 4.2 Gitee 侧加部署公钥（只读）
 
-浏览器打开商业包仓库 → 管理 → 部署公钥 → 添加：
+浏览器分别打开两个私有包仓库 → 管理 → 部署公钥 → 添加：
 - 标题：`prod-<hostname>`（标识哪台机器）
 - 公钥：粘贴上一步 `cat` 的输出
 - **不勾「启用推送权限」**（只读够用，最小权限）
@@ -134,8 +143,8 @@ ssh -T git@gitee.com
 
 ✅ SSH 通了 → pull.sh Step 3 的私包权限验证会通过，`composer install` 走 SSH 自动用这把 key。
 
-> 骨架 `composer.production.json` 里仅保留 `moo-system` 这一条私有仓库 URL。
-> 生产建议使用 `git@gitee.com:charsen/moo-system.git`（SSH），这样 deploy key 才会生效；
+> 骨架 `composer.production.json` 保留 `moo-system` 与 `moo-upload` 两条私有仓库 URL。
+> 生产建议统一使用 SSH URL，这样 deploy key 才会生效；
 > 此时 pull.sh Step 3 的 `ssh -T git@gitee.com` 联通检查即前置门禁。
 
 ## 5. 日常迭代
@@ -148,10 +157,10 @@ ssh -T git@gitee.com
 
 ## 6. 排错 FAQ
 
-**Q1：生产 `composer install` 报 `Failed to clone ...moo-system.git`**
+**Q1：生产 `composer install` 报私有包 `Failed to clone`**
 - `ssh -T git@gitee.com` 通不通？deploy key 加进**那个 repo**没（不是随便一把全局 key）？仓库确是私有 + key 有读权限？
 
-**Q2：`Package charsen/moo-system could not be resolved`**
+**Q2：`Package charsen/moo-system` 或 `charsen/moo-upload could not be resolved`**
 - `composer.json` 是否已由 `composer.production.json` 正确覆盖？先 `diff composer.json composer.production.json`。
 - `composer.production.json` 的仓库 URL、版本约束和 deploy key 权限是否匹配？
 - 当前环境的本地 `composer.lock` 是否与生产约束冲突？必要时显式更新对应私包。

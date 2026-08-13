@@ -4,7 +4,7 @@
 > 制定于 2026-06-12，作者与 AI 讨论定稿；若 moo-monitor-laravel 此后又有演进，以包的当前源码为准，本文档只锁定「编排与定位」决策。
 > 2026-07 同步：本文是历史执行计划，旧文中的本地 path / 同级目录说法已不再作为安装口径。
 > 当前过渡期通过 Composer VCS 获取 `moo-monitor-laravel` / `moo-scaffold` / `moo-system`；
-> 目标状态为 monitor / scaffold 发布到 Packagist，只有 `moo-system` 保留 VCS 授权。
+> 目标状态为 monitor / scaffold 发布到 Packagist，`moo-system` / `moo-upload` 保留私有 VCS 授权。
 
 ## 0. 一句话任务
 
