@@ -135,10 +135,10 @@ class DeploymentScriptTest extends TestCase
         $config = file_get_contents($engine . '/config/scaffold.php');
         self::assertIsString($config);
         self::assertStringContainsString('App\\Admin\\Controllers\\AuthController@authenticate', $config);
-        if (is_file($engine . '/app/Api/Controllers/AuthController.php')) {
-            self::assertStringContainsString('App\\Api\\Controllers\\AuthController@authenticate', $config);
+        if (is_file($engine . '/app/Mobi/Controllers/AuthController.php')) {
+            self::assertStringContainsString('App\\Mobi\\Controllers\\AuthController@authenticate', $config);
         } else {
-            self::assertStringNotContainsString('App\\Api\\Controllers\\AuthController@authenticate', $config);
+            self::assertStringNotContainsString('App\\Mobi\\Controllers\\AuthController@authenticate', $config);
         }
     }
 

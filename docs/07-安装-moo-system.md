@@ -495,7 +495,7 @@ php artisan tinker --execute='$l=Mooeen\System\Models\OperationLog::latest("id")
 | `tests/TestCase.php` | 换最终版（含 `freshJwtProcess()` 等测试基建） |
 | `tests/Feature/AuthTest.php` | 换 Personnel 版（登录字段 `account` = `13800000000`） |
 | `tests/Feature/FoodAclTest.php` | 换角色版（授权写进 `$role->role_actions`） |
-| `tests/Feature/ApiAuthTest.php` | **不用动**（第 6 章的 User 版、email 登录，本就是终态） |
+| `tests/Feature/MobiAuthTest.php` | **不用动**（第 6 章的 User 版、email 登录，本就是终态） |
 
 7.2 同步器已经把表格中的最终版和 4 个守护测试放进 `engine/tests/`，无需再逐个复制。
 

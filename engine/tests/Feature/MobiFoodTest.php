@@ -16,7 +16,7 @@ use App\Models\Food\Food;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ApiFoodTest extends TestCase
+class MobiFoodTest extends TestCase
 {
     use RefreshDatabase;
 

@@ -111,11 +111,11 @@ return [
         'ec2cd321a60acaee'            => '授权管理',
         'ec2cd321a60acaee-desc'       => '',
     ],
-    'api' => [
-        'app-api'                     => '接口',
-        'module-83396895a2d651e6'     => '食品管理',
-        'module-cb338ddfe04f8fb7'     => '',
-        'controller-dad91e9b834bf12b' => '食品',
-        'controller-b512cf541a72e4ad' => '',
+    'mobi' => [
+        'app-mobi'                    => '移动端',
+        'module-1a679c851234abb1'     => '食品管理',
+        'module-e80923da68e4c282'     => '',
+        'controller-eab61ef793d3d1aa' => '食品',
+        'controller-499925c56ebe8f11' => '',
     ],
 ];

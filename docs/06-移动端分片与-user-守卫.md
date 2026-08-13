@@ -1,6 +1,6 @@
 # 第 6 章　移动端分片与 user 守卫
 
-目标：启用 `app/Api/` 分片，让移动端使用 user 守卫，并验证 token 双向隔离和严格轮换。
+目标：启用 `app/Mobi/` 分片，让移动端使用 user 守卫，并验证 token 双向隔离和严格轮换。
 
 > 移动端的主体就是第 3 章自建的 User——它**永久**属于移动端，
 > 第 7 章接入 moo-system 后只有后台换 Personnel，这边一行不动。
@@ -19,14 +19,14 @@
 
 ## 6.2 写移动端登录控制器
 
-新建 `app/Api/Controllers/AuthController.php`，使用下面的完整内容：
+新建 `app/Mobi/Controllers/AuthController.php`，使用下面的完整内容：
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace App\Api\Controllers;
+namespace App\Mobi\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -102,7 +102,7 @@ class AuthController
 先做语法与类加载检查：
 
 ```bash
-php -l app/Api/Controllers/AuthController.php
+php -l app/Mobi/Controllers/AuthController.php
 php artisan tinker --execute="var_dump(class_exists(App\\Api\\Controllers\\AuthController::class));"
 # bool(true)
 ```
@@ -138,9 +138,9 @@ $token = Auth::guard('user')->refresh(true, false);
 登出与后台**完全相同**（不算差异）：`Auth::guard('user')->logout(true);` 永久拉黑当前 token。
 refresh 的 try/catch 写法也与第 4 章的后台版相同。
 
-## 6.3 路由（`routes/api.php`）
+## 6.3 路由（`routes/mobi.php`）
 
-把 `routes/api.php` 完整整理成下面这样。这里把 `declare`、控制器 import 和第 3 章已有的
+把 `routes/mobi.php` 完整整理成下面这样。这里把 `declare`、控制器 import 和第 3 章已有的
 hello 路由一起列出，避免只复制中间片段后出现 `Class "AuthController" not found`：
 
 ```php
@@ -148,7 +148,7 @@ hello 路由一起列出，避免只复制中间片段后出现 `Class "AuthCont
 
 declare(strict_types=1);
 
-use App\Api\Controllers\AuthController;
+use App\Mobi\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn () => 'Hello app api ~');
@@ -180,12 +180,12 @@ php artisan route:list --path=app -v
 # me/info 有 client + JWTGuardAuth:user + JWTAuthOrRefresh
 ```
 
-> 最后那行魔法注释是 **moo-scaffold 生成器的插入锚点**（仓库 `engine/routes/api.php`
+> 最后那行魔法注释是 **moo-scaffold 生成器的插入锚点**（仓库 `engine/routes/mobi.php`
 > 顶部注释写明「供 moo-scaffold 生成器插入路由，勿删」）：第 9 章增量开发时，
 > 生成器会把新模块的 `iResource` 路由自动写到这个位置——默认就落在保护圈里。
 > 删了它不影响运行，但生成器会找不到插入点。
 
-写好后在 `/scaffold/routes` 切到「客户端接口」应用，能看到移动端路由：
+写好后在 `/scaffold/routes` 切到「移动端接口」应用，能看到移动端路由：
 
 ![客户端接口路由](./images/07-scaffold-routes-app.png)
 
@@ -195,10 +195,10 @@ php artisan route:list --path=app -v
 > 这个按控制器整理的路由页不会展示它。可以再执行
 > `curl http://127.0.0.1:8088/app`，应输出 `Hello app api ~`。
 
-> 此时切到 Scaffold 的「接口调试」页，「客户端接口」左侧会是空的：调试器只读
-> `scaffold/api/api/` 里已生成的接口元数据，本章手写的 AuthController 还没有这份元数据。
+> 此时切到 Scaffold 的「接口调试」页，「移动端接口」左侧会是空的：调试器只读
+> `scaffold/api/mobi/` 里已生成的接口元数据，本章手写的 AuthController 还没有这份元数据。
 > 这不影响路由和业务代码，下一节用 `curl` 真实调用；第 9 章由生成器产出的 Food
-> 客户端接口会正常出现在调试器中。
+> 移动端接口会正常出现在调试器中。
 
 ## 6.4 真机验证
 
@@ -339,9 +339,9 @@ fi
 
 | 现象 | 优先检查 |
 |---|---|
-| `/app/authenticate` 是 `HTTP 404` | `bootstrap/app.php` 是否把 `routes/api.php` 挂到 `app` 前缀 |
+| `/app/authenticate` 是 `HTTP 404` | `bootstrap/app.php` 是否把 `routes/mobi.php` 挂到 `app` 前缀 |
 | 登录是 `HTTP 422`「帐号尚未激活」 | `email_verified_at` 是否为空；重新执行或核对 UserSeeder |
-| 登录是 `HTTP 500`，控制器类不存在 | `routes/api.php` 是否导入 `App\Api\Controllers\AuthController` |
+| 登录是 `HTTP 500`，控制器类不存在 | `routes/mobi.php` 是否导入 `App\Mobi\Controllers\AuthController` |
 | 移动端 token 的 guard 不是 `user` | `client` 组是否挂了 `jwt.assign.guard:user`，User 是否动态返回当前 guard |
 | token 交叉使用仍是 `HTTP 200` | `me/info` 是否挂了对应的 `jwt.guard.auth:user/admin` |
 | 刷新后的新 token 返回 `Guard Unverified` | `refresh(true, false)` 的第二个参数及 `persistent_claims=['guard']` 是否正确 |
@@ -432,7 +432,7 @@ abstract class TestCase extends BaseTestCase
 }
 ```
 
-新建 `tests/Feature/ApiAuthTest.php`：
+新建 `tests/Feature/MobiAuthTest.php`：
 
 ```php
 <?php
@@ -444,7 +444,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ApiAuthTest extends TestCase
+class MobiAuthTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -516,7 +516,7 @@ class ApiAuthTest extends TestCase
 现在运行本章的 5 个用例，然后再跑一次全量回归：
 
 ```bash
-php artisan test --filter=ApiAuthTest --stop-on-failure
+php artisan test --filter=MobiAuthTest --stop-on-failure
 php artisan test
 ```
 

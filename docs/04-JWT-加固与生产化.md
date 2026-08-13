@@ -206,11 +206,11 @@ $exceptions->throttle(fn (Throwable $e) => Limit::perMinute(1000));
 // use Illuminate\Http\Request;
 // use Illuminate\Support\Facades\RateLimiter;
 RateLimiter::for('admin', fn (Request $r) => Limit::perMinute(300)->by($r->user()?->id ?: $r->ip()));
-RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
+RateLimiter::for('mobi', fn (Request $r) => Limit::perMinute(1000)->by($r->user()?->id ?: $r->ip()));
 ```
 
 再到 `bootstrap/app.php` 的 `withMiddleware()` 中，为 `admin` / `moo-system` 组加一行
-`'throttle:admin'`，为 `client` 组加 `'throttle:client'`
+`'throttle:admin'`，为 `mobi` 组加 `'throttle:mobi'`
 （`moo-system` 组你现在就有——第 3 章注册中间件组时已为第 7 章的商业包**预先建好**，
 见第 3 章 `withMiddleware()` 那段，不是你漏装了什么）。
 
@@ -218,7 +218,7 @@ RateLimiter::for('client', fn (Request $r) => Limit::perMinute(1000)->by($r->use
 （爆破一分钟能试 300 个密码）。这里用两个计数桶：同一 IP 对同一账号最多 5 次/分钟，
 同时同一 IP 的全部登录请求最多 30 次/分钟，既限制持续猜一个账号，也限制不断换账号扫描。
 本章时间点登录路由只有 `routes/admin.php` 一条，给它挂上
-`->middleware('throttle:login')`；第 6 章建移动端 `routes/api.php` 的登录路由时，
+`->middleware('throttle:login')`；第 6 章建移动端 `routes/mobi.php` 的登录路由时，
 正文会按同样方式挂上：
 
 ```php

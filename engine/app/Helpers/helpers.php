@@ -18,7 +18,7 @@ if (! function_exists('getUserId')) {
      * 取当前登录用户 ID；游客返 null。
      *
      * 读 config('auth.defaults.guard') —— 该默认守卫由 JWTAssignGuard 中间件按路由前缀设定
-     * （admin 组设 admin 守卫、client 组设 user 守卫）。全站「当前是谁」的唯一真值口径，
+     * （admin 组设 admin 守卫、mobi 组设 user 守卫）。全站「当前是谁」的唯一真值口径，
      * scaffold 的 OperatorResolver 与业务代码都复用它，避免各处直接 auth() 取值逻辑漂移。
      */
     function getUserId(): int|string|null

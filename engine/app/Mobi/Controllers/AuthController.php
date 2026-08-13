@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  * 与后台（Admin/AuthController）的三个差异：
  * 1. 主体是自建 User（email 登录）——不依赖 moo-system；guard claim 由
- *    User::getJWTCustomClaims() 动态注入（client 组已 shouldUse('user')），
+ *    User::getJWTCustomClaims() 动态注入（mobi 组已 shouldUse('user')），
  *    无需任何内联覆盖；
  * 2. refresh 用 (true, false)：forceForever —— 本次被刷新的旧 token 永久作废，
  *    不享受 90 秒黑名单宽限（严格轮换，不等同于跨设备单点登录）；
@@ -15,7 +15,7 @@ declare(strict_types=1);
  *    （第 7 章）对应的是 account_status 枚举。
  */
 
-namespace App\Api\Controllers;
+namespace App\Mobi\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -51,7 +51,7 @@ class AuthController
             throw ValidationException::withMessages(['email' => ['帐号尚未激活（邮箱未验证）。']]);
         }
 
-        // guard claim 由 User::getJWTCustomClaims() 动态注入（client 组已 shouldUse('user')）
+        // guard claim 由 User::getJWTCustomClaims() 动态注入（mobi 组已 shouldUse('user')）
         $token = Auth::guard('user')->login($user);
 
         return response()->json([
@@ -88,7 +88,7 @@ class AuthController
     /**
      * 主动刷新 token（无宽限严格轮换：旧 token 永久作废）
      *
-     * 与后台一样**故意不挂** jwt.auth.refresh（见 routes/api.php）：否则过期 token 会被
+     * 与后台一样**故意不挂** jwt.auth.refresh（见 routes/mobi.php）：否则过期 token 会被
      * 中间件先续签一次、这里再续签一次，凭一个旧 token 派生出两个有效新 token，
      * “一次刷新只产生一个新 token”的轮换承诺被孤儿 token 打破。
      */

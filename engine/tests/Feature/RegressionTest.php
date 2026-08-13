@@ -44,10 +44,10 @@ class RegressionTest extends TestCase
         ], $groups['admin'] ?? null);
         self::assertSame([
             'jwt.assign.guard:user',
-            'throttle:client',
+            'throttle:mobi',
             'set.locale',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-        ], $groups['client'] ?? null);
+        ], $groups['mobi'] ?? null);
         self::assertSame([
             'jwt.assign.guard:admin',
             'jwt.guard.auth:admin',

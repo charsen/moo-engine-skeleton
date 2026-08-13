@@ -12,7 +12,7 @@ tables:
         model:
             class: Food
         controller:
-            app: ['admin', 'api']
+            app: ['admin', 'mobi']
             resource: ['admin']
             class: FoodController
         attrs:

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Api\Requests\Food\Food;
+namespace App\Mobi\Requests\Food\Food;
 
 use App\Models\Food\Enums\FoodCategory;
 use App\Models\Food\Enums\FoodStatus;
