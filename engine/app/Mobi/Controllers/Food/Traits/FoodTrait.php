@@ -9,7 +9,7 @@ declare(strict_types=1);
  * @Description: FoodController's Trait（移动端只读，仅保留列表字段清单）
  */
 
-namespace App\Api\Controllers\Food\Traits;
+namespace App\Mobi\Controllers\Food\Traits;
 
 trait FoodTrait
 {

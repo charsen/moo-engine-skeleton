@@ -133,7 +133,7 @@ moo-engine-skeleton/
 | 23 | 手工改过的 `lang/en/model.php` 枚举标签被 `moo:i18n` 回退 | lang 是再生成区、yaml 才是真相源；英文标签写进 yaml 枚举定义，再 `moo:fresh` + `moo:i18n` | 9 |
 | 24 | `moo:adder` 重跑后同一路由出现两遍 | 当前版 folder 直接写 `Food`；action 已存在时命令仍可能追加路由，重跑前后都检查 `routes/admin.php` | 9 |
 | 25 | 重跑 `moo:auth` 后零授权角色又被锁在门外（坑 #20 复发） | `config/actions.php` 是再生成区、整文件重写：手动放行的个人中心 8 个 key 会被冲掉（moo:auth 只自动放行「无 @acl」的 action）；重跑后要把 8 个 key 合并回 whitelist（FoodAclTest 有守护断言） | 9 |
-| 26 | `moo:free api` 后 `route:list` Fatal / 首次请求 500 | 首个 api 控制器可能引用未生成的 `Api\\Controllers\\Traits\\BaseActionTrait`，且方法体仍拼出不存在的 `FoodResource`；先补空共享 trait，再按 9.8.2 把方法体改用 `BaseResource` | 9 |
+| 26 | `moo:free mobi` 后 `route:list` Fatal / 首次请求 500 | 首个 mobi 控制器可能引用未生成的 `Mobi\\Controllers\\Traits\\BaseActionTrait`，且方法体仍拼出不存在的 `FoodResource`；先补共享 trait，再按 9.8.2 把方法体改用 `BaseResource` | 9 |
 | 27 | `moo:resource Food` 报 SUCCESS 却一个文件不生成 | 生成器只为 yaml `controller.resource` 声明过的分片产文件（坑 #26 的另一面），Food.yaml 只写了 `controller.app` → resource 数组为空 → 0 个目标也算"成功"；yaml 补 `resource: ['admin']` + `moo:fresh` 后再生成 | 9 |
 | 28 | 撤销会话成功但旧 token 仍可用 | `show_black_list_exception` 保持 `true` | 4 |
 | 29 | 表单端点报 `Collection::putMore does not exist` | 在 host 的 `AppServiceProvider::boot()` 注册三个 Collection 宏 | 7 |

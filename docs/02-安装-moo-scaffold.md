@@ -42,7 +42,7 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 
 ## 2.3 给生成器留路由插入口 + 注册 iResource 宏
 
-生成器会把新路由插到 `routes/admin.php` / `routes/api.php` 的标记位置，标记不能删。
+生成器会把新路由插到 `routes/admin.php` / `routes/mobi.php` 的标记位置，标记不能删。
 新建这两个文件（Laravel 12 默认没有它们）。
 
 先记住一个容易绕晕的对应关系——**文件名说的是「给谁用」，URL 前缀是另一回事**：
@@ -50,10 +50,9 @@ php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=p
 | 路由文件 | 给谁用 | 挂载的 URL 前缀 |
 | --- | --- | --- |
 | `routes/admin.php` | 后台管理接口 | `/api/admin` |
-| `routes/api.php` | 客户端（App / 移动端）接口 | `/app` |
+| `routes/mobi.php` | 客户端（App / 移动端）接口 | `/app` |
 
-也就是说，名叫 `api.php` 的文件反而**不在** `/api` 前缀下；2.7 那条
-`curl http://127.0.0.1:8088/api/admin/food`，落在的是 `routes/admin.php`。
+`mobi.php` 表示消费者是移动端，外部 URL 仍可按 host 契约挂在 `/app`；`api` 一词保留给接口文档、调试页面和真实 URL 语义，不再兼作移动端目录名。
 
 > 仓库中的文件已经包含后续章节内容。本章先写下面的最小骨架。
 
@@ -70,7 +69,7 @@ Route::group([], function () {
 });
 ```
 
-`routes/api.php`：
+`routes/mobi.php`：
 ```php
 <?php declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
@@ -89,7 +88,7 @@ Route::get('/', static fn () => 'Hello app api ~');
     health: '/up',
     then: function (): void {
         Route::prefix('api/admin')->name('admin.')->group(base_path('routes/admin.php'));
-        Route::prefix('app')->name('app.')->group(base_path('routes/api.php'));
+        Route::prefix('app')->name('app.')->group(base_path('routes/mobi.php'));
     },
 )
 ```
@@ -194,7 +193,7 @@ php artisan moo:schema Food     # 生成 scaffold/database/Food.yaml 模板，�
 ```
 
 `scaffold/database/Food.yaml`（本章时点的形态；仓库版是**第 9 章演进后**的样子——
-多了 `stock` 字段、`controller.app` 变成 `['admin', 'api']`、还新增了
+多了 `stock` 字段、`controller.app` 变成 `['admin', 'mobi']`、还新增了
 `resource: ['admin']` 和 `attrs.remark`，对不上是正常的）：
 ```yaml
 module:

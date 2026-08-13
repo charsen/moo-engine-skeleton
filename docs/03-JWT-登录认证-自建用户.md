@@ -449,7 +449,7 @@ class JWTAuthOrRefresh
     ]);
 
     // client 组：移动端
-    $middleware->group('client', [
+    $middleware->group('mobi', [
         'jwt.assign.guard:user',
         \Illuminate\Routing\Middleware\SubstituteBindings::class,
     ]);
@@ -512,7 +512,7 @@ if ($this->app->runningInConsole()) {
         Route::get('up', static fn () => response('OK'));
 
         Route::middleware('web')->group(base_path('routes/web.php'));
-        Route::middleware('client')->prefix('app')->name('app.')->group(base_path('routes/api.php'));
+        Route::middleware('mobi')->prefix('app')->name('app.')->group(base_path('routes/mobi.php'));
         Route::middleware('admin')->prefix('api/admin')->name('admin.')->group(base_path('routes/admin.php'));
     },
 )

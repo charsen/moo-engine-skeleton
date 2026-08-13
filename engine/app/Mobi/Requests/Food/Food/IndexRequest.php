@@ -9,7 +9,7 @@ declare(strict_types=1);
  * @Description: IndexRequest
  */
 
-namespace App\Api\Requests\Food\Food;
+namespace App\Mobi\Requests\Food\Food;
 
 use Mooeen\Scaffold\Foundation\FormRequest;
 

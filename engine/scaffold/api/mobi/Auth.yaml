@@ -1,0 +1,66 @@
+###
+# Auth Api
+#
+# @author charsen
+# @date 2026-08-13 10:12:40
+##
+controller:
+    code:
+    class: 'Auth'
+    name: ''
+    desc: []
+actions:
+    authenticate_post:
+        name: '登录：校验邮箱密码 → 签发 user 守卫的 JWT。'
+        desc: []
+        prototype: ''
+        request: [POST, app/authenticate]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-08-13 10:12:40'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    logout_post:
+        name: '退出登录（永久拉黑当前 token）。'
+        desc:
+            - '路由是公开的（不挂 JWT 中间件）。无 token / 垃圾 token 也不会 500：'
+            - 'JWTGuard::logout() 内部自己捕获了 JWTException（拉黑不了就当作已登出），'
+            - '所以本接口对任何输入都幂等返回 200——RegressionTest 守护了这个契约。'
+        prototype: ''
+        request: [POST, app/logout]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-08-13 10:12:40'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    me_get:
+        name: '当前登录人信息'
+        desc: []
+        prototype: ''
+        request: [GET, app/me/info]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-08-13 10:12:40'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []
+    refresh_post:
+        name: '主动刷新 token（无宽限严格轮换：旧 token 永久作废）'
+        desc:
+            - '与后台一样**故意不挂** jwt.auth.refresh（见 routes/mobi.php）：否则过期 token 会被'
+            - '中间件先续签一次、这里再续签一次，凭一个旧 token 派生出两个有效新 token，'
+            - '“一次刷新只产生一个新 token”的轮换承诺被孤儿 token 打破。'
+        prototype: ''
+        request: [POST, app/refresh]
+        meta:
+            creator: 'charsen'
+            created_at: '2026-08-13 10:12:40'
+            updated_by: ''
+            updated_at: ''
+        url_params: []
+        body_params: []

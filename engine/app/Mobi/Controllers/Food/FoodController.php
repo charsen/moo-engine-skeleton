@@ -10,11 +10,11 @@ declare(strict_types=1);
  * @Description: 食品控制器（移动端只读：index + show）
  */
 
-namespace App\Api\Controllers\Food;
+namespace App\Mobi\Controllers\Food;
 
-use App\Api\Controllers\Food\Traits\FoodTrait;
-use App\Api\Controllers\Traits\BaseActionTrait;
-use App\Api\Requests\Food\Food\IndexRequest;
+use App\Mobi\Controllers\Food\Traits\FoodTrait;
+use App\Mobi\Controllers\Traits\BaseActionTrait;
+use App\Mobi\Requests\Food\Food\IndexRequest;
 use App\Models\Food\Food;
 use Mooeen\Scaffold\Foundation\BaseResource;
 use Mooeen\Scaffold\Foundation\BaseResourceCollection;
@@ -23,7 +23,7 @@ use Mooeen\Scaffold\Foundation\Controller;
 /**
  * ACL
  *
- * @package_name {zh-CN: 客户端接口 | en: Api}
+ * @package_name {zh-CN: 移动端接口 | en: Mobi}
  * @module_name {zh-CN: 食品管理 | en: Food}
  * @controller_name {zh-CN: 食品 | en: Management Food}
  */

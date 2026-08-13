@@ -99,14 +99,14 @@ return [
             ],
         ],
     ],
-    'api' => [
+    'mobi' => [
         'whitelist' => [
-            '6a19c3c8b5b66e31',
-            '2a2aead9884b5911',
-            'e4865da90e394b8a',
-            '68e7fa259ca5686a',
-            '3b58fbd3d524ec58',
-            '75fd9edea3519fa8',
+            'c41a4daab44bfd01',
+            'b8596c602ce9318b',
+            '3f326e7170416c8e',
+            '893f7015c92d55f6',
+            'fca1a653d0ebc08a',
+            '8b182a3d251b771a',
         ],
         'actions' => [],
     ],

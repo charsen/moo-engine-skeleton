@@ -11,8 +11,8 @@ declare(strict_types=1);
  * 标记 `:insert_code_here:do_not_delete` 供 moo-scaffold 生成器插入路由，勿删。
  */
 
-use App\Api\Controllers\AuthController;
-use App\Api\Controllers\Food\FoodController;
+use App\Mobi\Controllers\AuthController;
+use App\Mobi\Controllers\Food\FoodController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', static fn () => 'Hello app api ~');

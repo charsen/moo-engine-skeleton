@@ -111,11 +111,11 @@ return [
         'ec2cd321a60acaee'            => 'Management Authorization',
         'ec2cd321a60acaee-desc'       => '',
     ],
-    'api' => [
-        'app-api'                     => 'Api',
-        'module-83396895a2d651e6'     => 'Food',
-        'module-cb338ddfe04f8fb7'     => '',
-        'controller-dad91e9b834bf12b' => 'Management Food',
-        'controller-b512cf541a72e4ad' => '',
+    'mobi' => [
+        'app-mobi'                    => 'Mobi',
+        'module-1a679c851234abb1'     => 'Food',
+        'module-e80923da68e4c282'     => '',
+        'controller-eab61ef793d3d1aa' => 'Management Food',
+        'controller-499925c56ebe8f11' => '',
     ],
 ];

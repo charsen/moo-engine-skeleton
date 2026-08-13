@@ -17,7 +17,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class ApiAuthTest extends TestCase
+class MobiAuthTest extends TestCase
 {
     use RefreshDatabase;
 

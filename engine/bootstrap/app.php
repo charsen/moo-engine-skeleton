@@ -30,8 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
             // web（保留 Laravel 默认 session/csrf）
             Route::middleware('web')->group(base_path('routes/web.php'));
 
-            // 客户端（移动端）接口：前缀 app，中间件组 client
-            Route::middleware('client')->prefix('app')->name('app.')->group(base_path('routes/api.php'));
+            // 移动端接口：前缀 app，中间件组 mobi
+            Route::middleware('mobi')->prefix('app')->name('app.')->group(base_path('routes/mobi.php'));
 
             // 后台管理接口：前缀 api/admin，中间件组 admin
             Route::middleware('admin')->prefix('api/admin')->name('admin.')->group(base_path('routes/admin.php'));
@@ -63,9 +63,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // host 客户端（移动端）组：指定 user 守卫
-        $middleware->group('client', [
+        $middleware->group('mobi', [
             'jwt.assign.guard:user',
-            'throttle:client',
+            'throttle:mobi',
             'set.locale',
             SubstituteBindings::class,
         ]);

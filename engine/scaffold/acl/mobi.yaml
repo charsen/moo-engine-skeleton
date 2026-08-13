@@ -1,7 +1,7 @@
 meta:
-    app: api
-    app_name: 客户端接口
-    generated_at: '2026-06-11 15:16:21'
+    app: mobi
+    app_name: 移动端接口
+    generated_at: '2026-08-13 10:14:55'
     generated_by: charsen
     stats:
         module_count: 2
@@ -10,7 +10,7 @@ meta:
         whitelist_count: 6
 modules:
     -
-        key: module-83396895a2d651e6
+        key: module-1a679c851234abb1
         name:
             en: Food
             zh-CN: 食品管理
@@ -19,8 +19,8 @@ modules:
         whitelist_count: 2
         controllers:
             -
-                key: controller-dad91e9b834bf12b
-                class: App\Api\Controllers\Food\FoodController
+                key: controller-eab61ef793d3d1aa
+                class: App\Mobi\Controllers\Food\FoodController
                 name:
                     en: 'Management Food'
                     zh-CN: 食品
@@ -28,8 +28,8 @@ modules:
                 whitelist_count: 2
                 actions:
                     -
-                        key: 6a19c3c8b5b66e31
-                        plain_key: api-food-food-show
+                        key: c41a4daab44bfd01
+                        plain_key: mobi-food-food-show
                         action: show
                         title: 查看食品
                         name:
@@ -38,10 +38,10 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\Food\FoodController::show'
+                            - 'App\Mobi\Controllers\Food\FoodController::show'
                     -
-                        key: 2a2aead9884b5911
-                        plain_key: api-food-food-index
+                        key: b8596c602ce9318b
+                        plain_key: mobi-food-food-index
                         action: index
                         title: 食品列表
                         name:
@@ -50,9 +50,9 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\Food\FoodController::index'
+                            - 'App\Mobi\Controllers\Food\FoodController::index'
     -
-        key: module-cb338ddfe04f8fb7
+        key: module-e80923da68e4c282
         name:
             en: ''
             zh-CN: ''
@@ -61,8 +61,8 @@ modules:
         whitelist_count: 4
         controllers:
             -
-                key: controller-b512cf541a72e4ad
-                class: App\Api\Controllers\AuthController
+                key: controller-499925c56ebe8f11
+                class: App\Mobi\Controllers\AuthController
                 name:
                     en: ''
                     zh-CN: ''
@@ -70,8 +70,8 @@ modules:
                 whitelist_count: 4
                 actions:
                     -
-                        key: e4865da90e394b8a
-                        plain_key: api-auth-authenticate
+                        key: 3f326e7170416c8e
+                        plain_key: mobi-auth-authenticate
                         action: authenticate
                         title: '登录：校验邮箱密码 → 签发 user 守卫的 JWT。'
                         name:
@@ -80,10 +80,10 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\AuthController::authenticate'
+                            - 'App\Mobi\Controllers\AuthController::authenticate'
                     -
-                        key: 68e7fa259ca5686a
-                        plain_key: api-auth-logout
+                        key: 893f7015c92d55f6
+                        plain_key: mobi-auth-logout
                         action: logout
                         title: '退出登录（永久拉黑当前 token）。'
                         name:
@@ -92,10 +92,10 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\AuthController::logout'
+                            - 'App\Mobi\Controllers\AuthController::logout'
                     -
-                        key: 3b58fbd3d524ec58
-                        plain_key: api-auth-me
+                        key: fca1a653d0ebc08a
+                        plain_key: mobi-auth-me
                         action: me
                         title: 当前登录人信息
                         name:
@@ -104,10 +104,10 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\AuthController::me'
+                            - 'App\Mobi\Controllers\AuthController::me'
                     -
-                        key: 75fd9edea3519fa8
-                        plain_key: api-auth-refresh
+                        key: 8b182a3d251b771a
+                        plain_key: mobi-auth-refresh
                         action: refresh
                         title: '主动刷新 token（无宽限严格轮换：旧 token 永久作废）'
                         name:
@@ -116,4 +116,4 @@ modules:
                         desc: ''
                         whitelist: true
                         acl_targets:
-                            - 'App\Api\Controllers\AuthController::refresh'
+                            - 'App\Mobi\Controllers\AuthController::refresh'

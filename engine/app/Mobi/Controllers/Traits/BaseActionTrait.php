@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Api\Controllers\Traits;
+namespace App\Mobi\Controllers\Traits;
 
 /**
  * 基础类
