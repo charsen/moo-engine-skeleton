@@ -11,7 +11,7 @@
 `moo-scaffold` 是运行时依赖，不要加 `--dev`。在 `engine/` 目录直接安装稳定版本：
 
 ```bash
-composer require "charsen/moo-scaffold:^2.1.3"
+composer require "charsen/moo-scaffold:^2.1.7"
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
 

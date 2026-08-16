@@ -48,7 +48,7 @@ cd moo-engine-skeleton
 | Node / npm | Node 26 / npm 11 | 可选；本教程不构建前端资源 |
 | MariaDB / MySQL | MariaDB 12 或 MySQL 8 | 本机示例使用 `127.0.0.1:3306` |
 | Git | 较新版本 | 本仓库不使用 git-lfs |
-| moo-scaffold | `^2.1.3` | 第 2 章安装，开源 |
+| moo-scaffold | `^2.1.7` | 第 2 章安装，开源 |
 | moo-monitor-laravel | `^0.1` | 第 1.7 节安装，开源 |
 
 先检查环境：

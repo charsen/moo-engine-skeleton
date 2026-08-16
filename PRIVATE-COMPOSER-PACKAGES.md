@@ -39,8 +39,8 @@
   "upload": { "type": "path", "url": "../moo-upload" }
 },
 "require": {
-  "charsen/moo-system": "^1.6.24",
-  "charsen/moo-upload": "^0.1.1"
+  "charsen/moo-system": "^1.6.28",
+  "charsen/moo-upload": "^0.1.3"
 }
 ```
 
@@ -51,8 +51,8 @@
   "upload": { "type": "vcs", "url": "git@gitee.com:charsen/moo-upload.git" }
 },
 "require": {
-  "charsen/moo-system": "^1.6.24",
-  "charsen/moo-upload": "^0.1.1"
+  "charsen/moo-system": "^1.6.28",
+  "charsen/moo-upload": "^0.1.3"
 }
 ```
 

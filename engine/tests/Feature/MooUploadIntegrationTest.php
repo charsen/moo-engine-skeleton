@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Mooeen\System\Contracts\PersonnelAvatarManager;
 use Mooeen\System\Models\Personnel;
@@ -60,5 +61,15 @@ class MooUploadIntegrationTest extends TestCase
         $this->assertStringStartsWith('personnels/avatars/' . $personnel->id . '_', $path);
         Storage::disk('public')->assertExists($path);
         $this->assertSame(1, UploadIntent::query()->whereNotNull('upload_intent_consumed_at')->count());
+    }
+
+    public function test_upload_prune_is_registered_as_the_daily_maintenance_task(): void
+    {
+        $event = collect(Schedule::events())
+            ->first(static fn ($event): bool => str_contains($event->command ?? '', 'moo-upload:prune --execute'));
+
+        self::assertNotNull($event);
+        self::assertSame('40 2 * * *', $event->expression);
+        self::assertTrue($event->withoutOverlapping);
     }
 }

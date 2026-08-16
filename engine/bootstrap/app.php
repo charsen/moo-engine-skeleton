@@ -70,9 +70,9 @@ return Application::configure(basePath: dirname(__DIR__))
             SubstituteBindings::class,
         ]);
 
-        // moo-system 包路由专用组：完整 JWT 强制认证链
-        // （config/moo-system.php 的 admin.middleware 指向这里）
-        $middleware->group('moo-system', [
+        // 扩展包后台统一使用完整认证链，但每个包保留独立命名组，不能借用 admin / moo-system。
+        // 新增带后台路由的 moo 包时，在这里登记自己的 moo-<name> 组，并让包配置指向它。
+        $packageAdminMiddleware = [
             'jwt.assign.guard:admin',
             'jwt.guard.auth:admin',
             'jwt.auth.refresh',
@@ -80,29 +80,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'set.locale',
             SubstituteBindings::class,
             OperationLog::class,
-        ]);
+        ];
 
-        $middleware->group('moo-upload', [
-            'jwt.assign.guard:admin',
-            'jwt.guard.auth:admin',
-            'jwt.auth.refresh',
-            'throttle:admin',
-            'set.locale',
-            SubstituteBindings::class,
-            OperationLog::class,
-        ]);
-
-        // moo-feedback 管理面使用自己的完整认证组；匿名提交仍走包的 public.middleware。
-        // 不能回落到为登录接口保留的 admin，也不借用 moo-system 的安全边界。
-        $middleware->group('moo-feedback', [
-            'jwt.assign.guard:admin',
-            'jwt.guard.auth:admin',
-            'jwt.auth.refresh',
-            'throttle:admin',
-            'set.locale',
-            SubstituteBindings::class,
-            OperationLog::class,
-        ]);
+        $middleware->group('moo-system', $packageAdminMiddleware);
+        $middleware->group('moo-upload', $packageAdminMiddleware);
+        $middleware->group('moo-feedback', $packageAdminMiddleware);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 这些异常属于预期控制流，不上报；同一异常只报一次

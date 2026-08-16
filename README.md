@@ -184,7 +184,7 @@ mysql -uroot -p7777 -h127.0.0.1 -e \
 
 # 4. 接入监控标准件 + moo-scaffold（完整讲解见 docs 第 1.7 / 2 章；moo-system 见第 7 章）
 composer require "charsen/moo-monitor-laravel:^0.1"
-composer require "charsen/moo-scaffold:^2.1.3" --with-all-dependencies
+composer require "charsen/moo-scaffold:^2.1.7" --with-all-dependencies
 php artisan vendor:publish --provider="Mooeen\Scaffold\ScaffoldProvider" --tag=public --force   # 发布 /scaffold 静态资源
 
 # 5. 本地学习环境：迁移 + 演示 seed + 调试台账号（生产禁止运行该 DatabaseSeeder）

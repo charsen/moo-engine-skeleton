@@ -26,6 +26,19 @@ Artisan::command('inspire', function () {
 // 不必人肉 queue:retry）。真正的死信在多次重试后仍留在 job_failed，人工排查。
 Schedule::command('queue:retry all')->everyTenMinutes()->withoutOverlapping();
 
+// ── 扩展包资产维护 ─────────────────────────────────────────────────────
+// moo-upload 的每日唯一维护任务：先审计已消费引用，再恢复卡住状态、清理过期临时对象和旧意图。
+// 必须显式 --execute 才会写库/删对象；失败通过应用异常管道告警，人工可用只读审计命令归因。
+Schedule::command('moo-upload:prune --execute')
+    ->dailyAt('02:40')
+    ->withoutOverlapping()
+    ->onFailure(function (): void {
+        report(new RuntimeException(
+            'moo-upload:prune 执行失败；请运行 php artisan moo-upload:audit-consumed '
+            . '--show-identifiers 检查消费记录与存储对象。',
+        ));
+    });
+
 // ── 每日备份挂载位 ───────────────────────────────────────────────────────
 // 备份 Job 属于 P3 运维资产（backup.sh / BackupSQLJob 尚未入库）。就位后按下述挂载，
 // 错开高峰、分两个时段各备一次：
