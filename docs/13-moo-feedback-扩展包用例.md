@@ -28,6 +28,10 @@ php artisan moo:auth admin
 
 `config/actions.php` 是再生成区。骨架里的 moo-system 个人中心白名单属于 host 手动策略，重生 ACL 后要按第 7 章恢复并运行 `FoodAclTest`，不能为了加入 Feedback 而让原有个人中心变成 403。
 
+接入其它家族扩展包时也按同一张清单核对：开发与生产 Composer manifest 都声明依赖；私包还要在两边的 `repositories` 和 `extra.moo-private-packages` 同时登记，公开 Packagist 包则不要伪装成私包；有 Host 契约覆盖时把 `App\Moo\<Package>` Provider 注册到 `bootstrap/providers.php`；有后台控制器时登记 `extra_modules` 并配置独立完整认证组。不要仅因相邻项目使用某个包，就把它加入骨架。
+
+扩展包使用 `moo-upload` 时，purpose 和消费 verifier 应由真正拥有消费模型的一侧 Provider 注册：包模型由包 Provider 注册，Host 自有模型才放进 `App\Moo\Upload`。骨架当前只有 moo-system 人员头像用途，因此没有复制生产项目的 Host 图片模型或消费器。生产还必须运行 Laravel scheduler；骨架已每日执行 `moo-upload:prune --execute`，失败时可先用 `php artisan moo-upload:audit-consumed --show-identifiers` 只读归因。
+
 ## 13.2 先对齐扩展包的同名契约
 
 Moo 扩展包统一使用 `moo-<name>` 作为 stem。以一个虚构的 `foo` 包为例，下面五处必须保持一致：

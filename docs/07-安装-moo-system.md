@@ -37,10 +37,10 @@ git ls-remote git@gitee.com:charsen/moo-upload.git
 
 ```json
 "require": {
-    "charsen/moo-scaffold": "^2.1.3",
+    "charsen/moo-scaffold": "^2.1.7",
     "charsen/moo-monitor-laravel": "^0.1",
-    "charsen/moo-system": "^1.6.25",
-    "charsen/moo-upload": "^0.1.1"
+    "charsen/moo-system": "^1.6.28",
+    "charsen/moo-upload": "^0.1.3"
 },
 "repositories": [
     {
