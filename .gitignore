@@ -8,6 +8,7 @@ tools/db-yaml-drift.md
 
 # Composer lock 由各环境本地生成，不进入骨架仓库。
 /engine/composer.lock
+/engine/composer.test.lock
 
 # macOS
 .DS_Store

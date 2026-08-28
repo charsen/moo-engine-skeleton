@@ -143,6 +143,7 @@ if ($freshGit && ! $noCommit && ! gitIdentityAvailable()) {
 
 headline('1/8 Project identity');
 replaceComposerIdentity($engine . '/composer.json', $projectName, $description);
+replaceComposerIdentity($engine . '/composer.test.json', $projectName, $description);
 replaceComposerIdentity($engine . '/composer.production.json', $projectName, $description);
 
 replaceEnvValue($engine . '/.env.example', 'APP_NAME', dotenvValue($appName));
@@ -302,6 +303,7 @@ run(['php', 'artisan', 'migrate:status'], $engine);
 run(['php', 'artisan', 'route:list', '--except-vendor'], $engine);
 run(['composer', 'validate', '--no-check-publish', 'composer.json'], $engine);
 run(['composer', 'audit', '--locked'], $engine);
+run(['env', 'COMPOSER=composer.test.json', 'composer', 'validate', '--no-check-publish'], $engine);
 run(['env', 'COMPOSER=composer.production.json', 'composer', 'validate', '--no-check-publish'], $engine);
 run([$engine . '/vendor/bin/pint', '--test'], $engine);
 
@@ -1046,6 +1048,7 @@ The Laravel application lives in `engine/`. Run Composer, Artisan, Pest/PHPUnit 
 - `scaffold/database/`: YAML schema truth source for generated business code
 - `routes/admin.php` and `routes/api.php`: keep the scaffold insertion markers
 - `composer.json`: local development package constraints
+- `composer.test.json`: test-server VCS constraints; manifest private packages track their `dev` branches
 - `composer.production.json`: production package constraints consumed by deployment scripts
 - Keep each extension package's config file, config namespace, publish tag and middleware group aligned on the same `moo-<name>` stem
 - Every package admin surface uses a dedicated complete-auth middleware group; never reuse the login-capable `admin` group or another package's group

@@ -77,6 +77,7 @@ RELEASE_TAG_REQUESTED=0
 RELEASE_LATEST=${RELEASE_LATEST:-0}
 # 新项目默认部署 master；非标分支由目标项目或服务器环境显式覆盖。
 DEPLOY_BRANCH=${DEPLOY_BRANCH:-master}
+DEPLOY_COMPOSER_PROFILE=${DEPLOY_COMPOSER_PROFILE:-auto}
 
 usage() {
     cat <<'EOF'
@@ -144,6 +145,19 @@ if [ -n "$RELEASE_TAG" ] && [ "$RELEASE_LATEST" = "1" ]; then
     error "--tag 与 --latest 不能同时使用"
     exit 1
 fi
+
+case "$DEPLOY_COMPOSER_PROFILE" in
+    auto) ;;
+    test)
+        if [ "$RELEASE_LATEST" != "1" ] || [ "$DEPLOY_BRANCH" != "dev" ] || [ -n "$RELEASE_TAG" ]; then
+            error "测试 Composer profile 只能与 DEPLOY_BRANCH=dev + --latest 一起使用"
+            exit 1
+        fi
+        ;;
+    *) error "未知 DEPLOY_COMPOSER_PROFILE=${DEPLOY_COMPOSER_PROFILE}（只允许 auto / test）"; exit 1;;
+esac
+if [ -n "${COMPOSER:-}" ]; then warn "忽略调用者预置的 COMPOSER；部署配置只由 pull.sh/test-pull.sh 选择"; fi
+unset COMPOSER
 
 # bug#1: export PRODUCTION，让子进程 cache.sh 的 is_production 与父进程判定一致。
 # 否则 .env 未建的首次部署路径上裸调 cache.sh，子进程读不到 PRODUCTION → 误跑 dev 模式
@@ -352,12 +366,19 @@ success "🌐 主仓代码已更新"
 # ---- Step 2.9: 解析目标版本的私包 manifest ------------------------------
 # 必须在 Step 2 之后读取；旧版本在 checkout 前解析会让新 tag 新增的私包漏过
 # 权限预检、强制更新和资源发布。
-if [ ! -f "$ENGINE_DIR/composer.production.json" ]; then
-    error "缺 $ENGINE_DIR/composer.production.json，无法解析私包 manifest / URL"
+if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ]; then
+    DEPLOY_COMPOSER_JSON="$ENGINE_DIR/composer.test.json"
+    DEPLOY_COMPOSER_LOCK="composer.test.lock"
+else
+    DEPLOY_COMPOSER_JSON="$ENGINE_DIR/composer.production.json"
+    DEPLOY_COMPOSER_LOCK="composer.lock"
+fi
+if [ ! -f "$DEPLOY_COMPOSER_JSON" ]; then
+    error "缺 $DEPLOY_COMPOSER_JSON，无法解析私包 manifest / URL"
     exit 1
 fi
 
-PRIVATE_PKGS_MANIFEST=$(jq -r '. as $root | .extra."moo-private-packages" // [] | .[] | [.name, ."repo-key", ."provider-rel", (.["publish-tag"] // ""), ($root.repositories[."repo-key"].url // "")] | join("|")' "$ENGINE_DIR/composer.production.json" 2>/dev/null)
+PRIVATE_PKGS_MANIFEST=$(jq -r '. as $root | .extra."moo-private-packages" // [] | .[] | [.name, ."repo-key", ."provider-rel", (.["publish-tag"] // ""), ($root.repositories[."repo-key"].url // "")] | join("|")' "$DEPLOY_COMPOSER_JSON" 2>/dev/null)
 if [ -z "$PRIVATE_PKGS_MANIFEST" ]; then
     error ".extra.\"moo-private-packages\" 缺失或为空 — 无法识别私包列表"
     info "在 composer.production.json 加形如："
@@ -388,7 +409,13 @@ else
         # 一次 ls-remote 同时判权限（exit code）+ 取 HEAD（输出），省掉旧版"先探权限再取 HEAD"
         # 的第二次 ls-remote —— 6 个包等于砍掉一半 SSH 握手（12 → 6 次）。
         # set -e 下把命令替换放进 if 条件豁免（失败不中止，走下面 error 分支自己 exit）。
-        if ! pkg_head_line=$(git ls-remote "$pkg_url" HEAD 2>/dev/null); then
+        pkg_ref="HEAD"
+        pkg_ref_label="HEAD"
+        if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ]; then
+            pkg_ref="refs/heads/dev"
+            pkg_ref_label="dev"
+        fi
+        if ! pkg_head_line=$(git ls-remote "$pkg_url" "$pkg_ref" 2>/dev/null) || [ -z "$pkg_head_line" ]; then
             error "对 ${pkg_name} 私包无读权限: $pkg_url"
             info "可能原因："
             info "  - 仓库不存在，或当前凭据没有读取权限"
@@ -397,20 +424,23 @@ else
             exit 1
         fi
         pkg_head=$(printf '%s\n' "$pkg_head_line" | awk '{print substr($1, 1, 8)}')
-        success "📦 ${pkg_name}: pull HEAD=${pkg_head}"
+        success "📦 ${pkg_name}: pull ${pkg_ref_label}=${pkg_head}"
     done <<EOF
 $PRIVATE_PKGS_MANIFEST
 EOF
 fi
 
-# ---- Step 4: 切换 composer.json 为 production（仅生产）---------------
+# ---- Step 4: 选择 Composer 部署配置 -----------------------------------
 
-section "⚙️  Step 4: 切换 composer.json 为 production 配置"
+section "⚙️  Step 4: 选择 Composer 部署配置"
 COMPOSER_PROD="$ENGINE_DIR/composer.production.json"
 COMPOSER_BAK="$ENGINE_DIR/composer.json.pull-bak"
 SWITCHED=0
 
-if is_production; then
+if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ]; then
+    export COMPOSER="composer.test.json"
+    info "测试部署使用 composer.test.json（VCS + dev-dev），composer.json 保持 HEAD 原样"
+elif is_production; then
     if [ ! -f "$COMPOSER_PROD" ]; then
         error "找不到 $COMPOSER_PROD — 仓库不完整或被误删，无法生产部署"
         exit 1
@@ -466,7 +496,11 @@ if [ -n "${COMPOSER_USER:-}" ] && [ "$(id -u)" = "0" ]; then
     if id "$COMPOSER_USER" >/dev/null 2>&1; then
         info "COMPOSER_USER=$COMPOSER_USER 显式指定，composer 段切到该用户跑"
         info "前置：1) git config --global --add safe.directory $PROJECT_DIR  2) $COMPOSER_USER 有可写 home"
-        COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H composer"
+        if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ]; then
+            COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H env COMPOSER=composer.test.json composer"
+        else
+            COMPOSER_RUNNER="sudo -u $COMPOSER_USER -H composer"
+        fi
     else
         warn "COMPOSER_USER=$COMPOSER_USER 用户不存在，回退 root 跑"
     fi
@@ -490,7 +524,7 @@ done <<EOF
 $PRIVATE_PKGS_MANIFEST
 EOF
 
-if [ "$NEED_RESCUE" = "1" ] && [ -f "$ENGINE_DIR/composer.production.json" ]; then
+if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
     warn "私包 Provider 文件缺失：${MISSING_PKGS}— 自动救援"
     # 救援标志：本地 dev 不带 --no-dev，避免把 Pest / Pint 等开发依赖一并删掉
     rescue_flags="--optimize-autoloader --no-scripts"
@@ -501,7 +535,7 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$ENGINE_DIR/composer.production.json" ]; th
     # update（composer 直接拒绝 "Cannot update only a partial set ... without a lock file"），
     # 直接全量 install。首次部署 / 清空 vendor 后可能尚无对应环境的 lock，
     # 不分支会必然踩这个 BUG（真实踩坑）。
-    if [ -f "$ENGINE_DIR/composer.lock" ]; then
+    if [ -f "$ENGINE_DIR/$DEPLOY_COMPOSER_LOCK" ]; then
         info "（有 composer.lock → partial update 私包调和 lock 错配，再 install 同步）"
         # 一次性 update 全部私包（包含缺失 + 未缺失，composer 自己 dedupe）
         # shellcheck disable=SC2086
@@ -594,32 +628,55 @@ fi
 # 若无差别地"任何失败都先删 6 个私包 vendor 再重试"，gitee 瞬时网络抖动等失败会误删健康 vendor，
 # 重试再败则线上 vendor 处于被删的残状态 —— 健康 vendor 绝不能因网络抖动被误删。
 # 捕获输出既判成败又留证据；成功/失败都把输出 printf 回终端，别吞掉 composer 的 Syncing 等进度信息。
-# shellcheck disable=SC2086
-if ! update_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
-    printf '%s\n' "$update_out"
-    case "$update_out" in
-        *"no merge base"*)
-            warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
-            purge_private_vendor
-            # shellcheck disable=SC2086
-            $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（删私包 vendor 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
-            ;;
-        *"lock file version"*|*"with-all-dependencies"*|*"conflicts with"*)
-            # 私包收紧了对 lock 内依赖的 require/conflict（如 moo-system 安全驱动要求 framework ≥12.61.1、
-            # conflict guzzle <7.12.1）→ 带 -W 重试一次，私包声明什么就解什么（含 root 依赖），
-            # 上界仍受 host composer.json 约束（不跨大版本）。收紧约束的私包 commit 即升级 review。
-            warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
-            # shellcheck disable=SC2086
-            $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（带 -W 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
-            ;;
-        *)
-            rollback_composer_on_fail
-            error "composer update 私包失败: $PRIVATE_PKG_NAMES"
-            exit 3
-            ;;
-    esac
+if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ] && [ ! -f "$DEPLOY_COMPOSER_LOCK" ]; then
+    info "${DEPLOY_COMPOSER_LOCK} 不存在，首次完整解析 Composer profile"
+    # shellcheck disable=SC2086
+    if ! update_out=$($COMPOSER_RUNNER update $update_flags 2>&1); then
+        printf '%s\n' "$update_out"
+        case "$update_out" in
+            *"no merge base"*)
+                warn "首次 profile update 失败 — 旧私包 vendor 历史分叉 → 删私包 vendor 后重试"
+                purge_private_vendor
+                # shellcheck disable=SC2086
+                $COMPOSER_RUNNER update $update_flags || { rollback_composer_on_fail; error "首次 Composer profile 解析失败"; exit 3; }
+                ;;
+            *)
+                rollback_composer_on_fail
+                error "首次 Composer profile 解析失败"
+                exit 3
+                ;;
+        esac
+    else
+        printf '%s\n' "$update_out"
+    fi
 else
-    printf '%s\n' "$update_out"
+    # shellcheck disable=SC2086
+    if ! update_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
+        printf '%s\n' "$update_out"
+        case "$update_out" in
+            *"no merge base"*)
+                warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+                purge_private_vendor
+                # shellcheck disable=SC2086
+                $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（删私包 vendor 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
+                ;;
+            *"lock file version"*|*"with-all-dependencies"*|*"conflicts with"*)
+                # 私包收紧了对 lock 内依赖的 require/conflict（如 moo-system 安全驱动要求 framework ≥12.61.1、
+                # conflict guzzle <7.12.1）→ 带 -W 重试一次，私包声明什么就解什么（含 root 依赖），
+                # 上界仍受 host composer.json 约束（不跨大版本）。收紧约束的私包 commit 即升级 review。
+                warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
+                # shellcheck disable=SC2086
+                $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（带 -W 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
+                ;;
+            *)
+                rollback_composer_on_fail
+                error "composer update 私包失败: $PRIVATE_PKG_NAMES"
+                exit 3
+                ;;
+        esac
+    else
+        printf '%s\n' "$update_out"
+    fi
 fi
 
 # Composer 段成功，Step 4 的临时备份不再需要。
@@ -653,7 +710,7 @@ done <<EOF
 $PRIVATE_PKGS_MANIFEST
 EOF
 
-# 私包 vendor 形态校验：prod 必须是实体目录(vcs)，dev 必须是 symlink(path repo)。
+# 私包 vendor 形态校验：production/test profile 必须是实体目录(vcs)；本地 path profile 应为 symlink。
 # prod 看到 symlink 表明 composer.json 切换没生效 / composer cache 命中老态 / vcs 拉取失败 —
 # 跟 cache.sh M3 段口径同步，避免 pull.sh "success" 与 cache.sh "warn" 两条相反信号让运维困惑。
 while IFS='|' read -r pkg_name _ _ _ _; do
@@ -661,7 +718,7 @@ while IFS='|' read -r pkg_name _ _ _ _; do
     pkg_dir="vendor/${pkg_name}"
     if [ -L "$pkg_dir" ]; then
         symlink_target=$(readlink "$pkg_dir" 2>/dev/null || printf 'unknown')
-        if is_production; then
+        if is_production || [ "$DEPLOY_COMPOSER_PROFILE" = "test" ]; then
             warn "⚠️  生产 ${pkg_dir} 是 symlink（应为实体目录）→ ${symlink_target:-unknown}"
             warn "   表明 Step 4 composer.json 切换没生效 / composer cache 命中老态 / vcs 拉取失败"
             warn "   排查：cd engine && jq .repositories composer.json"
