@@ -17,17 +17,19 @@
 ## 1. 解决什么问题
 
 1. **闭源包不能进公共 Packagist**（`moo-system` / `moo-upload` 授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
-2. **本地开发想改包源码即时生效**——这是下面「双 composer.json」的用武之地。
+2. **本地开发想改包源码即时生效**——本地使用 path profile。
+3. **测试服想验证多个私包的最新开发态**——测试 profile 统一追每个私包的 `dev`，无需反复打 tag 发版。
 
-目标：**本地开发体验顺 + 生产按稳定约束安装 + 闭源包不外泄**。
+目标：**本地即时联调 + 测试服统一追 dev + 生产按稳定约束安装 + 闭源包不外泄**。
 
-## 2. 双 `composer.json` 机制（本地 path ↔ 生产 vcs）
+## 2. 三套 Composer profile（本地 path / 测试 dev / 生产稳定版）
 
-一个包的「怎么解析」在本地和生产可以不同，用两份 composer 文件切换：
+一个包的「怎么解析」按环境分开，但业务配置保持一致：
 
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
 | `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包可用 `path`（联调）或 `vcs` | 改包源码两边实时可见 |
+| `composer.test.json` | 测试服务器 | `vcs`；manifest 私包使用 `dev-dev as x.y.99` | Host 与私包统一验证 `dev` 最新内容 |
 | `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
@@ -57,12 +59,12 @@
 ```
 
 > **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 保留私有 `moo-system` 与 `moo-upload`。
-> 若本地要改私包源码，可把 `composer.json` 对应仓库临时改成 `path`，
-> `composer.production.json` 保持 VCS 不动。
+> 若本地要改私包源码，可把 `composer.json` 对应仓库临时改成 `path`；测试与生产 profile 均保持 VCS。
+> `composer.test.json` 只允许 manifest 私包版本约束与 production 分流，其余 require、repositories、scripts、extra 等配置保持一致。
 
-**pull.sh 的私包 manifest** 从 `composer.production.json` 的 `extra."moo-private-packages"` 读（字段
-`name` / `repo-key` / `provider-rel` / `publish-tag`），URL 从 `repositories.<repo-key>.url` 关联——
-加/减包只改这份 manifest，pull.sh 零改动。
+**pull.sh 的私包 manifest** 从当前选择的 VCS profile 的 `extra."moo-private-packages"` 读（字段
+`name` / `repo-key` / `provider-rel` / `publish-tag`），URL 从 `repositories.<repo-key>.url` 关联。
+加/减私包时同时维护 test/production 两份 manifest；一致性测试会阻止漂移。
 
 ## 3. deploy 流程：用 `pull.sh` 而非 `cache.sh`
 
@@ -71,6 +73,7 @@
 | 脚本 | 职责 |
 | --- | --- |
 | `pull.sh` | 网络层：git pull + 验证私包权限（ssh + ls-remote）+ 临时切换生产 Composer 配置 + `composer install/update` 私包 + `vendor:publish` + 调 cache.sh |
+| `test-pull.sh` | 测试服薄入口：选择 Host `dev` + `composer.test.json` 后复用 pull.sh |
 | `cache.sh` | 本地层：清缓存 + dumpautoload + 权限修复（chown / setgid） |
 
 **生产 deploy 入口固定 `pull.sh`**（不要直接跑 cache.sh，它不验证私包权限）：
@@ -80,6 +83,15 @@ cd /opt/<你的仓库>
 sudo sh pull.sh                 # 日常
 sudo sh pull.sh --production     # 首次部署（.env 未建，显式声明生产）
 ```
+
+测试服固定执行：
+
+```bash
+sudo sh test-pull.sh
+```
+
+测试 profile 首次没有 `composer.test.lock` 时完整解析一次并生成独立 lock；后续只更新 manifest 私包。
+不会每次删除 lock，也不会每次重新安装全部公共依赖。该 lock 只属于测试服务器运行态，不提交 Git。
 
 ### 3.1 生产配置切换与本地 lock
 

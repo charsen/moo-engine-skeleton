@@ -2,7 +2,7 @@
 
 骨架把两个生产项目验证过的部署 / 运维脚本沉淀到仓库根，分两层：
 
-- **仓库根 `*.sh`** —— 部署 / 运维主脚本（`pull.sh` / `cache.sh` / `backup.sh` / `opcache.sh` / `release-check.sh` / `fixJob.sh`）。
+- **仓库根 `*.sh`** —— 部署 / 运维主脚本（`pull.sh` / `test-pull.sh` / `cache.sh` / `backup.sh` / `opcache.sh` / `release-check.sh` / `fixJob.sh`）。
 - **`tools/`** —— 辅助工具 + 共享库（被根脚本 `source` 的 `_common.sh`、nginx 加固、schema 漂移探针）。
 
 > 全部脚本 `set -eu`（出错 / 未定义变量立即退），且能在**非生产环境优雅降级**：
@@ -13,6 +13,7 @@
 | 脚本 | 用途 | 典型场景 |
 | --- | --- | --- |
 | [`pull.sh`](#pullsh) | git pull + 验证私包权限 + 临时切换生产 Composer 配置 + 强制 update 私包 + 调 cache.sh | **生产部署主入口** |
+| [`test-pull.sh`](#test-pullsh) | Host 追 `dev` + 选择 `composer.test.json`，其余流程复用 pull.sh | **测试服部署主入口** |
 | [`cache.sh`](#cachesh) | 定向刷新 config/route/event/view/compiled（不清业务 cache）+ `optimize` + 目录权限 + daily log 治理 | 本地刷缓存 / 报权限错 / 每晚 cron |
 | [`backup.sh`](#backupsh) | mysqldump 全库 → `engine/storage/app/db/`，bz2 压缩，按天清理 | 每天 cron 备份 |
 | [`opcache.sh`](#opcachesh) | 按 git diff 精准失效变更 `.php` 的 OPcache（不全量 reset） | 热更后让 CLI OPcache 生效 |
@@ -60,6 +61,22 @@ sh pull.sh --help                   # 全部参数
 `3` composer install·update 失败 / `4` 主体成功但收尾失败（git 已推进、缓存/权限/迁移未跟上，需人排查）。
 
 **详见** [`PRIVATE-COMPOSER-PACKAGES.md`](./PRIVATE-COMPOSER-PACKAGES.md) 与 [`DEPLOY-CHECKLIST.md`](./DEPLOY-CHECKLIST.md)。
+
+---
+
+## `test-pull.sh`
+
+测试服固定入口，仅设置 `DEPLOY_BRANCH=dev` 与 `DEPLOY_COMPOSER_PROFILE=test`，然后执行
+`pull.sh --latest`。Host 与 `composer.test.json` manifest 中的私包都追各自 `dev` 分支；
+Git、Composer、publish、cache、迁移告警和退出码仍只有 pull.sh 一套实现。
+
+```bash
+sudo sh test-pull.sh
+```
+
+首次没有 `engine/composer.test.lock` 时完整解析一次并生成独立 lock；后续保留该 lock，仅更新 manifest
+私包。脚本不会每次删除 lock，也不会每次全量重装公共依赖。`composer.test.lock` 是测试服务器运行态文件，
+由 `.gitignore` 排除。
 
 ---
 
@@ -138,7 +155,7 @@ sh opcache.sh HEAD~3..HEAD    # 自定义提交范围
 ## `release-check.sh`
 
 **功能**：发布门禁，任一步失败即非零退出。检查项：全部 `*.sh` 语法（`sh -n` / `bash -n` 按 shebang 分流）+
-`db-yaml-drift-probe.php` 与初始化器 `php -l` → 两套 Composer manifest `validate` + 当前本地依赖 `audit` →
+`db-yaml-drift-probe.php` 与初始化器 `php -l` → 本地/测试/生产三套 Composer manifest `validate` + 当前本地依赖 `audit` →
 `composer dump-autoload --classmap-authoritative` → `php artisan about` / `route:list` → `composer test`（全量测试）→
 `git diff --check`（改动无空白错误）。
 

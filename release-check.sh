@@ -7,7 +7,7 @@
 #
 # 检查项：
 #   1) 所有 *.sh 语法（sh -n / bash -n 按 shebang 分流）+ db-yaml-drift-probe.php php -l
-#   2) 开发 / 生产 composer manifest 校验
+#   2) 本地 / 测试 / 生产 composer manifest 校验
 #   3) 当前本地 lock / 已安装依赖审计
 #   4) composer dump-autoload --classmap-authoritative（autoload 完整性）
 #   5) php artisan about / route:list（能 boot + 路由无异常）
@@ -23,7 +23,7 @@ cd "$ROOT"
 
 # ---- 1) 脚本语法 --------------------------------------------------------
 # sh -n 一次只解析第一个位置参数（其余当 $1/$2），必须逐个跑。
-for s in init-project pull.sh cache.sh backup.sh opcache.sh fixJob.sh release-check.sh tools/_common.sh; do
+for s in init-project pull.sh test-pull.sh cache.sh backup.sh opcache.sh fixJob.sh release-check.sh tools/_common.sh; do
     [ -f "$s" ] && sh -n "$s"
 done
 # bash 专用脚本（含进程替换 / local 等 bashism）用 bash -n。
@@ -36,6 +36,7 @@ fi
 # ---- 2~6) composer / artisan ------------------------------------------
 cd "$ENGINE"
 composer validate --no-check-publish composer.json
+COMPOSER=composer.test.json composer validate --no-check-publish
 COMPOSER=composer.production.json composer validate --no-check-publish
 if [ -f composer.lock ]; then
     composer audit --locked
