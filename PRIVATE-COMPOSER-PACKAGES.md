@@ -29,7 +29,7 @@
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
 | `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包可用 `path`（联调）或 `vcs` | 改包源码两边实时可见 |
-| `composer.test.json` | 测试服务器 | `vcs`；manifest 私包使用 `dev-dev as x.y.99` | Host 与私包统一验证 `dev` 最新内容 |
+| `composer.test.json` | 测试服务器 | `vcs`；manifest 私包直接使用包侧 branch alias 支撑的 `dev-dev` | Host 与私包统一验证 `dev` 最新内容 |
 | `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
