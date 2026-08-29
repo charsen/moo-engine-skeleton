@@ -279,7 +279,7 @@ if (! $keepTutorial) {
 writeProjectReadme($root . '/README.md', $appName, $description, $scaffoldUser, $appUrl, $profile, $trackAccounts);
 writeEngineReadme($engine . '/README.md', $appName, $description);
 writeClaudeGuide($root . '/CLAUDE.md', $appName, $description, $profile, $trackAccounts);
-writeNotes($root . '/notes.md', $appName, $projectName, $keepDemo, $profile);
+writeNotes($root . '/NOTES.md', $appName, $projectName, $keepDemo, $profile);
 
 file_put_contents($marker, json_encode([
     'project'          => $projectName,
