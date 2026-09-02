@@ -18,6 +18,7 @@
 #   - user_exists <name|uid>                    : id 检查
 #   - acquire_lock <file> <名>                  : flock 单实例锁（无 flock 则 WARN 跳过）
 #   - is_production                             : .env APP_ENV 判定（带 cache + 引号兼容）
+#   - current_app_env                           : .env APP_ENV 字面值（判定失败时的诊断信息）
 #
 # 副作用（source 时自动执行）：
 #   - PATH guard: prepend /usr/local/php/bin 等 PHP 路径（如未在 PATH 中）
@@ -121,6 +122,34 @@ is_production() {
     fi
     _IS_PRODUCTION_CACHE=1
     return 1
+}
+
+# ---- APP_ENV 字面值（纯诊断，不参与任何判定）-----------------------------
+# is_production 只回答"是不是 production"，判 false 时运维看不到究竟读到了什么。
+# 最容易踩的是 `APP_ENV=production # 生产` —— 人眼看着完全正常，但上面那条 regex
+# 要求值后面只能跟空白，带注释就不匹配，于是整场部署静默走 dev 分支（composer.json
+# 不切 production、install 少 --no-dev、私包 symlink 校验被跳过）。把字面值打出来，
+# 让"读到的"和"以为的"能当场对上。
+# 不用 grep -m1（BSD/GNU 之外的实现未必有），统一 grep + head -1。
+current_app_env() {
+    if [ "${PRODUCTION:-0}" = "1" ]; then
+        printf '%s' 'production（由 PRODUCTION=1 强制，未读 .env）'
+        return 0
+    fi
+    if [ -z "${ENGINE_DIR:-}" ]; then
+        printf '%s' '<ENGINE_DIR 未就位>'
+        return 0
+    fi
+    if [ ! -f "${ENGINE_DIR}/.env" ]; then
+        printf '%s' '<.env 不存在>'
+        return 0
+    fi
+    _app_env_line=$(grep -E '^APP_ENV=' "${ENGINE_DIR}/.env" 2>/dev/null | head -1)
+    if [ -z "$_app_env_line" ]; then
+        printf '%s' '<.env 里没有 APP_ENV>'
+        return 0
+    fi
+    printf '%s' "${_app_env_line#APP_ENV=}"
 }
 
 # ---- PATH 守卫（source 时自动执行，纯副作用）-----------------------------

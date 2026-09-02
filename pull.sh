@@ -454,8 +454,13 @@ elif is_production; then
         success "⚙️  composer.json 切换为 production（旧版备份到 composer.json.pull-bak）"
     fi
 else
-    info "非生产环境（.env APP_ENV ≠ production），保持当前 composer.json"
-    info "本地开发 path repo + symlink 不动"
+    # 提到 WARN 而不是 INFO：APP_ENV 判错时只有本步骤是响亮的（path repo 不存在会让
+    # Composer 直接炸），其余分支全是静默走错 —— install/update 少 --no-dev、Step 5.5
+    # 的私包 symlink 形态校验被跳过（symlink 反而被当成正常打 success）。把实际读到的
+    # APP_ENV 字面值一起打出来，`APP_ENV=production # 生产` 这类不匹配当场就能看出来。
+    warn "按开发 profile 部署：.env 的 APP_ENV 读到 [$(current_app_env)]，不等于 production"
+    warn "  → composer.json 保持本地 path repo（vendor 走 ../../moo-* 软链）；install/update 不加 --no-dev；私包 symlink 形态校验被跳过"
+    warn "  生产机 → .env 改成 APP_ENV=production（值后面不要跟注释）再重跑；测试服 → 改用 test-pull.sh"
 fi
 
 # Step 5 失败时回滚 Step 4 的切换，避免留下半切的生产 manifest。
