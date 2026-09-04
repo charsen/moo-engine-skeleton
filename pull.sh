@@ -472,6 +472,23 @@ rollback_composer_on_fail() {
     fi
 }
 
+# vendor/composer 是 Composer 的临时下载/解压区。这里失败后 vendor 已不可信，不能在原目录
+# 上继续 update/install；保持维护模式、确认无并发 Composer，再清掉可重建的 vendor 并串行重跑。
+abort_vendor_filesystem_failure() {
+    rollback_composer_on_fail
+    error "Composer 在 vendor/composer 临时目录解压或清理失败；这不是依赖约束冲突，不使用 -W 重试"
+    info "保持维护模式并确认没有其他 composer / pull.sh 进程后执行："
+    info "  rm -rf -- $ENGINE_DIR/vendor"
+    info "  COMPOSER_MAX_PARALLEL_PROCESSES=1 COMPOSER_MAX_PARALLEL_HTTP=1 sh pull.sh <原版本参数>"
+    exit 3
+}
+
+abort_if_vendor_filesystem_failure() {
+    if [ "$(composer_failure_kind "$1")" = "vendor-filesystem" ]; then
+        abort_vendor_filesystem_failure
+    fi
+}
+
 # ---- Step 4.5: 清掉 Laravel 编译缓存（防 post-autoload-dump 启动 artisan 时撞死类引用）----
 # 背景：删某 Listener 后，生产机 bootstrap/cache/events.php 仍持旧映射，Step 5 composer
 # install 的 post-autoload-dump 钩子跑 artisan config:clear 时，artisan 启动解析死类映射 →
@@ -546,35 +563,46 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
         # shellcheck disable=SC2086
         if ! rescue_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags 2>&1); then
             printf '%s\n' "$rescue_out"
-            case "$rescue_out" in
-                *"lock file version"*|*"with-all-dependencies"*|*"conflicts with"*)
-                    # 私包收紧了对 lock 内依赖的 require/conflict（如 moo-system 安全驱动要求 framework ≥12.61.1、
-                    # conflict guzzle <7.12.1）→ 带 -W 重试一次，私包声明什么就解什么（含 root 依赖），
-                    # 上界仍受 host composer.json 约束（不跨大版本）。收紧约束的私包 commit 即升级 review。
+            case "$(composer_failure_kind "$rescue_out")" in
+                vendor-filesystem)
+                    abort_vendor_filesystem_failure
+                    ;;
+                dependency-lock)
                     warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
                     # shellcheck disable=SC2086
-                    $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $rescue_flags || {
+                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $rescue_flags 2>&1); then
+                        printf '%s\n' "$rescue_retry_out"
+                        abort_if_vendor_filesystem_failure "$rescue_retry_out"
                         rollback_composer_on_fail
                         error "vendor 救援 update 失败（带 -W 重试后仍失败）— 需人工调和依赖约束"
                         info "手动调和："
                         info "  composer update $PRIVATE_PKG_NAMES --with-all-dependencies $rescue_flags"
                         exit 3
-                    }
+                    else
+                        printf '%s\n' "$rescue_retry_out"
+                    fi
                     ;;
-                *)
-                    # 私包历史被改写 force-push 后旧 vendor checkout 分叉 → getUnpushedChanges 无 merge-base 崩。
-                    # 删私包 vendor 逼全新克隆（跳过 getUnpushedChanges），再重试一次。详见 purge_private_vendor 注释。
-                    warn "私包 update 失败 — 疑似旧 vendor checkout 历史分叉（no merge base）→ 删私包 vendor 全新克隆重试一次"
+                no-merge-base)
+                    warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
                     purge_private_vendor
                     # shellcheck disable=SC2086
-                    $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags || {
+                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags 2>&1); then
+                        printf '%s\n' "$rescue_retry_out"
+                        abort_if_vendor_filesystem_failure "$rescue_retry_out"
                         rollback_composer_on_fail
                         error "vendor 救援 update 失败（删私包 vendor 重试后仍失败）— 可能 SSH key 没配 / 私包没权限 / 网络不通"
                         info "手动调和："
                         info "  rm -rf vendor/charsen && composer update $PRIVATE_PKG_NAMES $rescue_flags"
                         info "  composer install $rescue_flags"
                         exit 3
-                    }
+                    else
+                        printf '%s\n' "$rescue_retry_out"
+                    fi
+                    ;;
+                *)
+                    rollback_composer_on_fail
+                    error "vendor 救援 update 失败: $PRIVATE_PKG_NAMES"
+                    exit 3
                     ;;
             esac
         fi
@@ -582,19 +610,39 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
         info "（无 composer.lock → 跳过 partial update，直接 install 重新解析依赖 + 生成 lock）"
     fi
     # 全量 install：有 lock 按 lock 装齐；无 lock 等同 update，按 composer.json 解析 + 生成新 lock。
-    # 无 lock 分支下这是首个碰私包克隆的命令，历史分叉的 no-merge-base 会在这里首次触发 → 同样删私包 vendor 重试。
+    # 只有输出明确含 no merge base 才清私包 vendor；其他失败保留现场，避免网络或文件系统错误
+    # 被误判后破坏原本健康的私包目录。
     # shellcheck disable=SC2086
-    if ! $COMPOSER_RUNNER install $rescue_flags; then
-        warn "私包 install 失败 — 疑似旧 vendor checkout 历史分叉（no merge base）→ 删私包 vendor 全新克隆重试一次"
-        purge_private_vendor
-        # shellcheck disable=SC2086
-        $COMPOSER_RUNNER install $rescue_flags || {
-            rollback_composer_on_fail
-            error "vendor 救援 install 失败（删私包 vendor 重试后仍失败）— 可能 SSH key 没配 / 私包没权限 / 网络不通"
-            info "手动调和："
-            info "  rm -rf vendor/charsen && composer install $rescue_flags"
-            exit 3
-        }
+    if ! rescue_install_out=$($COMPOSER_RUNNER install $rescue_flags 2>&1); then
+        printf '%s\n' "$rescue_install_out"
+        case "$(composer_failure_kind "$rescue_install_out")" in
+            vendor-filesystem)
+                abort_vendor_filesystem_failure
+                ;;
+            no-merge-base)
+                warn "私包 install 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+                purge_private_vendor
+                # shellcheck disable=SC2086
+                if ! rescue_install_retry_out=$($COMPOSER_RUNNER install $rescue_flags 2>&1); then
+                    printf '%s\n' "$rescue_install_retry_out"
+                    abort_if_vendor_filesystem_failure "$rescue_install_retry_out"
+                    rollback_composer_on_fail
+                    error "vendor 救援 install 失败（删私包 vendor 重试后仍失败）— 可能 SSH key 没配 / 私包没权限 / 网络不通"
+                    info "手动调和："
+                    info "  rm -rf vendor/charsen && composer install $rescue_flags"
+                    exit 3
+                else
+                    printf '%s\n' "$rescue_install_retry_out"
+                fi
+                ;;
+            *)
+                rollback_composer_on_fail
+                error "vendor 救援 install 失败；输出不含 no merge base，保留私包 vendor 现场"
+                exit 3
+                ;;
+        esac
+    else
+        printf '%s\n' "$rescue_install_out"
     fi
     # 清 bootstrap/cache 防 stale provider 列表（如 dev 依赖已 --no-dev 删但 cache 仍引用）
     find bootstrap/cache -maxdepth 1 -name "*.php" -delete 2>/dev/null || true
@@ -604,12 +652,19 @@ fi
 # 首次部署 / vendor 完全不存在：跑完整 install
 if [ ! -f "vendor/autoload.php" ]; then
     info "vendor/ 不存在，跑 composer install"
+    install_flags="--optimize-autoloader"
     if is_production; then
-        # shellcheck disable=SC2086
-        $COMPOSER_RUNNER install --no-dev --optimize-autoloader || { rollback_composer_on_fail; error "composer install 失败"; exit 3; }
+        install_flags="--no-dev $install_flags"
+    fi
+    # shellcheck disable=SC2086
+    if ! install_out=$($COMPOSER_RUNNER install $install_flags 2>&1); then
+        printf '%s\n' "$install_out"
+        abort_if_vendor_filesystem_failure "$install_out"
+        rollback_composer_on_fail
+        error "composer install 失败"
+        exit 3
     else
-        # shellcheck disable=SC2086
-        $COMPOSER_RUNNER install --optimize-autoloader || { rollback_composer_on_fail; error "composer install 失败"; exit 3; }
+        printf '%s\n' "$install_out"
     fi
     success "📦 首次 composer install 完成"
 fi
@@ -638,12 +693,23 @@ if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ] && [ ! -f "$DEPLOY_COMPOSER_LOCK" ]; 
     # shellcheck disable=SC2086
     if ! update_out=$($COMPOSER_RUNNER update $update_flags 2>&1); then
         printf '%s\n' "$update_out"
-        case "$update_out" in
-            *"no merge base"*)
+        case "$(composer_failure_kind "$update_out")" in
+            vendor-filesystem)
+                abort_vendor_filesystem_failure
+                ;;
+            no-merge-base)
                 warn "首次 profile update 失败 — 旧私包 vendor 历史分叉 → 删私包 vendor 后重试"
                 purge_private_vendor
                 # shellcheck disable=SC2086
-                $COMPOSER_RUNNER update $update_flags || { rollback_composer_on_fail; error "首次 Composer profile 解析失败"; exit 3; }
+                if ! update_retry_out=$($COMPOSER_RUNNER update $update_flags 2>&1); then
+                    printf '%s\n' "$update_retry_out"
+                    abort_if_vendor_filesystem_failure "$update_retry_out"
+                    rollback_composer_on_fail
+                    error "首次 Composer profile 解析失败"
+                    exit 3
+                else
+                    printf '%s\n' "$update_retry_out"
+                fi
                 ;;
             *)
                 rollback_composer_on_fail
@@ -658,20 +724,36 @@ else
     # shellcheck disable=SC2086
     if ! update_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
         printf '%s\n' "$update_out"
-        case "$update_out" in
-            *"no merge base"*)
+        case "$(composer_failure_kind "$update_out")" in
+            vendor-filesystem)
+                abort_vendor_filesystem_failure
+                ;;
+            no-merge-base)
                 warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
                 purge_private_vendor
                 # shellcheck disable=SC2086
-                $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（删私包 vendor 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
+                if ! update_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
+                    printf '%s\n' "$update_retry_out"
+                    abort_if_vendor_filesystem_failure "$update_retry_out"
+                    rollback_composer_on_fail
+                    error "composer update 私包失败（删私包 vendor 重试后仍失败）: $PRIVATE_PKG_NAMES"
+                    exit 3
+                else
+                    printf '%s\n' "$update_retry_out"
+                fi
                 ;;
-            *"lock file version"*|*"with-all-dependencies"*|*"conflicts with"*)
-                # 私包收紧了对 lock 内依赖的 require/conflict（如 moo-system 安全驱动要求 framework ≥12.61.1、
-                # conflict guzzle <7.12.1）→ 带 -W 重试一次，私包声明什么就解什么（含 root 依赖），
-                # 上界仍受 host composer.json 约束（不跨大版本）。收紧约束的私包 commit 即升级 review。
+            dependency-lock)
                 warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
                 # shellcheck disable=SC2086
-                $COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $update_flags || { rollback_composer_on_fail; error "composer update 私包失败（带 -W 重试后仍失败）: $PRIVATE_PKG_NAMES"; exit 3; }
+                if ! update_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $update_flags 2>&1); then
+                    printf '%s\n' "$update_retry_out"
+                    abort_if_vendor_filesystem_failure "$update_retry_out"
+                    rollback_composer_on_fail
+                    error "composer update 私包失败（带 -W 重试后仍失败）: $PRIVATE_PKG_NAMES"
+                    exit 3
+                else
+                    printf '%s\n' "$update_retry_out"
+                fi
                 ;;
             *)
                 rollback_composer_on_fail
