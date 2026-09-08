@@ -1,3 +1,8 @@
+---
+title: 第 2 章 安装 moo-scaffold，生成 foods 表的业务代码
+group: 后端骨架教程
+order: 30
+---
 # 第 2 章　安装 moo-scaffold，生成 foods 表的业务代码
 
 目标：安装 `moo-scaffold`，设计 `foods` 表，生成 CRUD，并完成接口验证。
