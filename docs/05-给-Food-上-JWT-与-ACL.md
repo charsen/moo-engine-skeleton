@@ -1,3 +1,8 @@
+---
+title: 第 5 章 给 Food 上 JWT 与 ACL（动作级授权）
+group: 后端骨架教程
+order: 60
+---
 # 第 5 章　给 Food 上 JWT 与 ACL（动作级授权）
 
 目标：为 Food 接口加入 JWT 和动作级 ACL，验证 `401 → 403 → 授权 → 200`。

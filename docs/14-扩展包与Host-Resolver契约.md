@@ -1,3 +1,8 @@
+---
+title: 第 14 章 扩展包与 Host 的 Resolver 契约
+group: 后端骨架教程
+order: 150
+---
 # 第 14 章　扩展包与 Host 的 Resolver 契约
 
 目标：让扩展包保持独立，同时由 Host 组合自己的人员、组织或业务目录能力。本文以“把 `creator_id/updater_id` 显示为姓名”为例，演示典型 resolver 接入。

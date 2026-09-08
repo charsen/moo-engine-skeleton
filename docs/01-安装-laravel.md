@@ -1,3 +1,8 @@
+---
+title: 第 1 章 安装 Laravel 12
+group: 后端骨架教程
+order: 20
+---
 # 第 1 章　安装 Laravel 12
 
 目标：在 `engine/` 子目录里创建一个 Laravel 12 应用，接入 Pint 统一代码格式，

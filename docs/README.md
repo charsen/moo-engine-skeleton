@@ -1,3 +1,8 @@
+---
+title: 后端骨架从零搭建教程
+group: 后端骨架教程
+order: 10
+---
 # moo-engine-skeleton 从 0 开始搭建教程
 
 这套教程从空目录开始，搭建一个带代码生成、JWT 登录、ACL 和系统管理能力的
