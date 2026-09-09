@@ -37,7 +37,9 @@ interface OperatorNameResolver
 
 ## 14.3 moo-system 提供组织目录
 
-`OrgDirectory` 是 moo-system 对外统一的组织目录只读契约，覆盖人员、部门与岗位查询：
+`OrgDirectory` 从 moo-system **1.6.38** 起提供，是对外统一的组织目录只读契约，覆盖人员、部门与岗位查询。采用本章示例时，生产依赖下限须为 `charsen/moo-system: ^1.6.38`（参考 `engine/composer.production.json`）；升级已有项目时同步替换旧接口注入点，不保留兼容别名。
+
+查询示例：
 
 ```php
 use Mooeen\System\Contracts\OrgDirectory;
