@@ -19,6 +19,7 @@
 #   - acquire_lock <file> <名>                  : flock 单实例锁（无 flock 则 WARN 跳过）
 #   - is_production                             : .env APP_ENV 判定（带 cache + 引号兼容）
 #   - current_app_env                           : .env APP_ENV 字面值（判定失败时的诊断信息）
+#   - composer_failure_kind <完整输出>           : Composer 失败分类（不执行重试或清理）
 #
 # 副作用（source 时自动执行）：
 #   - PATH guard: prepend /usr/local/php/bin 等 PHP 路径（如未在 PATH 中）
@@ -150,6 +151,27 @@ current_app_env() {
         return 0
     fi
     printf '%s' "${_app_env_line#APP_ENV=}"
+}
+
+# ---- Composer 失败分类（纯函数）------------------------------------------
+# Composer 失败后会输出完整命令帮助，其中固定含 --with-all-dependencies；裸匹配
+# 选项名会把文件系统、网络等任意错误误判成依赖冲突。这里只识别明确错误句，具体
+# 重试、回滚和清理动作仍由 pull.sh 根据命令所处阶段决定。
+composer_failure_kind() {
+    case "$1" in
+        *"Could not delete "*"vendor/composer/"*|*"DirectoryNotFoundException"*"vendor/composer/"*)
+            printf '%s' 'vendor-filesystem'
+            ;;
+        *"no merge base"*)
+            printf '%s' 'no-merge-base'
+            ;;
+        *"lock file version"*|*"Use the option --with-all-dependencies"*|*"conflicts with your root composer.json require"*)
+            printf '%s' 'dependency-lock'
+            ;;
+        *)
+            printf '%s' 'other'
+            ;;
+    esac
 }
 
 # ---- PATH 守卫（source 时自动执行，纯副作用）-----------------------------
