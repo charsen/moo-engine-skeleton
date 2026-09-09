@@ -251,7 +251,7 @@ moo-engine-skeleton/
 | [第 11 章 操作人身份契约](./docs/11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义与扩展包接入 |
 | [第 12 章 从骨架起手新项目](./docs/12-从骨架起手新项目.md) | 方式 A 正式版：`./init-project` 自动完成改名、密钥、依赖、ACL、样例清理、验证与独立 Git 历史 |
 | [第 13 章 moo-feedback 用例](./docs/13-moo-feedback-扩展包用例.md) | 匿名提交、host 分类目录、扩展包一致命名契约、独立后台认证组与 401/403 验收 |
-| [第 14 章 扩展包与 Host Resolver](./docs/14-扩展包与Host-Resolver契约.md) | 包自持窄契约、moo-system 人员目录、Host 合一实现与兼容验证 |
+| [第 14 章 扩展包与 Host Resolver](./docs/14-扩展包与Host-Resolver契约.md) | 包自持窄契约、moo-system 组织目录、Host 合一实现与升级验证 |
 
 教程目录页还附了一张**「踩过的坑」速查表**（31 条新手高频问题）：[docs/README.md](./docs/README.md)。
 

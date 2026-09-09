@@ -104,7 +104,7 @@ moo-engine-skeleton/
 | [第 11 章 操作人契约](./11-操作人身份契约.md) | 统一操作人身份来源 | 进阶 |
 | [第 12 章 从骨架起项目](./12-从骨架起手新项目.md) | 使用初始化器快速开工 | 实用 |
 | [第 13 章 moo-feedback 用例](./13-moo-feedback-扩展包用例.md) | 匿名提交与独立后台认证组 | 实用 |
-| [第 14 章 扩展包与 Host Resolver](./14-扩展包与Host-Resolver契约.md) | 包自持契约、moo-system 人员目录与 Host 胶水组合 | 进阶 |
+| [第 14 章 扩展包与 Host Resolver](./14-扩展包与Host-Resolver契约.md) | 包自持契约、moo-system 组织目录与 Host 胶水组合 | 进阶 |
 
 > moo-scaffold 和 moo-monitor-laravel 从 Packagist 安装。moo-system 与其上传基础依赖 moo-upload
 > 通过私有源授权安装；前 6 章不依赖这两个私包。
