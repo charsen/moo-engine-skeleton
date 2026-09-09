@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Symfony\Component\Process\Process;
+
 function deploymentComposerProfile(string $file): array
 {
     return json_decode(
@@ -35,6 +37,23 @@ function localPrivateConstraint(string $name): string
         'charsen/moo-attachment', 'charsen/moo-richtext' => '^0.2@dev',
         default                                          => '^0.1@dev',
     };
+}
+
+function classifyComposerFailure(string $output): string
+{
+    $repository = dirname(__DIR__, 4);
+    $process    = new Process([
+        'sh',
+        '-c',
+        '. "$1"; composer_failure_kind "$2"',
+        'composer-classifier',
+        $repository . '/tools/_common.sh',
+        $output,
+    ]);
+
+    $process->mustRun();
+
+    return $process->getOutput();
 }
 
 test('三套 Composer profile 对 manifest 私包使用互斥且完整的来源策略', function () {
@@ -95,6 +114,28 @@ test('测试部署入口只选择 profile 并复用 pull 主体', function () {
         ->toContain('unset COMPOSER')
         ->toContain('env COMPOSER=composer.test.json composer')
         ->toContain('if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ] && [ ! -f "$DEPLOY_COMPOSER_LOCK" ]; then');
+});
+
+test('Composer 失败分类不会把通用命令帮助误判成依赖冲突', function () {
+    $repository = dirname(__DIR__, 4);
+    $pull       = file_get_contents($repository . '/pull.sh');
+
+    expect(classifyComposerFailure("Could not delete /srv/app/vendor/composer/abc/Monolog\nupdate [--with-all-dependencies]"))
+        ->toBe('vendor-filesystem')
+        ->and(classifyComposerFailure('DirectoryNotFoundException: /srv/app/vendor/composer/abc does not exist'))
+        ->toBe('vendor-filesystem')
+        ->and(classifyComposerFailure('Use the option --with-all-dependencies (-W) to allow upgrades'))
+        ->toBe('dependency-lock')
+        ->and(classifyComposerFailure('installation was aborted by another package operation'))
+        ->toBe('other')
+        ->and(classifyComposerFailure("network failed\nupdate [--with-all-dependencies]"))
+        ->toBe('other')
+        ->and(classifyComposerFailure('fatal: no merge base'))
+        ->toBe('no-merge-base')
+        ->and($pull)
+        ->toContain('case "$(composer_failure_kind "$rescue_install_out")" in')
+        ->not->toContain('*"with-all-dependencies"*')
+        ->toContain('COMPOSER_MAX_PARALLEL_PROCESSES=1 COMPOSER_MAX_PARALLEL_HTTP=1');
 });
 
 test('骨架初始化与发布门禁同时维护测试 profile', function () {
