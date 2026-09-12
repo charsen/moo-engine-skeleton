@@ -6,13 +6,14 @@
 >
 > | 包 | 定位 | 当前来源 | 目标来源 |
 > | --- | --- | --- | --- |
-> | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | Packagist | Packagist |
-> | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | Packagist | Packagist |
+> | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | 按 manifest 私包接线（本地 `path` / 测试生产 Gitee VCS） | **保持** manifest 私包接线 |
+> | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | 按 manifest 私包接线（本地 `path` / 测试生产 Gitee VCS） | **保持** manifest 私包接线 |
 > | `charsen/moo-system` | **私有业务包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 > | `charsen/moo-upload` | **私有基础包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 >
-> 换句话说：开源包不需要任何 VCS 配置，`moo-system` 与 `moo-upload` 长期走 deploy key VCS——
-> 本文档 §4 的 deploy key 流程对它长期有效。
+> `charsen/moo-scaffold` 与 `charsen/moo-monitor-laravel` 的源码虽然是 MIT 开源，但本仓与其它 host 一致，
+> 把它们按 manifest 私包接入三份 `repositories` 与 `extra.moo-private-packages`；本地 `path` symlink 仍可在 App 内联联调。
+> 4 个包中 `moo-system` 与 `moo-upload` 是闭源授权包，长期走 deploy key VCS——本文档 §4 的 deploy key 流程对它长期有效。
 
 ## 1. 解决什么问题
 
@@ -28,21 +29,21 @@
 
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
-| `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包可用 `path`（联调）或 `vcs` | 改包源码两边实时可见 |
+| `composer.json` | 本地开发（默认） | 4 个 manifest 私包用 sibling `path`（`../../moo-*`，`symlink`）；`moo-feedback` 直接走 Packagist | 改包源码即时可见 |
 | `composer.test.json` | 测试服务器 | `vcs`；manifest 私包直接使用包侧 branch alias 支撑的 `dev-dev` | Host 与私包统一验证 `dev` 最新内容 |
 | `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
 
 ```jsonc
-// composer.json —— 本地
+// composer.json —— 本地（以 system / upload 两个包示意，实际 4 个 manifest 私包同形）
 "repositories": {
-  "system": { "type": "path", "url": "../moo-system" },
-  "upload": { "type": "path", "url": "../moo-upload" }
+  "system": { "type": "path", "url": "../../moo-system", "options": { "symlink": true, "versions": { "charsen/moo-system": "1.6.x-dev" } } },
+  "upload": { "type": "path", "url": "../../moo-upload", "options": { "symlink": true, "versions": { "charsen/moo-upload": "0.1.x-dev" } } }
 },
 "require": {
-  "charsen/moo-system": "^1.6.28",
-  "charsen/moo-upload": "^0.1.3"
+  "charsen/moo-system": "^1.6@dev",
+  "charsen/moo-upload": "^0.1@dev"
 }
 ```
 
@@ -58,13 +59,31 @@
 }
 ```
 
-> **骨架当前口径**：开源包直接走 Packagist 正式版本；`repositories` 保留私有 `moo-system` 与 `moo-upload`。
-> 若本地要改私包源码，可把 `composer.json` 对应仓库临时改成 `path`；测试与生产 profile 均保持 VCS。
+> **骨架当前口径**：4 个 manifest 私包（`moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload`）都进三份 `repositories` 与 `extra.moo-private-packages`；`charsen/moo-feedback`（`^0.1`）仍是 MIT 公开包，直接走 Packagist 正式版本。
+> 骨架本地 `composer.json` 即用 sibling `path`（`url` 为 `../../moo-scaffold` / `../../moo-monitor-laravel` / `../../moo-system` / `../../moo-upload`，`options.symlink: true`）联调；测试与生产 profile 均保持 VCS。
 > `composer.test.json` 只允许 manifest 私包版本约束与 production 分流，其余 require、repositories、scripts、extra 等配置保持一致。
 
 **pull.sh 的私包 manifest** 从当前选择的 VCS profile 的 `extra."moo-private-packages"` 读（字段
 `name` / `repo-key` / `provider-rel` / `publish-tag`），URL 从 `repositories.<repo-key>.url` 关联。
-加/减私包时同时维护 test/production 两份 manifest；一致性测试会阻止漂移。
+加/减私包时同时维护三份 manifest（本地 `composer.json`、测试 `composer.test.json`、生产 `composer.production.json`）；一致性测试会阻止漂移。
+
+**本仓 manifest 私包清单**（`extra.moo-private-packages` 三份一致；`repositories` 按环境只差 `type` 与 URL）：
+
+<!-- BEGIN moo-manifest-table -->
+| name | repo-key | provider-rel | publish-tag | 本地约束 | 测试约束 | 生产约束 | 仓库 URL |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.1@dev | dev-dev | ^2.1.7 | git@gitee.com:charsen/moo-scaffold.git |
+| charsen/moo-monitor-laravel | monitor | src/MonitorProvider.php | — | ^0.1@dev | dev-dev | ^0.1 | git@gitee.com:charsen/moo-monitor-laravel.git |
+| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6@dev | dev-dev | ^1.6.38 | git@gitee.com:charsen/moo-system.git |
+| charsen/moo-upload | upload | src/MooeenUploadServiceProvider.php | — | ^0.1@dev | dev-dev | ^0.1.3 | git@gitee.com:charsen/moo-upload.git |
+
+| name | 本地约束 | 测试约束 | 生产约束 | 是否有 repository |
+| --- | --- | --- | --- | --- |
+| charsen/moo-feedback | ^0.1 | ^0.1 | ^0.1 | 否 |
+<!-- END moo-manifest-table -->
+
+`charsen/moo-scaffold` 的 `publish-tag` 是 `"public"`：`pull.sh` Step 5.5 会对它执行 `vendor:publish --tag=public --force`，
+刷新 `engine/public/vendor/scaffold`。`charsen/moo-feedback`（`^0.1`）是 MIT 公开包，走 Packagist，不在本清单内。
 
 ## 3. deploy 流程：用 `pull.sh` 而非 `cache.sh`
 
@@ -114,7 +133,8 @@ composer install --no-dev --optimize-autoloader
 
 ## 4. deploy key 生成与配置（私有包长期需要，一次性配）
 
-`moo-system` 与 `moo-upload` 从私有 Gitee 仓库分发，生产 box 必须有能读取两个仓库的 SSH deploy key。
+`moo-system` 与 `moo-upload` 从私有 Gitee 仓库分发，生产 box 必须有能读取这两个仓库的 SSH deploy key；
+`moo-scaffold` 与 `moo-monitor-laravel` 同样走 Gitee VCS，其仓库可读性要求以实际仓库权限为准（仓库若为公开则不额外需要 deploy key）。
 
 ### 4.1 生产 box 生成 deploy key
 
@@ -155,14 +175,14 @@ ssh -T git@gitee.com
 
 ✅ SSH 通了 → pull.sh Step 3 的私包权限验证会通过，`composer install` 走 SSH 自动用这把 key。
 
-> 骨架 `composer.production.json` 保留 `moo-system` 与 `moo-upload` 两条私有仓库 URL。
+> 骨架 `composer.production.json` 的 4 条 manifest 私包 URL 里，`moo-system` 与 `moo-upload` 指向私有仓库。
 > 生产建议统一使用 SSH URL，这样 deploy key 才会生效；
 > 此时 pull.sh Step 3 的 `ssh -T git@gitee.com` 联通检查即前置门禁。
 
 ## 5. 日常迭代
 
 - **改包源码**：在包自己的 repo 改 → commit → `git push`（推到 Gitee = 更新分发源）。本地 `path` 仓库
-  的 host 项目 symlink 即时可见；本地 `vcs`（dev-master）的下次 `composer update` 拉到。
+  的 host 项目 symlink 即时可见；测试/生产 `vcs` 的下次 `composer update` 拉到。
 - **生产拉新版**：下次 `sudo sh pull.sh`，Step 5 `composer update <私包>` 自动拉 caret 范围内最新。
 - **打 tag 发版**：包侧 `git tag 2.1.4 && git push origin 2.1.4`，下游 `^2.1` 自动接受新 `2.x.x`，
   不用改 production.json；主版本升级（`^3.0`）才手动改 require + commit + deploy。
@@ -181,8 +201,9 @@ ssh -T git@gitee.com
 - vendor 是 symlink 吗？`readlink engine/vendor/charsen/moo-scaffold` 应指向你的 path 源
 - 不是 → `rm -rf engine/vendor/charsen/moo-scaffold && composer update charsen/moo-scaffold --no-scripts`
 
-**Q4：composer.lock 锁了 dev-master 跟新 require caret 不一致**
-- 手动 `composer update <私包> --no-dev --optimize-autoloader --no-scripts` 一次，之后 pull.sh 走正常 update
+**Q4：`composer.lock` 里锁着的私包来源/版本与新的 `require` 不一致**
+- 本地现行 profile 是 sibling `path` + `^x.y@dev`；历史 lock 里残留的 VCS（例如 `dev-master`）条目不会自动消失。测试/生产也会遇到 lock 生成时的约束与当前 `require` 不同。
+- 不要跑全量 `composer update`（会把公共依赖顺带升级），只手动 `composer update <私包> --no-dev --optimize-autoloader --no-scripts` 一次，之后 pull.sh 走正常 update；本地确认无需保留该 lock 时，删掉后让 Composer 按当前 profile 重新解析同样有效。
 
 ## 7. 首次生产部署踩坑归纳
 

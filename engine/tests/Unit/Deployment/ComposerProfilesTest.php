@@ -2,42 +2,8 @@
 
 declare(strict_types=1);
 
+use Mooeen\Scaffold\Testing\ComposerProfiles;
 use Symfony\Component\Process\Process;
-
-function deploymentComposerProfile(string $file): array
-{
-    return json_decode(
-        file_get_contents(dirname(__DIR__, 3) . '/' . $file),
-        true,
-        512,
-        JSON_THROW_ON_ERROR,
-    );
-}
-
-function withoutManifestPackages(array $requires, array $names): array
-{
-    return array_diff_key($requires, array_fill_keys($names, true));
-}
-
-function privateDevelopmentVersion(string $name): string
-{
-    return match ($name) {
-        'charsen/moo-scaffold'                           => '2.x-dev',
-        'charsen/moo-system'                             => '1.6.x-dev',
-        'charsen/moo-attachment', 'charsen/moo-richtext' => '0.2.x-dev',
-        default                                          => '0.1.x-dev',
-    };
-}
-
-function localPrivateConstraint(string $name): string
-{
-    return match ($name) {
-        'charsen/moo-scaffold'                           => '^2.1@dev',
-        'charsen/moo-system'                             => '^1.6@dev',
-        'charsen/moo-attachment', 'charsen/moo-richtext' => '^0.2@dev',
-        default                                          => '^0.1@dev',
-    };
-}
 
 function classifyComposerFailure(string $output): string
 {
@@ -56,43 +22,8 @@ function classifyComposerFailure(string $output): string
     return $process->getOutput();
 }
 
-test('三套 Composer profile 对 manifest 私包使用互斥且完整的来源策略', function () {
-    $local      = deploymentComposerProfile('composer.json');
-    $production = deploymentComposerProfile('composer.production.json');
-    $test       = deploymentComposerProfile('composer.test.json');
-    $manifest   = $production['extra']['moo-private-packages'];
-    $names      = array_column($manifest, 'name');
-
-    $productionCommon = $production;
-    $testCommon       = $test;
-    unset($productionCommon['require'], $testCommon['require']);
-
-    expect($testCommon)->toBe($productionCommon)
-        ->and($local['extra']['moo-private-packages'])->toBe($manifest)
-        ->and($test['extra']['moo-private-packages'])->toBe($manifest)
-        ->and(withoutManifestPackages($test['require'], $names))
-        ->toBe(withoutManifestPackages($production['require'], $names));
-
-    foreach ($manifest as $package) {
-        $name             = $package['name'];
-        $repoKey          = $package['repo-key'];
-        $packageDirectory = substr($name, strlen('charsen/'));
-
-        expect($local['require'][$name])->toBe(localPrivateConstraint($name))
-            ->and($local['repositories'][$repoKey]['type'])->toBe('path')
-            ->and($local['repositories'][$repoKey]['url'])->toBe('../../' . $packageDirectory)
-            ->and($local['repositories'][$repoKey]['options']['symlink'])->toBeTrue()
-            ->and($local['repositories'][$repoKey]['options']['versions'][$name])
-            ->toBe(privateDevelopmentVersion($name))
-            ->and($test['require'][$name])->toBe('dev-dev')
-            ->and($test['repositories'][$repoKey]['type'])->toBe('vcs')
-            ->and($production['repositories'][$repoKey]['type'])->toBe('vcs')
-            ->and($test['repositories'][$repoKey]['url'])
-            ->toBe($production['repositories'][$repoKey]['url'])
-            ->and($production['require'][$name])->not->toContain('dev')
-            ->and($production['require'][$name])->not->toContain('@')
-            ->and($production['require'][$name])->not->toContain(' as ');
-    }
+test('三份 Composer manifest 私包来源策略与依赖基线一致', function () {
+    expect(ComposerProfiles::problems(dirname(__DIR__, 4)))->toBe([]);
 });
 
 test('测试部署入口只选择 profile 并复用 pull 主体', function () {

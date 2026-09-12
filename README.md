@@ -66,7 +66,7 @@ cd orders
 composer create-project "laravel/laravel:^12.0" engine
 
 # 第 2 章：接入 moo-scaffold 代码生成器
-# （开源包；按正式版本约束从 Packagist 安装）
+# （MIT 开源包；按 manifest 私包接线接入）
 
 # 第 3~6 章：JWT 认证 + ACL + 双守卫
 # 第 7 章：接入 moo-system（可选）
@@ -88,9 +88,10 @@ php -S 127.0.0.1:9999
 
 ## 配套包（必读）
 
-本骨架依赖作者的另外几个包。`moo-scaffold`、`moo-monitor-laravel` 是开源包，
-目标通过 **Packagist** 直接安装；私有 `moo-system` 及其上传基础依赖 `moo-upload` 必须通过 Composer
-授权仓库接入。正式使用不要求 clone 到同级目录；本仓本地联调可用 path repository。
+本骨架依赖作者的另外几个包。4 个 manifest 私包（`moo-scaffold`、`moo-monitor-laravel`、
+`moo-system`、`moo-upload`）统一按 manifest 私包接线：本地用 sibling `path` 联调，测试 / 生产用
+Gitee `vcs` 授权仓库解析（见 [`PRIVATE-COMPOSER-PACKAGES.md`](./PRIVATE-COMPOSER-PACKAGES.md)）。
+只有 MIT 公开包 `charsen/moo-feedback` 直接走 Packagist。正式使用不要求 clone 到同级目录。
 
 **访问前提**：
 
@@ -98,24 +99,26 @@ php -S 127.0.0.1:9999
 # 克隆本仓库
 git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
-# 第 7 章需要 moo-system 与 moo-upload 两个私有仓库的访问权。
+# 第 7 章需要 moo-system 与 moo-upload 的访问权；4 个 manifest 私包
+# （scaffold / monitor / system / upload）都在 Gitee VCS 清单里。
 ```
 
 | 包 | 定位 | 是否必装 | 说明 |
 |---|---|---|---|
-| `moo-scaffold` | 开源（MIT，发布到 Packagist） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
+| `moo-scaffold` | 开源（MIT，manifest 私包接线） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
 | `moo-system` | 进阶 / 私有包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
 | `moo-upload` | 私有基础包 | 随 moo-system 接入 | purpose 约束上传、引用消费与清理；Host 配独立安全组 |
-| `moo-monitor-laravel` | 开源（MIT） | **必装** | 监控采集 SDK（教程第 1.7 节显式接入） |
+| `moo-monitor-laravel` | 开源（MIT，manifest 私包接线） | **必装** | 监控采集 SDK（教程第 1.7 节显式接入） |
 | `moo-feedback` | 开源（MIT，发布到 Packagist） | 示例内置 | 意见反馈扩展包；第 13 章演示公开提交与独立后台认证组 |
 
 **为什么还要配置 VCS 仓库？**
 
-开源包发布到 Packagist 且目标版本可解析后，不需要额外 `repositories` 配置。
-`moo-system` 与 `moo-upload` 都不在 Packagist 公开分发，接入第 7 章时需要在
-`composer.json` 的 `repositories` 分别声明两个授权仓库；Composer 不继承依赖包自己的仓库配置。
+4 个 manifest 私包都不由 Packagist 解析，需要在三份 manifest 的 `repositories` 里声明 Gitee `vcs`
+仓库（本地 profile 用 sibling `path`）；Composer 不继承依赖包自己的仓库配置。
+只有 `moo-feedback` 是 Packagist 公开包，不需要额外 `repositories` 配置。
 
-> 本仓库口径：开源包统一使用正式版本约束安装；`moo-system` 与 `moo-upload` 使用授权私有源。
+> 本仓库口径：4 个 manifest 私包统一按三份 manifest 接线（本地 path、测试/生产 VCS），
+> `moo-feedback` 走 Packagist 正式版本。
 
 ---
 
@@ -160,7 +163,7 @@ cd orders
   --fresh-git
 ```
 
-初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和两份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
+初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和三份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
 
 纯官网后端再加 `--profile=website`；该 profile 不包含移动端 User 模型、`/app` 路由或 user guard。受控私有仓如果确认要同步 Scaffold 调试账号的 bcrypt 文件，再显式加 `--track-scaffold-accounts`。
 
@@ -216,7 +219,7 @@ Laravel 应用放在 **`engine/`**（与作者其它项目的目录约定一致�
 ```
 moo-engine-skeleton/
 ├── README.md                # 本文，仓库入口
-├── HANDOFF.md               # 换机/交接速查（Packagist + Moo 私有 VCS + 初始化清单）
+├── HANDOFF.md               # 换机/交接速查（三份 manifest / 私包 VCS + 初始化清单）
 ├── overview.md              # 立项说明
 ├── CLAUDE.md                # AI 协作约定
 ├── .github/workflows/       # CI：GitHub Actions 自动跑 php artisan test
@@ -245,7 +248,7 @@ moo-engine-skeleton/
 | [第 5 章 给 Food 上 JWT 与 ACL](./docs/05-给-Food-上-JWT-与-ACL.md) | 动作级授权完整闭环：401→403→授权→200（User actions 最小实现） |
 | [第 6 章 移动端分片与 user 守卫](./docs/06-移动端分片与-user-守卫.md) | 守卫隔离、无宽限 token 轮换 |
 | [第 7 章 安装 moo-system（进阶）](./docs/07-安装-moo-system.md) | 完整系统管理：host 契约、主体切换 User→Personnel、角色授权、操作日志、调试器联调 |
-| [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | Composer / Packagist 部署、Redis、nginx、supervisor、清缓存坑 |
+| [第 8 章 部署上线（可选）](./docs/08-部署上线.md) | Composer / manifest 私包部署、Redis、nginx、supervisor、清缓存坑 |
 | [第 9 章 日常增量开发：改表与加接口](./docs/09-增量开发工作流.md) | 加字段（增量迁移）、「自动覆盖 vs 手动补」边界、`moo:adder` 自定义 action、ACL/文档/测试同步、专属 Resource 链式字段控制 |
 | [第 10 章 云端监控进阶](./docs/10-云端监控进阶.md) | 聚合告警、AI 辅助处理、MCP 与多项目管理 |
 | [第 11 章 操作人身份契约](./docs/11-操作人身份契约.md) | host 单点身份来源、共享 HasOperator、null 语义与扩展包接入 |
