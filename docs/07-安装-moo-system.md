@@ -37,8 +37,9 @@ git ls-remote git@gitee.com:charsen/moo-upload.git
 
 没有访问权，下面的 `composer update` 第一步就会失败（Composer 拉不到 VCS 仓库）。
 
-把 `system` 仓库加进 `engine/composer.json` 的 `repositories`。下面片段只示意要**新增**
-`system` 与 `upload` 两项；开源包保持正式版本约束安装，私有包使用授权 VCS：
+把 `system` 仓库加进 `engine/composer.json` 的 `repositories`。下面片段只示意本章要**新增**
+`system` 与 `upload` 两项；4 个 manifest 私包（含第 1.7 / 2 章接入的 scaffold、monitor）统一按
+manifest 接线——本地 `path`，测试 / 生产 Gitee `vcs`：
 
 ```json
 "require": {

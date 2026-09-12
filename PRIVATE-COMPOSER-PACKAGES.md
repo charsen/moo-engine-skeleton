@@ -29,21 +29,21 @@
 
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
-| `composer.json` | 本地开发（默认） | 开源包走 Packagist；私有包用 sibling `path`（`../../moo-*`，`symlink`） | 改包源码即时可见 |
+| `composer.json` | 本地开发（默认） | 4 个 manifest 私包用 sibling `path`（`../../moo-*`，`symlink`）；`moo-feedback` 直接走 Packagist | 改包源码即时可见 |
 | `composer.test.json` | 测试服务器 | `vcs`；manifest 私包直接使用包侧 branch alias 支撑的 `dev-dev` | Host 与私包统一验证 `dev` 最新内容 |
 | `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
 
 ```jsonc
-// composer.json —— 本地
+// composer.json —— 本地（以 system / upload 两个包示意，实际 4 个 manifest 私包同形）
 "repositories": {
-  "system": { "type": "path", "url": "../moo-system" },
-  "upload": { "type": "path", "url": "../moo-upload" }
+  "system": { "type": "path", "url": "../../moo-system", "options": { "symlink": true, "versions": { "charsen/moo-system": "1.6.x-dev" } } },
+  "upload": { "type": "path", "url": "../../moo-upload", "options": { "symlink": true, "versions": { "charsen/moo-upload": "0.1.x-dev" } } }
 },
 "require": {
-  "charsen/moo-system": "^1.6.28",
-  "charsen/moo-upload": "^0.1.3"
+  "charsen/moo-system": "^1.6@dev",
+  "charsen/moo-upload": "^0.1@dev"
 }
 ```
 
@@ -69,12 +69,18 @@
 
 **本仓 manifest 私包清单**（`extra.moo-private-packages` 三份一致；`repositories` 按环境只差 `type` 与 URL）：
 
-| 包 | `repo-key` | `provider-rel` | `publish-tag` | 本地约束 / `versions` | 测试约束 | 生产约束 | 仓库 URL（本地 / 测试 = 生产） |
+<!-- BEGIN moo-manifest-table -->
+| name | repo-key | provider-rel | publish-tag | 本地约束 | 测试约束 | 生产约束 | 仓库 URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `charsen/moo-scaffold` | `scaffold` | `src/ScaffoldProvider.php` | `"public"` | `^2.1@dev` / `2.x-dev` | `dev-dev` | `^2.1.7` | `../../moo-scaffold` / `git@gitee.com:charsen/moo-scaffold.git` |
-| `charsen/moo-monitor-laravel` | `monitor` | `src/MonitorProvider.php` | `null` | `^0.1@dev` / `0.1.x-dev` | `dev-dev` | `^0.1` | `../../moo-monitor-laravel` / `git@gitee.com:charsen/moo-monitor-laravel.git` |
-| `charsen/moo-system` | `system` | `src/MooeenSystemServiceProvider.php` | `null` | `^1.6@dev` / `1.6.x-dev` | `dev-dev` | `^1.6.38` | `../../moo-system` / `git@gitee.com:charsen/moo-system.git` |
-| `charsen/moo-upload` | `upload` | `src/MooeenUploadServiceProvider.php` | `null` | `^0.1@dev` / `0.1.x-dev` | `dev-dev` | `^0.1.3` | `../../moo-upload` / `git@gitee.com:charsen/moo-upload.git` |
+| charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.1@dev | dev-dev | ^2.1.7 | git@gitee.com:charsen/moo-scaffold.git |
+| charsen/moo-monitor-laravel | monitor | src/MonitorProvider.php | — | ^0.1@dev | dev-dev | ^0.1 | git@gitee.com:charsen/moo-monitor-laravel.git |
+| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6@dev | dev-dev | ^1.6.38 | git@gitee.com:charsen/moo-system.git |
+| charsen/moo-upload | upload | src/MooeenUploadServiceProvider.php | — | ^0.1@dev | dev-dev | ^0.1.3 | git@gitee.com:charsen/moo-upload.git |
+
+| name | 本地约束 | 测试约束 | 生产约束 | 是否有 repository |
+| --- | --- | --- | --- | --- |
+| charsen/moo-feedback | ^0.1 | ^0.1 | ^0.1 | 否 |
+<!-- END moo-manifest-table -->
 
 `charsen/moo-scaffold` 的 `publish-tag` 是 `"public"`：`pull.sh` Step 5.5 会对它执行 `vendor:publish --tag=public --force`，
 刷新 `engine/public/vendor/scaffold`。`charsen/moo-feedback`（`^0.1`）是 MIT 公开包，走 Packagist，不在本清单内。
@@ -176,7 +182,7 @@ ssh -T git@gitee.com
 ## 5. 日常迭代
 
 - **改包源码**：在包自己的 repo 改 → commit → `git push`（推到 Gitee = 更新分发源）。本地 `path` 仓库
-  的 host 项目 symlink 即时可见；本地 `vcs`（dev-master）的下次 `composer update` 拉到。
+  的 host 项目 symlink 即时可见；测试/生产 `vcs` 的下次 `composer update` 拉到。
 - **生产拉新版**：下次 `sudo sh pull.sh`，Step 5 `composer update <私包>` 自动拉 caret 范围内最新。
 - **打 tag 发版**：包侧 `git tag 2.1.4 && git push origin 2.1.4`，下游 `^2.1` 自动接受新 `2.x.x`，
   不用改 production.json；主版本升级（`^3.0`）才手动改 require + commit + deploy。
@@ -195,8 +201,9 @@ ssh -T git@gitee.com
 - vendor 是 symlink 吗？`readlink engine/vendor/charsen/moo-scaffold` 应指向你的 path 源
 - 不是 → `rm -rf engine/vendor/charsen/moo-scaffold && composer update charsen/moo-scaffold --no-scripts`
 
-**Q4：composer.lock 锁了 dev-master 跟新 require caret 不一致**
-- 手动 `composer update <私包> --no-dev --optimize-autoloader --no-scripts` 一次，之后 pull.sh 走正常 update
+**Q4：`composer.lock` 里锁着的私包来源/版本与新的 `require` 不一致**
+- 本地现行 profile 是 sibling `path` + `^x.y@dev`；历史 lock 里残留的 VCS（例如 `dev-master`）条目不会自动消失。测试/生产也会遇到 lock 生成时的约束与当前 `require` 不同。
+- 不要跑全量 `composer update`（会把公共依赖顺带升级），只手动 `composer update <私包> --no-dev --optimize-autoloader --no-scripts` 一次，之后 pull.sh 走正常 update；本地确认无需保留该 lock 时，删掉后让 Composer 按当前 profile 重新解析同样有效。
 
 ## 7. 首次生产部署踩坑归纳
 
