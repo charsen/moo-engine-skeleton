@@ -11,8 +11,8 @@
     "require": {
         "php": "^8.2",
         "charsen/moo-feedback": "^0.1",
-        "charsen/moo-monitor-laravel": "^0.1",
-        "charsen/moo-scaffold": "^2.1.7",
+        "charsen/moo-monitor-laravel": "^0.1@dev",
+        "charsen/moo-scaffold": "^2.1@dev",
         "charsen/moo-system": "^1.6@dev",
         "charsen/moo-upload": "^0.1@dev",
         "ext-fileinfo": "*",
@@ -24,6 +24,26 @@
         "tucker-eric/eloquentfilter": "^3.5"
     },
     "repositories": {
+        "scaffold": {
+            "type": "path",
+            "url": "../../moo-scaffold",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "charsen/moo-scaffold": "2.x-dev"
+                }
+            }
+        },
+        "monitor": {
+            "type": "path",
+            "url": "../../moo-monitor-laravel",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "charsen/moo-monitor-laravel": "0.1.x-dev"
+                }
+            }
+        },
         "system": {
             "type": "path",
             "url": "../../moo-system",
@@ -118,6 +138,18 @@
             "dont-discover": []
         },
         "moo-private-packages": [
+            {
+                "name": "charsen/moo-scaffold",
+                "repo-key": "scaffold",
+                "provider-rel": "src/ScaffoldProvider.php",
+                "publish-tag": "public"
+            },
+            {
+                "name": "charsen/moo-monitor-laravel",
+                "repo-key": "monitor",
+                "provider-rel": "src/MonitorProvider.php",
+                "publish-tag": null
+            },
             {
                 "name": "charsen/moo-system",
                 "repo-key": "system",
