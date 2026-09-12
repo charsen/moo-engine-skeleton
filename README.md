@@ -160,7 +160,7 @@ cd orders
   --fresh-git
 ```
 
-初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和两份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
+初始化器结束前会执行 `moo-system check`、全量测试、迁移状态、路由清单和三份 Composer 校验；任一步失败都会非零退出。默认移除 Food 和教程历史，生成项目自己的 README、CLAUDE 与首个 Git 提交。
 
 纯官网后端再加 `--profile=website`；该 profile 不包含移动端 User 模型、`/app` 路由或 user guard。受控私有仓如果确认要同步 Scaffold 调试账号的 bcrypt 文件，再显式加 `--track-scaffold-accounts`。
 
