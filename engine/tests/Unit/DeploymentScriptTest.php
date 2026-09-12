@@ -96,7 +96,7 @@ class DeploymentScriptTest extends TestCase
 
         self::assertIsString($pull);
         $checkout = strpos($pull, 'success "🌐 主仓代码已更新"');
-        $manifest = strpos($pull, 'PRIVATE_PKGS_MANIFEST=$(jq');
+        $manifest = strpos($pull, 'PRIVATE_PKGS_MANIFEST=$(private_packages_manifest');
         self::assertIsInt($checkout);
         self::assertIsInt($manifest);
         self::assertGreaterThan($checkout, $manifest, '私包清单必须读取切换后的目标版本');

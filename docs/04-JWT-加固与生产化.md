@@ -379,8 +379,11 @@ grep '^DB_CONNECTION=' .env .env.example
 }
 ```
 
-> scaffold / monitor 直接从 Packagist 解析，因此不需要它们的 `repositories`。
-> 第 7 章加入私有 moo-system 与 moo-upload 时，才会增加对应的授权仓库。
+> 上面是第 4 章时间点的局部快照，还没有 `repositories` 段。完成态骨架里
+> `moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload` 都是 manifest 私包，
+> 三份 profile 各自的 `repositories` 都声明对应的 Gitee `vcs` 仓库（本地 profile 用 sibling `path`）；
+> 只有 `charsen/moo-feedback` 走 Packagist、不需要 `repositories`。第 7 章会把 system / upload
+> 继续加入依赖与私包清单。
 
 校验生产 manifest，并用 dry-run 确认依赖约束可解析：
 

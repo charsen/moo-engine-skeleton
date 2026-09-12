@@ -98,7 +98,7 @@ moo-engine-skeleton/
 | [第 5 章 Food ACL](./05-给-Food-上-JWT-与-ACL.md) | 动作级授权闭环 | 核心 |
 | [第 6 章 移动端守卫](./06-移动端分片与-user-守卫.md) | 分片接口与守卫隔离 | 核心 |
 | [第 7 章 安装 moo-system](./07-安装-moo-system.md) | 人员、角色、部门与操作日志 | 进阶 |
-| [第 8 章 部署上线](./08-部署上线.md) | Composer / Packagist 部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
+| [第 8 章 部署上线](./08-部署上线.md) | Composer / manifest 私包部署、Redis（雪花/黑名单）、nginx、supervisor、清缓存致 token 复活的坑 | 可选 |
 | [第 9 章 日常增量开发](./09-增量开发工作流.md) | 改表、加动作、分片和 Resource | 进阶 |
 | [第 10 章 云端监控](./10-云端监控进阶.md) | 聚合告警、MCP 与迁移 | 进阶 |
 | [第 11 章 操作人契约](./11-操作人身份契约.md) | 统一操作人身份来源 | 进阶 |
@@ -106,8 +106,9 @@ moo-engine-skeleton/
 | [第 13 章 moo-feedback 用例](./13-moo-feedback-扩展包用例.md) | 匿名提交与独立后台认证组 | 实用 |
 | [第 14 章 扩展包与 Host Resolver](./14-扩展包与Host-Resolver契约.md) | 包自持契约、moo-system 组织目录与 Host 胶水组合 | 进阶 |
 
-> moo-scaffold 和 moo-monitor-laravel 从 Packagist 安装。moo-system 与其上传基础依赖 moo-upload
-> 通过私有源授权安装；前 6 章不依赖这两个私包。
+> 本骨架的 4 个 manifest 私包 `moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload`
+> 统一按 manifest 私包接线（本地 sibling `path`，测试 / 生产 Gitee `vcs`）；`charsen/moo-feedback`
+> 走 Packagist。前 6 章不依赖 moo-system / moo-upload。
 
 ## 踩过的坑速查
 
