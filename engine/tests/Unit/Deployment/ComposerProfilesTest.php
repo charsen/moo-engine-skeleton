@@ -150,3 +150,23 @@ test('骨架初始化与发布门禁同时维护测试 profile', function () {
         ->toContain('test-pull.sh')
         ->toContain('COMPOSER=composer.test.json composer validate');
 });
+
+test('三份 manifest 的非 Moo 运行时依赖基线一致', function () {
+    $local      = deploymentComposerProfile('composer.json');
+    $test       = deploymentComposerProfile('composer.test.json');
+    $production = deploymentComposerProfile('composer.production.json');
+
+    // 只比非 Moo 键：公开包在本地合法使用 @dev 约束、生产用稳定约束；require-dev 允许本地多开发工具。
+    $nonMoo = function (array $profile): array {
+        $names = array_values(array_filter(
+            array_keys($profile['require']),
+            static fn (string $name): bool => ! str_starts_with($name, 'charsen/')
+        ));
+        sort($names);
+
+        return $names;
+    };
+
+    expect($nonMoo($local))->toBe($nonMoo($test))
+        ->and($nonMoo($local))->toBe($nonMoo($production));
+});
