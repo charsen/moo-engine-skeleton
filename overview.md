@@ -16,7 +16,7 @@
 
 **教学路线设计**：第 1~6 章零付费依赖（JWT 用自建最简 User 独立教学）；第 7 章接入商业包 moo-system 为可选进阶；第 8~9 章覆盖部署上线与增量开发工作流——这使骨架同时满足开源教学与商业交付两种场景。
 
-> **跑通前的硬前置**（只读本篇容易忽略）：`moo-scaffold`、`moo-monitor-laravel` 是开源包，目标发布到 Packagist；`moo-system` 与 `moo-upload` 是私有包，必须通过 VCS 授权分发。只克隆本仓库但没有两个私有仓库权限时，完成态的 `composer install` 会失败（完整环境步骤见 `HANDOFF.md` §1~3 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要私有包，不等于完成态零前置。
+> **跑通前的硬前置**（只读本篇容易忽略）：4 个 manifest 私包（`moo-scaffold`、`moo-monitor-laravel`、`moo-system`、`moo-upload`）统一按三份 manifest 接线——本地 profile 用 sibling `path`，需要把包仓放在仓库同级目录；测试 / 生产服务器则要能读取对应的 Gitee `vcs` 仓库。只有 `charsen/moo-feedback` 走 Packagist。缺这些同级目录或仓库权限时，完成态的 `composer install` 会失败（完整环境步骤见 `HANDOFF.md` §1~3 与根 `README.md`「快速开始」）。"零付费依赖"指第 1~6 章不需要私有包，不等于完成态零前置。
 
 ## 二、技术栈与运行环境
 
@@ -25,7 +25,7 @@
 | 框架 | Laravel 12（PHP 8.2+） | 应用本体位于 `engine/` 子目录，与生态内其它项目一致。当前 lock 已按 PHP 8.2 可安装版本解析 |
 | 数据库 | MariaDB 12 / MySQL 8 | 实测均可；骨架库名 `moo_skeleton` |
 | 认证 | php-open-source-saver/jwt-auth ^2.8 | tymon/jwt-auth 的维护分支，composer 直接依赖 |
-| 代码生成 | charsen/moo-scaffold（**开源 MIT**，当前 VCS 过渡，目标 Packagist） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
+| 代码生成 | charsen/moo-scaffold（**开源 MIT**，manifest 私包接线） | 运行时也依赖其基类、路由宏和调试台资源，不应放入 `require-dev` |
 | 系统管理 | charsen/moo-system（**私有包**，可选） | 部门/岗位/人员/角色/授权等 8 个开箱模块；头像上传依赖私有 moo-upload |
 | 主键 | 雪花算法字符串主键 | JSON 输出转字符串，规避 JS 53 位精度溢出 |
 | 测试 | Pest 3 + PHPUnit 11，`php artisan test` 64 passed / 230 assertions | Feature 14 个文件 + Unit 2 个，覆盖双守卫认证、ACL、移动端全链路、增量开发回归、监控采集与上传端点 |
@@ -68,7 +68,7 @@ Laravel 12 标准工程加生态约定的固化。
 | `AppServiceProvider` 双时机注册 | `register()` 注册 `Route::iResource` 宏（须早于包路由加载）；`boot()` 把 JWT 别名与 admin/user/moo-system 三个中间件组注册到 router（保证 console 内核可见） |
 | `Route::iResource` 宏 | 替代 `Route::resource`：额外提供 PUT 更新、批量删除 `destroyBatch`、回收站 `/trashed`（先于 `/{id}` 注册）、恢复 `restore`、`DELETE /forever/{id}` 永久删除；且**用反射检查控制器，action 真实存在且为 public 才注册对应路由**，杜绝"幻影路由"（声明了却 404 的路由） |
 | 通用 Model Traits | `UsingSnowFlakePrimaryKey`（雪花字符串主键）、`HasOperator`（操作人追踪）、`BaseFilter`（query string → 查询条件） |
-| moo-* 包接入 | `moo-scaffold` / `moo-monitor-laravel` 走 Packagist；私有 `moo-system` 与 `moo-upload` 走授权源，Host 为每个管理包配置独立安全组 |
+| moo-* 包接入 | 4 个 manifest 私包（`moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload`）统一按三份 manifest 接线（本地 sibling `path`、测试 / 生产 Gitee `vcs`）；`moo-feedback` 走 Packagist，Host 为每个管理包配置独立安全组 |
 
 ### 模块 2：代码生成器接入（moo-scaffold）
 
@@ -187,11 +187,11 @@ YAML 驱动的开发期代码生成器与开发 UI，骨架已完成全部接入
 
 十二章全部搭建完成并经真机验证；仓库同时保留教程参考态与可由 `init-project` 导出的干净业务起点。
 
-**从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：当前过渡期 composer 能读取三个 moo-* VCS 仓库，见第一节硬前置）：
+**从克隆到能登录**（完整步骤见根 `README.md`「快速开始」与 `HANDOFF.md` §2~3，此处为最简链路；前提：当前 profile 能解析 4 个 manifest 私包——本地为 sibling `path`，见第一节硬前置）：
 
 ```bash
 cd engine/
-composer install                  # 开源包走 Packagist；moo-system / moo-upload 走授权私有源
+composer install                  # 4 个 manifest 私包按当前 profile 解析（本地 sibling path、测试/生产 Gitee vcs）；moo-feedback 走 Packagist
 cp .env.example .env              # 已预设 QUEUE_CONNECTION=sync 等
 php artisan key:generate
 php artisan jwt:secret --force

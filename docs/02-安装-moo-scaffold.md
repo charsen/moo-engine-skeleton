@@ -11,16 +11,23 @@ order: 30
 
 ---
 
-## 2.1 接入 moo-scaffold：开源包（正式版本）
+## 2.1 接入 moo-scaffold：MIT 开源包，按 manifest 私包接线
 
-`moo-scaffold` 是运行时依赖，不要加 `--dev`。在 `engine/` 目录直接安装稳定版本：
+`moo-scaffold` 是运行时依赖，不要加 `--dev`。本骨架与其它 host 一致，把它与
+`moo-monitor-laravel`、`moo-system`、`moo-upload` 一起登记进三份 manifest 的
+`repositories` 与 `extra.moo-private-packages`：本地 `composer.json` 用 sibling `path`
+（`../../moo-scaffold` + `options.symlink: true`）配合 `^2.1@dev`，测试 / 生产用 Gitee `vcs`
+（`git@gitee.com:charsen/moo-scaffold.git`）分别配 `dev-dev` 与稳定 semver。
+
+在 `engine/` 目录安装（本仓库 clone 后依赖已声明，直接安装即可；从零跟做时先按
+[`PRIVATE-COMPOSER-PACKAGES.md`](../PRIVATE-COMPOSER-PACKAGES.md) §2 把 scaffold 的仓库声明补齐）：
 
 ```bash
-composer require "charsen/moo-scaffold:^2.1.7"
+composer require "charsen/moo-scaffold:^2.1@dev"   # 本地 path profile；生产用稳定约束 ^2.1.7
 php artisan list | grep moo     # 看到 moo:init / moo:free / moo:api 等命令即成功
 ```
 
-Composer 会更新 `composer.json` 和 lock；已安装的 monitor 兼容时直接复用，
+Composer 会更新 `composer.json` 和当前环境的 lock；已安装的 monitor 兼容时直接复用，
 版本偏低时会自动升级。
 
 `moo:free` 会生成 Pest 测试，先安装测试依赖：
@@ -425,7 +432,7 @@ curl -s "http://127.0.0.1:8088/api/admin/food?page=1&page_limit=10" -H "Accept: 
 
 ## 本章产出
 
-- `moo-scaffold` 以正式版本约束方式接入，`php artisan list | grep moo`
+- `moo-scaffold` 按 manifest 私包接线接入（本地 sibling `path` + `^2.1@dev`，测试 / 生产 Gitee `vcs`），`php artisan list | grep moo`
   能列出 `moo:init` / `moo:free` / `moo:api` 等命令；
 - 一张 `foods` 表从 YAML 设计到全套业务代码、迁移落库；
 - 接口用 curl 和内置调试器两种方式真机验证通过（HTTP 200）。

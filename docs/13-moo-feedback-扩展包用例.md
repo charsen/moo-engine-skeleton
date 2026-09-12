@@ -15,7 +15,7 @@ order: 140
 - 默认分类在 `app/Moo/Feedback/AppFeedbackTypes.php`，真实项目直接替换成自己的业务口径。
 - 教学默认不保存访客 IP、设备、浏览器和页面地址；需要采集时先完成隐私评审，再按字段开启。
 
-包已同时写入 `engine/composer.json` 与 `engine/composer.production.json`，从 Packagist 使用正式版本约束安装，不需要额外 VCS 仓库。
+包已写入三份 manifest（`engine/composer.json`、`engine/composer.test.json`、`engine/composer.production.json`），作为 MIT 公开包从 Packagist 使用正式版本约束安装，不需要额外 VCS 仓库，也不进 `extra.moo-private-packages`。
 
 如果你走的是“从零跟教程搭”而不是直接使用本骨架，先在自己的 Laravel 根目录执行：
 
@@ -33,7 +33,7 @@ php artisan moo:auth admin
 
 `config/actions.php` 是再生成区。骨架里的 moo-system 个人中心白名单属于 host 手动策略，重生 ACL 后要按第 7 章恢复并运行 `FoodAclTest`，不能为了加入 Feedback 而让原有个人中心变成 403。
 
-接入其它家族扩展包时也按同一张清单核对：开发与生产 Composer manifest 都声明依赖；私包还要在两边的 `repositories` 和 `extra.moo-private-packages` 同时登记，公开 Packagist 包则不要伪装成私包；有 Host 契约覆盖时把 `App\Moo\<Package>` Provider 注册到 `bootstrap/providers.php`；有后台控制器时登记 `extra_modules` 并配置独立完整认证组。不要仅因相邻项目使用某个包，就把它加入骨架。
+接入其它家族扩展包时也按同一张清单核对：三份 Composer manifest 都声明依赖；私包还要在三份的 `repositories` 和 `extra.moo-private-packages` 同时登记（本地 profile 的 sibling `path` 仅用于联调，不代表测试 / 生产来源）；公开 Packagist 包则不要伪装成私包；有 Host 契约覆盖时把 `App\Moo\<Package>` Provider 注册到 `bootstrap/providers.php`；有后台控制器时登记 `extra_modules` 并配置独立完整认证组。不要仅因相邻项目使用某个包，就把它加入骨架。
 
 扩展包使用 `moo-upload` 时，purpose 和消费 verifier 应由真正拥有消费模型的一侧 Provider 注册：包模型由包 Provider 注册，Host 自有模型才放进 `App\Moo\Upload`。骨架当前只有 moo-system 人员头像用途，因此没有复制生产项目的 Host 图片模型或消费器。生产还必须运行 Laravel scheduler；骨架已每日执行 `moo-upload:prune --execute`，失败时可先用 `php artisan moo-upload:audit-consumed --show-identifiers` 只读归因。
 
