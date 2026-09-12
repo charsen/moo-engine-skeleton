@@ -61,6 +61,17 @@ fi
 # shellcheck source=tools/_common.sh
 . "$SCRIPT_DIR/tools/_common.sh"
 
+# 加载私包共享库（Step 2.9 manifest 解析 / Step 3b ls-remote 权限预检 / Step 5.5 publish 副本刷新）。
+# 显式存在性检查与上面 tools/_common.sh 同款：缺则早报，免得跑到 Step 2.9 才因 "No such file" 崩。
+if [ ! -f "$SCRIPT_DIR/tools/_lib/private-packages.sh" ]; then
+    printf '%s\n' "❌ [ERROR] $SCRIPT_DIR/tools/_lib/private-packages.sh 缺失" >&2
+    printf '%s\n' "    私包 manifest / 权限预检 / publish 共用此库，缺则 pull 主流程无法运行。" >&2
+    printf '%s\n' "    确认 git pull 已拉到最新（tools/_lib/private-packages.sh 入 git）+ 部署时带上 tools/ 整目录。" >&2
+    exit 1
+fi
+# shellcheck source=tools/_lib/private-packages.sh
+. "$SCRIPT_DIR/tools/_lib/private-packages.sh"
+
 # ---- 默认（环境变量优先级低于命令行参数）-------------------------------
 PRODUCTION=${PRODUCTION:-0}
 FORCE_RESET=${FORCE_RESET:-0}
@@ -378,7 +389,7 @@ if [ ! -f "$DEPLOY_COMPOSER_JSON" ]; then
     exit 1
 fi
 
-PRIVATE_PKGS_MANIFEST=$(jq -r '. as $root | .extra."moo-private-packages" // [] | .[] | [.name, ."repo-key", ."provider-rel", (.["publish-tag"] // ""), ($root.repositories[."repo-key"].url // "")] | join("|")' "$DEPLOY_COMPOSER_JSON" 2>/dev/null)
+PRIVATE_PKGS_MANIFEST=$(private_packages_manifest "$DEPLOY_COMPOSER_JSON")
 if [ -z "$PRIVATE_PKGS_MANIFEST" ]; then
     error ".extra.\"moo-private-packages\" 缺失或为空 — 无法识别私包列表"
     info "在 composer.production.json 加形如："
@@ -386,14 +397,14 @@ if [ -z "$PRIVATE_PKGS_MANIFEST" ]; then
     exit 1
 fi
 
-missing_url_pkgs=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '$5==""{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+missing_url_pkgs=$(private_packages_missing_urls "$PRIVATE_PKGS_MANIFEST")
 if [ -n "$missing_url_pkgs" ]; then
     error "无法从 composer.production.json 解析 repositories.<repo-key>.url（对应: ${missing_url_pkgs}）"
     exit 1
 fi
 
-PRIVATE_PKG_NAMES=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | awk -F'|' '{print $1}' | tr '\n' ' ' | sed 's/[[:space:]]*$//')
-PRIVATE_PKG_COUNT=$(printf '%s\n' "$PRIVATE_PKGS_MANIFEST" | grep -c .)
+PRIVATE_PKG_NAMES=$(private_packages_names "$PRIVATE_PKGS_MANIFEST")
+PRIVATE_PKG_COUNT=$(private_packages_count "$PRIVATE_PKGS_MANIFEST")
 info "私包 manifest 已解析（${PRIVATE_PKG_COUNT} 个：${PRIVATE_PKG_NAMES}）"
 
 # ---- Step 3: 验证私包拉取权限 -------------------------------------------
@@ -415,7 +426,7 @@ else
             pkg_ref="refs/heads/dev"
             pkg_ref_label="dev"
         fi
-        if ! pkg_head_line=$(git ls-remote "$pkg_url" "$pkg_ref" 2>/dev/null) || [ -z "$pkg_head_line" ]; then
+        if ! pkg_head_line=$(private_package_ls_remote "$pkg_url" "$pkg_ref"); then
             error "对 ${pkg_name} 私包无读权限: $pkg_url"
             info "可能原因："
             info "  - 仓库不存在，或当前凭据没有读取权限"
@@ -779,23 +790,11 @@ section "📤 Step 5.5: 同步私包 publish 副本"
 # set -e 下 `var=$(cmd)` 命令替换失败会直接中止脚本（POSIX sh 无 pipefail，`if X|tail` 判的是
 # tail 的 exit code、X 失败彻底静默）。把赋值放进 if 条件豁免 set -e，失败走 else 而非中止。
 PUBLISH_FAILED=0
-while IFS='|' read -r pkg_name _ _ publish_tag _; do
-    [ -z "$pkg_name" ] && continue
-    if [ -z "$publish_tag" ]; then
-        info "📤 ${pkg_name} 无 publish-tag，跳"
-        continue
-    fi
-    if publish_output=$(php artisan vendor:publish --tag="$publish_tag" --force 2>&1); then
-        success "📤 ${pkg_name} publish 副本已刷"
-    else
-        PUBLISH_FAILED=1
-        warn "📤 ${pkg_name} vendor:publish 失败，前端资源可能是旧版"
-        warn "完整输出："
-        printf '%s\n' "$publish_output" >&2
-    fi
-done <<EOF
-$PRIVATE_PKGS_MANIFEST
-EOF
+# 逐包 publish 交给 tools/_lib/private-packages.sh 的 private_packages_publish（文案/顺序不变）：
+# 全成功 return 0；任一失败 return 1，这里置 PUBLISH_FAILED=1 由 Step 7 汇总为非零退出。
+if ! private_packages_publish "$PRIVATE_PKGS_MANIFEST"; then
+    PUBLISH_FAILED=1
+fi
 
 # 私包 vendor 形态校验：production/test profile 必须是实体目录(vcs)；本地 path profile 应为 symlink。
 # prod 看到 symlink 表明 composer.json 切换没生效 / composer cache 命中老态 / vcs 拉取失败 —
