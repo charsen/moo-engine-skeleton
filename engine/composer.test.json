@@ -9,8 +9,9 @@
     ],
     "license": "MIT",
     "require": {
+        "charsen/moo-contract": "dev-dev",
         "php": "^8.2",
-        "charsen/moo-feedback": "^0.1",
+        "charsen/moo-feedback": "dev-dev",
         "charsen/moo-scaffold": "dev-dev",
         "charsen/moo-monitor-laravel": "dev-dev",
         "charsen/moo-system": "dev-dev",
@@ -39,6 +40,14 @@
         "upload": {
             "type": "vcs",
             "url": "git@gitee.com:charsen/moo-upload.git"
+        },
+        "contract": {
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-contract.git"
+        },
+        "feedback": {
+            "type": "vcs",
+            "url": "git@gitee.com:charsen/moo-feedback.git"
         }
     },
     "require-dev": {
@@ -116,6 +125,18 @@
                 "name": "charsen/moo-upload",
                 "repo-key": "upload",
                 "provider-rel": "src/MooeenUploadServiceProvider.php",
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-contract",
+                "repo-key": "contract",
+                "provider-rel": null,
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-feedback",
+                "repo-key": "feedback",
+                "provider-rel": "src/MooeenFeedbackServiceProvider.php",
                 "publish-tag": null
             }
         ]
