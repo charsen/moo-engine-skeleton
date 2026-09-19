@@ -71,7 +71,7 @@ final class PersonnelNameResolver implements BannerOperatorNameResolver, Certifi
 }
 ```
 
-契约仍属于各扩展包，只有实现合一。随后在每个包自己的 Host provider 中绑定：
+契约的**形状**已收敛到私有契约包 `charsen/moo-contract`：各包自家契约是 `Mooeen\Contract\PersonnelNameResolver` 的**兼容别名**（`interface OperatorNameResolver extends \Mooeen\Contract\PersonnelNameResolver {}`），Host 仍只做实现合一 —— 新增契约先落契约包，包内只留别名。随后在每个包自己的 Host provider 中绑定：
 
 ```php
 $this->app->bind(
@@ -89,9 +89,9 @@ Provider 放在 `App\Moo\Certificate`，并登记到 `bootstrap/providers.php`�
 3. Host 测试：真实创建记录后，列表/详情的 `_txt` 字段等于当前人员姓名。
 4. 软删人员：历史记录仍能通过 `OrgDirectory` 解析姓名。
 5. 多 Host：没有接入 moo-system 的消费者仍能以自己的目录实现 resolver，或继续使用包的 ID 回退。
-6. 发版顺序：先发布提供目录能力的 moo-system，再发布扩展包，最后更新 Host 约束与绑定。
+6. 发版顺序：先发布提供目录能力的 moo-system **与零依赖的契约包 `charsen/moo-contract`**，再发布扩展包（各自 `require charsen/moo-contract`），最后更新 Host 约束与绑定。
 
-`PersonnelDirectory` 已移除且没有兼容别名，升级到提供 `OrgDirectory` 的 moo-system 版本时必须同步修改 Host 注入点。
+`PersonnelDirectory` 已移除且没有兼容别名；契约包 `moo-contract` 只有接口、无 Provider、无默认实现（未绑定即显式失败），它的 `tests/Baselines/self-held-contracts.json` ratchet 基线用于防「自持契约」悄悄变多，升级到提供 `OrgDirectory` 的 moo-system 版本时必须同步修改 Host 注入点。
 
 ## 14.6 常见错误
 
