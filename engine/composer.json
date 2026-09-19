@@ -188,12 +188,6 @@
                 "repo-key": "contract",
                 "provider-rel": null,
                 "publish-tag": null
-            },
-            {
-                "name": "charsen/moo-feedback",
-                "repo-key": "feedback",
-                "provider-rel": "src/MooeenFeedbackServiceProvider.php",
-                "publish-tag": null
             }
         ]
     },
