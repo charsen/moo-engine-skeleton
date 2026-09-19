@@ -9,8 +9,9 @@
     ],
     "license": "MIT",
     "require": {
+        "charsen/moo-contract": "^0.1@dev",
         "php": "^8.2",
-        "charsen/moo-feedback": "^0.1",
+        "charsen/moo-feedback": "^0.1@dev",
         "charsen/moo-monitor-laravel": "^0.1@dev",
         "charsen/moo-scaffold": "^2.1@dev",
         "charsen/moo-system": "^1.6@dev",
@@ -61,6 +62,26 @@
                 "symlink": true,
                 "versions": {
                     "charsen/moo-upload": "0.1.x-dev"
+                }
+            }
+        },
+        "contract": {
+            "type": "path",
+            "url": "../../moo-contract",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "charsen/moo-contract": "0.1.x-dev"
+                }
+            }
+        },
+        "feedback": {
+            "type": "path",
+            "url": "../../moo-feedback",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "charsen/moo-feedback": "0.1.x-dev"
                 }
             }
         }
@@ -160,6 +181,18 @@
                 "name": "charsen/moo-upload",
                 "repo-key": "upload",
                 "provider-rel": "src/MooeenUploadServiceProvider.php",
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-contract",
+                "repo-key": "contract",
+                "provider-rel": null,
+                "publish-tag": null
+            },
+            {
+                "name": "charsen/moo-feedback",
+                "repo-key": "feedback",
+                "provider-rel": "src/MooeenFeedbackServiceProvider.php",
                 "publish-tag": null
             }
         ]
