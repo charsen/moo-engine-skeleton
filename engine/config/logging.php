@@ -64,6 +64,13 @@ return [
 
     'channels' => [
 
+        /*
+         * 文件 channel 显式写 permission，不依赖进程 umask —— 否则 root 首写（部署 / cron）产生的
+         * 0644 日志会让另一用户 append 失败，真错误被 "could not be opened in append mode" 顶掉。
+         * storage/logs 由 cache.sh 维护为 2775(setgid) + 0664；注意 single 写的 laravel.log
+         * 不带日期，不在 predcreate 预建名单里，只能靠这里显式 mode + 目录 setgid。
+         */
+
         'stack' => [
             'driver'            => 'stack',
             'channels'          => explode(',', (string) env('LOG_STACK', 'single')),
@@ -74,6 +81,7 @@ return [
             'driver'               => 'single',
             'path'                 => storage_path('logs/laravel.log'),
             'level'                => env('LOG_LEVEL', 'debug'),
+            'permission'           => 0664,
             'replace_placeholders' => true,
         ],
 
@@ -82,6 +90,7 @@ return [
             'path'                 => storage_path('logs/laravel.log'),
             'level'                => env('LOG_LEVEL', 'debug'),
             'days'                 => env('LOG_DAILY_DAYS', 14),
+            'permission'           => 0664,
             'replace_placeholders' => true,
         ],
 
@@ -92,6 +101,7 @@ return [
             'path'                 => storage_path('logs/auth.log'),
             'level'                => env('LOG_LEVEL', 'debug'),
             'days'                 => env('LOG_DAILY_DAYS', 14),
+            'permission'           => 0664,
             'replace_placeholders' => true,
         ],
 
@@ -101,6 +111,7 @@ return [
             'path'                 => storage_path('logs/dev.log'),
             'level'                => env('LOG_LEVEL', 'debug'),
             'days'                 => env('LOG_DAILY_DAYS', 14),
+            'permission'           => 0664,
             'replace_placeholders' => true,
         ],
 
