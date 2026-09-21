@@ -12,7 +12,7 @@
         "charsen/moo-contract": "^0.1.0",
         "php": "^8.2",
         "charsen/moo-feedback": "^0.1.5",
-        "charsen/moo-scaffold": "^2.1.7",
+        "charsen/moo-scaffold": "^2.2.1",
         "charsen/moo-monitor-laravel": "^0.1",
         "charsen/moo-system": "^1.6.43",
         "charsen/moo-upload": "^0.1.3",
