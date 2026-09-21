@@ -240,12 +240,34 @@ assert_env_decided
 # 会 fatal: no merge base 整体中断（真实踩坑：moo-monitor-laravel 换根后 fleet 部署全崩，clearcache 无效——
 # 分叉在 vendor checkout 不在缓存）。只删 vendor/charsen/*（git source 安装、会被历史改写波及）；
 # 公共包是 dist zip 无 .git、不跑该检查，保留以免全量重下。
+#
+# 上一条的同类：已发布 tag 被上游强推重指（真实踩坑：2026-09-19 moo-upload 0.1.10 / moo-page 0.1.5）。
+# composer 的缓存目录是 `git clone --mirror`（refspec +refs/*:refs/*，tag 移动它会静默跟过去），
+# vendor/<pkg> 却是普通 checkout，`git fetch --tags composer` 拒绝覆盖已存在的同名 tag → 整段 update 失败。
+# 旧 tag 只存在于 vendor checkout，故同样靠删目录全新克隆消掉（见 explain_private_vendor_purge）。
 purge_private_vendor() {
     # 用 $ENGINE_DIR 绝对路径删，不依赖调用时 cwd 恰好在 ENGINE_DIR（各 rescue/update 分支
     # cwd 已进 engine，但绝对路径消掉这层隐式耦合，将来挪调用点也不会误删他处 vendor）。
     for _pkg in $PRIVATE_PKG_NAMES; do
         [ -n "$_pkg" ] && rm -rf "$ENGINE_DIR/vendor/${_pkg}"
     done
+}
+
+# 删私包 vendor 的两类失败共用一段成因说明：no-merge-base（上游换根强推）与 tag-clobber（上游
+# 重指已发布 tag）成因不同、处置相同（全新克隆消除本地旧 ref）。文案收在这里，pull.sh 各 case 分支
+# 只负责「调用它 + purge + 重试」，避免四处复制同一段话。
+# 参数：$1 = 阶段前缀（如「私包 update 失败」），$2 = composer 完整输出。纯打印，不动任何文件。
+explain_private_vendor_purge() {
+    case "$(composer_failure_kind "$2")" in
+        tag-clobber)
+            warn "$1 — 已发布 tag 被上游强推重指（would clobber existing tag）：composer 镜像缓存已跟到新 tag，本地 checkout 仍持旧 tag 对象 → 删私包 vendor 全新克隆重试一次"
+            info "  不是本机依赖/网络问题：上游把同一个版本号指到了别的提交（详见 NOTES.md 2026-09-21 条目）"
+            info "  重试后按远端新 tag 装；要固定旧提交只能改用 commit sha，或让上游另发新 patch tag"
+            ;;
+        *)
+            warn "$1 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+            ;;
+    esac
 }
 
 # ---- Step 1: 检查主仓工作区状态 ----------------------------------------
@@ -593,8 +615,8 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
                         printf '%s\n' "$rescue_retry_out"
                     fi
                     ;;
-                no-merge-base)
-                    warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+                no-merge-base|tag-clobber)
+                    explain_private_vendor_purge "私包 update 失败" "$rescue_out"
                     purge_private_vendor
                     # shellcheck disable=SC2086
                     if ! rescue_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags 2>&1); then
@@ -630,8 +652,8 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
             vendor-filesystem)
                 abort_vendor_filesystem_failure
                 ;;
-            no-merge-base)
-                warn "私包 install 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+            no-merge-base|tag-clobber)
+                explain_private_vendor_purge "私包 install 失败" "$rescue_install_out"
                 purge_private_vendor
                 # shellcheck disable=SC2086
                 if ! rescue_install_retry_out=$($COMPOSER_RUNNER install $rescue_flags 2>&1); then
@@ -708,8 +730,8 @@ if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ] && [ ! -f "$DEPLOY_COMPOSER_LOCK" ]; 
             vendor-filesystem)
                 abort_vendor_filesystem_failure
                 ;;
-            no-merge-base)
-                warn "首次 profile update 失败 — 旧私包 vendor 历史分叉 → 删私包 vendor 后重试"
+            no-merge-base|tag-clobber)
+                explain_private_vendor_purge "首次 profile update 失败" "$update_out"
                 purge_private_vendor
                 # shellcheck disable=SC2086
                 if ! update_retry_out=$($COMPOSER_RUNNER update $update_flags 2>&1); then
@@ -739,8 +761,8 @@ else
             vendor-filesystem)
                 abort_vendor_filesystem_failure
                 ;;
-            no-merge-base)
-                warn "私包 update 失败 — 输出含 no merge base，旧 vendor checkout 历史分叉 → 删私包 vendor 全新克隆重试一次"
+            no-merge-base|tag-clobber)
+                explain_private_vendor_purge "私包 update 失败" "$update_out"
                 purge_private_vendor
                 # shellcheck disable=SC2086
                 if ! update_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
