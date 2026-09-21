@@ -157,6 +157,12 @@ current_app_env() {
 # Composer 失败后会输出完整命令帮助，其中固定含 --with-all-dependencies；裸匹配
 # 选项名会把文件系统、网络等任意错误误判成依赖冲突。这里只识别明确错误句，具体
 # 重试、回滚和清理动作仍由 pull.sh 根据命令所处阶段决定。
+# 分类词汇表（pull.sh 的 case 分支按这些值分派，加分类时同步检查各处分支）：
+#   vendor-filesystem  vendor/composer 临时区坏 → 清 vendor 重装，不重试
+#   no-merge-base      私包 checkout 与新远端无共同祖先 → 删私包 vendor 重试一次
+#   tag-clobber        私包已发布 tag 被重指 → 删私包 vendor 重试一次
+#   dependency-lock    私包约束要求连带升级 lock 内依赖 → 带 -W 重试一次
+#   other              其余一律不重试
 composer_failure_kind() {
     case "$1" in
         *"Could not delete "*"vendor/composer/"*|*"DirectoryNotFoundException"*"vendor/composer/"*)
@@ -164,6 +170,13 @@ composer_failure_kind() {
             ;;
         *"no merge base"*)
             printf '%s' 'no-merge-base'
+            ;;
+        # 已发布 tag 被强推重指：composer 缓存的镜像克隆是 +refs/*:refs/*，会静默跟到新 tag，
+        # 而 vendor/<pkg> 里的普通 checkout 仍持旧 tag 对象，`git fetch --tags composer` 拒绝覆盖
+        # → 整段 update 失败。与 no-merge-base 同属「本地 checkout 的 git 状态过时」，处置同为
+        # 删私包 vendor 全新克隆。消息固定英文：composer 给 git 强制 LANGUAGE=C。
+        *"would clobber existing tag"*)
+            printf '%s' 'tag-clobber'
             ;;
         *"lock file version"*|*"Use the option --with-all-dependencies"*|*"conflicts with your root composer.json require"*)
             printf '%s' 'dependency-lock'

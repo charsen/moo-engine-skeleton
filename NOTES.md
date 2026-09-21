@@ -113,3 +113,9 @@
 - **症状**：删除 `App\Models\Traits\UsingSnowFlakePrimaryKey` 后，Food 接口和相关测试在加载模型时 Fatal，提示 Composer 无法包含该 Trait 文件。
 - **根因**：`Notification` 已切到 moo-scaffold 的共享 Trait，但 `Food` 仍引用旧命名空间；只检查一个示例模型便删除旧文件，留下了源码断链。
 - **解法**：删除旧 Trait 前全仓检索其命名空间，把所有模型统一切到 `Mooeen\Scaffold\Concerns\UsingSnowFlakePrimaryKey`；随后运行 Food 相关测试和全量测试确认模型可加载。
+
+### 已发布 tag 被重指会让所有装过该包的机器部署失败
+- **日期**：2026-09-21
+- **症状**：`composer update 私包` 在 `Failed to execute git fetch --tags composer` 处整段失败，报 `! [rejected] 0.1.10 -> 0.1.10 (would clobber existing tag)`；`pull.sh` 以 exit 3 中止、把 `engine/composer.json` 回滚成本地 path profile 并保持维护态。
+- **根因**：上游 2026-09-19 11:52 为把 `.commandcode/taste/taste.md` 移出发布快照而重写 main 并强推，`charsen/moo-upload` 的 `0.1.10` tag 被重指（对象重建 / 指向别的提交）。composer 的 vcs 缓存是 `git clone --mirror`（refspec `+refs/*:refs/*`，tag 被移动它会静默跟随），而 `vendor/charsen/<包>` 是普通 checkout，`git fetch --tags` 不允许覆盖已存在的同名 tag —— 旧 tag 对象只存在于 vendor checkout，**清 composer 缓存无效**。
+- **解法**：删对应 checkout 后按同一 tag 重跑：`rm -rf engine/vendor/charsen/moo-upload`，再 `sh pull.sh --tag <本批 tag>`（Step 5.0 的 vendor 救援会全新克隆并把 lock 的 ref 更新到新 tag）。本仓 `tools/_common.sh` 已加 `tag-clobber` 分类、`pull.sh` 四处 `no-merge-base` 分派点并入该分类（命中即删私包 vendor 重试一次）；本仓是骨架模板，由此初始化出的 host 都带这层自愈。上游纪律：已发布 tag 不得重指，内容要改只能发新 patch tag；已强推无法回退，再改一次会伤到已拉到新值的机器。
