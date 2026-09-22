@@ -74,9 +74,9 @@
 
 | name | repo-key | provider-rel | publish-tag | 本地约束 | 测试约束 | 生产约束 | 仓库 URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.2.3@dev | dev-dev | ^2.2.3 | git@gitee.com:charsen/moo-scaffold.git |
+| charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.2.7@dev | dev-dev | ^2.2.7 | git@gitee.com:charsen/moo-scaffold.git |
 | charsen/moo-monitor-laravel | monitor | src/MonitorProvider.php | — | ^0.1@dev | dev-dev | ^0.1.18 | git@gitee.com:charsen/moo-monitor-laravel.git |
-| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6@dev | dev-dev | ^1.6.44 | git@gitee.com:charsen/moo-system.git |
+| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6.47@dev | dev-dev | ^1.6.47 | git@gitee.com:charsen/moo-system.git |
 | charsen/moo-upload | upload | src/MooeenUploadServiceProvider.php | — | ^0.1@dev | dev-dev | ^0.1.12 | git@gitee.com:charsen/moo-upload.git |
 | charsen/moo-contract | contract | — | — | ^0.1@dev | dev-dev | ^0.1.0 | git@gitee.com:charsen/moo-contract.git |
 
