@@ -6,7 +6,7 @@
  * 由 moo:auth 依据路由与 controller 的 @acl 注解生成，请勿手改。
  *
  * @generated_by charsen
- * @generated_at 2026-09-22 09:51:26
+ * @generated_at 2026-09-22 10:32:15
  */
 
 return [
@@ -94,6 +94,10 @@ return [
                     '1eadb7dfdc8911ec'
                 ]
             ]
+        ],
+        'danger' => [
+            '72046d8c7e9dfa85',
+            '1d2e70b9a4e70aee'
         ]
     ],
     'mobi' => [

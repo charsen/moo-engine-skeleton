@@ -174,7 +174,7 @@ class FoodController extends Controller
     /**
      * 永久删除食品
      *
-     * @acl {zh-CN: 永久删除食品, en: Destroy Forever Food, desc: }
+     * @acl {zh-CN: 永久删除食品, en: Destroy Forever Food, desc: , danger: 1}
      */
     public function forceDestroy(int|string $id): BaseResource
     {
