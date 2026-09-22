@@ -38,6 +38,28 @@
 - 生产：`sh pull.sh --tag 0.2.4`（由用户在服务器执行）。
 - ⚠ **部署脚本自愈只在目标 tag 内生效**：编排器执行的是目标 tag 里的 `pull.sh`，所以本批修好的 tag-clobber 分支要在用 `--tag 0.2.4`（或更高）部署时才生效，不替代对已故障主机的手工解封（删 `vendor/charsen/moo-upload` / `moo-page` 后按同一 tag 重跑）。
 
+## 本批追加：scaffold 2.2.3 与 ACL 产物重生（2026-09-21 补充）
+
+| 项 | 内容 |
+| --- | --- |
+| 依赖前置 | `charsen/moo-scaffold` 抬至 **`^2.2.3`**（本批修了 `AclActionResolver` 三处缺陷：生成期 boot 上下文未设 `$method`、领域 Gate 授权在生成期误伤、跨控制器目标 key 算错） |
+| ACL 产物 | 重跑 `moo:auth admin`：白名单剔除与权限点冲突的 key，`whitelist ∩ actions` 归 0；destroy-forever 动作经 `@acl` 声明 `danger: 1`，`config('actions.<app>.danger')` 写入产物 |
+| 文档 | `PRIVATE-COMPOSER-PACKAGES.md` 生成表随之重刷 |
+
+### ⚠️ 部署前需人工补授
+
+剔除的 2 个 key —— `48d3ca3e656e3566`（**登录列表** `LoginManagementController::index`）、
+`84470713dcb9a7c9`（**个人中心** `AdminController::index`）—— 此前同时落进白名单（凡登录者放行）
+是生成器缺陷（二者本就有 `@acl`）。收敛为正常权限点后，**本仓角色数据中无任何角色持有它们**，
+补授前非 root 进不去「个人中心」与「登录列表」。
+
+- [ ] 部署后在「系统 → 授权管理」把这两项授给需要的角色（个人中心建议给全部后台角色，登录列表建议只给管理员类角色）。
+- [ ] 用非 root 账号实测：个人中心可打开、登录列表按预期可见/不可见。
+
+### 授权页「全选」行为变化
+
+destroy-forever 类动作不再被「全选」自动勾选（须逐个显式勾选），且已有勾选状态不被全选改动。
+
 ## 正式发版前剩余项
 
 - [ ] 打 annotated tag `0.2.4` 并推送（`dev` + `master`），核对远端解引用与双线可达。
