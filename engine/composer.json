@@ -13,7 +13,7 @@
         "php": "^8.2",
         "charsen/moo-feedback": "^0.1@dev",
         "charsen/moo-monitor-laravel": "^0.1@dev",
-        "charsen/moo-scaffold": "^2.2.1@dev",
+        "charsen/moo-scaffold": "^2.2.3@dev",
         "charsen/moo-system": "^1.6@dev",
         "charsen/moo-upload": "^0.1@dev",
         "ext-fileinfo": "*",
