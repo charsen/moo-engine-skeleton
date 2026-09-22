@@ -1,25 +1,22 @@
-<?php
-// 本文件由 `php artisan moo:auth <app>` 再生成。重跑 admin 后，必须把下面标注的
-// moo-system 个人中心白名单重新合并，避免零授权角色登录后连自己的资料也无法访问。
+<?php declare(strict_types=1);
+
+/*
+ * ACL 授权字典：app > whitelist / module > controller > action keys
+ *
+ * 由 moo:auth 依据路由与 controller 的 @acl 注解生成，请勿手改。
+ *
+ * @generated_by charsen
+ * @generated_at 2026-09-22 09:51:26
+ */
+
 return [
     'admin' => [
         'whitelist' => [
             'acd00c2eda7d9682',
-            '48d3ca3e656e3566',
-            '84470713dcb9a7c9',
             '46c447ee55a627c6',
             'dffe71cfa5a3c405',
             'e9532ad1cd13af0a',
-            '42f63e42d2308d4f',
-            '90a2d391c09ff58d',
-            // moo-system AdminController 个人中心（手动合并，生成器不会自动加入）
-            'f6d488cc41bea74a',
-            'b00ef1ce449c970b',
-            'cbc32275c4bdb06c',
-            '88e610dbb210a3dc',
-            '1fcbfd9524aebb83',
-            'd59a5622ff031201',
-            'e389e65e330e8af2'
+            '42f63e42d2308d4f'
         ],
         'actions' => [
             'module-6e1ee1805962ce1b' => [
