@@ -1,13 +1,13 @@
 meta:
     app: admin
     app_name: 后台管理
-    generated_at: '2026-08-13 22:17:04'
+    generated_at: '2026-09-22 09:51:26'
     generated_by: charsen
     stats:
         module_count: 5
         controller_count: 14
         action_count: 84
-        whitelist_count: 7
+        whitelist_count: 6
 modules:
     -
         key: module-6e1ee1805962ce1b
@@ -190,7 +190,7 @@ modules:
             zh-CN: 系统管理
         controller_count: 10
         action_count: 60
-        whitelist_count: 3
+        whitelist_count: 2
         controllers:
             -
                 key: controller-dc555af4f0bdfd3c
@@ -1051,7 +1051,7 @@ modules:
                     en: 'Management Authorization'
                     zh-CN: 授权管理
                 action_count: 8
-                whitelist_count: 1
+                whitelist_count: 0
                 actions:
                     -
                         key: 260134192d792203
@@ -1126,17 +1126,23 @@ modules:
                         route_plain_key: admin-system-authorization-remove-personnel
                         acl_transformed: true
                     -
-                        key: 90a2d391c09ff58d
-                        plain_key: admin-system-authorization-update-actions
+                        key: ec2cd321a60acaee
+                        plain_key: admin-system-authorization-index
                         action: updateActions
                         title: 更新角色动作
                         name:
                             en: ''
                             zh-CN: ''
                         desc: ''
-                        whitelist: true
+                        whitelist: false
                         acl_targets:
-                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::updateActions'
+                            - 'Mooeen\System\Http\Controllers\Admin\AuthorizationController::index'
+                        keys:
+                            - ec2cd321a60acaee
+                        plain_keys:
+                            - admin-system-authorization-index
+                        route_plain_key: admin-system-authorization-update-actions
+                        acl_transformed: true
                     -
                         key: 260134192d792203
                         plain_key: admin-system-authorization-edit-authorization

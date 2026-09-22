@@ -1,4 +1,14 @@
-<?php
+<?php declare(strict_types=1);
+
+/*
+ * ACL 授权文案（en）：app / module / controller / action 的显示名与描述
+ *
+ * 由 moo:auth 依据路由与 controller 的 @acl 注解生成，请勿手改。
+ *
+ * @generated_by charsen
+ * @generated_at 2026-09-22 09:51:26
+ */
+
 return [
     'admin' => [
         'app-admin' => 'Admin',
