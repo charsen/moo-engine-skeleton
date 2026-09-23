@@ -119,3 +119,11 @@
 - **症状**：`composer update 私包` 在 `Failed to execute git fetch --tags composer` 处整段失败，报 `! [rejected] 0.1.10 -> 0.1.10 (would clobber existing tag)`；`pull.sh` 以 exit 3 中止、把 `engine/composer.json` 回滚成本地 path profile 并保持维护态。
 - **根因**：上游 2026-09-19 11:52 为把 `.commandcode/taste/taste.md` 移出发布快照而重写 main 并强推，`charsen/moo-upload` 的 `0.1.10` tag 被重指（对象重建 / 指向别的提交）。composer 的 vcs 缓存是 `git clone --mirror`（refspec `+refs/*:refs/*`，tag 被移动它会静默跟随），而 `vendor/charsen/<包>` 是普通 checkout，`git fetch --tags` 不允许覆盖已存在的同名 tag —— 旧 tag 对象只存在于 vendor checkout，**清 composer 缓存无效**。
 - **解法**：删对应 checkout 后按同一 tag 重跑：`rm -rf engine/vendor/charsen/moo-upload`，再 `sh pull.sh --tag <本批 tag>`（Step 5.0 的 vendor 救援会全新克隆并把 lock 的 ref 更新到新 tag）。本仓 `tools/_common.sh` 已加 `tag-clobber` 分类、`pull.sh` 四处 `no-merge-base` 分派点并入该分类（命中即删私包 vendor 重试一次）；本仓是骨架模板，由此初始化出的 host 都带这层自愈。上游纪律：已发布 tag 不得重指，内容要改只能发新 patch tag；已强推无法回退，再改一次会伤到已拉到新值的机器。
+
+### 抬高非私包 root 依赖约束后 partial update 停摆，-W 不会把该包加入允许集
+
+- **日期**：2026-09-23
+- **症状**：部署在 Step 5.0 vendor 救援（或主 update）的 `composer update <私包列表>` 处 exit 3，报 `Root composer.json requires <pkg> <新约束>, found <pkg>[…] but the package is fixed to <旧版> (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.`；脚本打印的「手动调和」命令与带 `-W` 重试都停在同一条。
+- **根因**：该包不在 `extra.moo-private-packages`（走 Packagist 的公开包，或第三方包），因此不在 Step 5 的 update 允许集里。Host manifest 抬高它的约束后，环境本地 `composer.lock`（不入 Git、由该环境自己解析）仍钉旧版；partial update 把未列入允许集的包固定在 lock 版本，而 `--with-all-dependencies` 只放宽带更新包**自身**的依赖，不会把该包加进允许集。与私包接线、SSH 权限、vendor 形态都无关。
+- **解法**：Step 5.0 前置用 `composer install --dry-run --no-scripts`（只读 lock + manifest，不访问远端、不写 vendor）让 Composer 自己点名错配的 root 直接依赖，并入本次 `UPDATE_PKG_NAMES` 允许集；`tools/_common.sh` 新增纯函数 `composer_lock_mismatched_requires`，`ComposerProfilesTest` 锁定提取器与接线。手工解封：确认 `engine/composer.json` 是 production 副本后 `composer update <错配包名> --with-all-dependencies --optimize-autoloader --no-scripts --no-dev`，再重跑同一 tag。同步自 xing-ke-homepage v0.1.40（6 个同源 host 同一修复）。
+
