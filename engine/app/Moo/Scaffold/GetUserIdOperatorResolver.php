@@ -21,4 +21,15 @@ class GetUserIdOperatorResolver implements OperatorResolver
     {
         return getUserId();
     }
+    /**
+     * 平台 root 身份 = 人员模型的 `isRootId()`（与全站 root 判定唯一真值口径锁步）。
+     *
+     * 与 `id()` 同属「操作者身份」，实现在**同一处**绑定里 —— 各业务包统一经 `OperatorResolver`
+     * 取用，不再各自定义契约与宿主适配器（2026-09-22 随 moo-scaffold 2.2.8 契约扩展补齐）。
+     */
+    public function isPlatformRoot(int|string|null $operatorId): bool
+    {
+        return \Mooeen\System\Models\Personnel::isRootId($operatorId);
+    }
+
 }
