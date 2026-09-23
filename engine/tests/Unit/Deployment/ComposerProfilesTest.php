@@ -100,3 +100,56 @@ test('骨架初始化与发布门禁同时维护测试 profile', function () {
         ->toContain('test-pull.sh')
         ->toContain('COMPOSER=composer.test.json composer validate');
 });
+
+function mismatchedLockRequires(string $output): string
+{
+    $repository = dirname(__DIR__, 4);
+    $process    = new Process([
+        'sh',
+        '-c',
+        '. "$1"; composer_lock_mismatched_requires "$2"',
+        'composer-lock-mismatch',
+        $repository . '/tools/_common.sh',
+        $output,
+    ]);
+
+    $process->mustRun();
+
+    return $process->getOutput();
+}
+
+test('lock 错配的 root 直接依赖并入 update 允许集且不牵连私包清理', function () {
+    $repository = dirname(__DIR__, 4);
+    $pull       = file_get_contents($repository . '/pull.sh');
+
+    // composer install 的 lock 校验输出（真实签名，2026-09-23 xing-ke-homepage 生产实况：
+    // 公开包 charsen/moo-feedback 约束由 ^0.1 抬到 ^0.1.7，而服务器本地 lock 仍钉 0.1.3）。
+    $probe = <<<'OUTPUT'
+    Installing dependencies from lock file (including require-dev)
+    Verifying lock file contents can be installed on current platform.
+    Warning: The lock file is not up to date with the latest changes in composer.json. You may be getting outdated dependencies. It is recommended that you run `composer update` or `composer update <package name>`.
+    - Required package "charsen/moo-feedback" is in the lock file as "0.1.3" but that does not satisfy your constraint "^0.1.7".
+    This usually happens when composer files are incorrectly merged or the composer.json file is manually edited.
+    OUTPUT;
+
+    expect(mismatchedLockRequires($probe))->toBe('charsen/moo-feedback')
+        // 多包时按首次出现顺序输出并去重（composer 每个错配包一行）
+        ->and(mismatchedLockRequires(
+            "- Required package \"a/b\" is in the lock file as \"1.0\" but that does not satisfy your constraint \"^2.0\".\n"
+            . "- Required package \"c/d\" is in the lock file as \"1.0\" but that does not satisfy your constraint \"^2.0\".\n"
+            . '- Required package "a/b" is in the lock file as "1.0" but that does not satisfy your constraint "^2.0".'
+        ))->toBe('a/b c/d')
+        // 无错配输出（正常 install / 只有 content-hash 过期 / 其它 Composer 失败）一律空串，不并入
+        ->and(mismatchedLockRequires('Nothing to install, update or remove'))->toBe('')
+        ->and(mismatchedLockRequires('Use the option --with-all-dependencies (-W) to allow upgrades'))->toBe('')
+        ->and(mismatchedLockRequires(''))->toBe('');
+
+    expect($pull)
+        // 前置探测用 install --dry-run（只读 lock + manifest，不写 vendor），命中才并入允许集
+        ->toContain('UPDATE_PKG_NAMES="$PRIVATE_PKG_NAMES"')
+        ->toContain('composer_lock_mismatched_requires "$probe_out"')
+        // update 允许集走 UPDATE_PKG_NAMES；删私包 vendor 与 manifest 循环仍只针对真私包
+        ->toContain('update $UPDATE_PKG_NAMES $update_flags')
+        ->not->toContain('update $PRIVATE_PKG_NAMES')
+        ->toContain('for _pkg in $PRIVATE_PKG_NAMES; do');
+});

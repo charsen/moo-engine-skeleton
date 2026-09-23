@@ -561,6 +561,35 @@ if [ -n "${COMPOSER_USER:-}" ] && [ "$(id -u)" = "0" ]; then
     fi
 fi
 
+# ---- Step 5.0 前置：把 manifest 抬高过的 root 直接依赖并入 update 允许集 ----
+# 本环境的 lock 是上一次解析的产物（不入 Git，见 PRIVATE-COMPOSER-PACKAGES.md「Lock 口径」）。
+# Host manifest 抬高某个 root 直接依赖后（实况：走 Packagist 的公开包 charsen/moo-feedback
+# 由 ^0.1 抬到 ^0.1.7，见同文档公开包小节），lock 仍钉旧版，而 Step 5 的 partial update 只列
+# 私包名，composer 直接拒绝：
+#   - Root composer.json requires charsen/moo-feedback ^0.1.7, found charsen/moo-feedback[0.1.7, 0.1.8]
+#     but the package is fixed to 0.1.3 (lock file version) by a partial update and that version does not match.
+#     Make sure you list it as an argument for the update command.
+# 且 -W 救不了：--with-all-dependencies 只放宽带更新包自身的依赖，不会把该包加入允许集
+# （2026-09-23 xing-ke-homepage 生产部署实况；本仓同步同一修复，见 NOTES.md 对应条目）。
+# 公开包（走 Packagist、不在 extra.moo-private-packages）与第三方包同样会踩，与私包接线无关。
+# 解法：先用 composer install --dry-run 让 composer 自己点名错配的 root 直接依赖（只读 lock +
+# manifest，不访问远端、不写 vendor），把命中项追加进本次 update 的允许集 —— 只放行 manifest
+# 自己审查抬高的那几个包，不引入「无差别连带升级第三方」。
+UPDATE_PKG_NAMES="$PRIVATE_PKG_NAMES"
+if [ -f "$ENGINE_DIR/$DEPLOY_COMPOSER_LOCK" ]; then
+    # 捕获输出：只有命中 composer_lock_mismatched_requires 的错配签名才并入；其它失败（平台要求、
+    # lock 损坏、权限）不打印不改行为，交给后续原有分类/重试路径，避免给运维两条矛盾信号。
+    # shellcheck disable=SC2086
+    if ! probe_out=$($COMPOSER_RUNNER install --dry-run --no-scripts 2>&1); then
+        mismatched_requires=$(composer_lock_mismatched_requires "$probe_out")
+        if [ -n "$mismatched_requires" ]; then
+            warn "lock 与本版 manifest 的 root 直接依赖错配：${mismatched_requires}"
+            warn "  → 该 lock 是本环境上一版解析的旧版本；本次 update 允许集并入它们（只这几个包，不连带升级其他依赖）"
+            UPDATE_PKG_NAMES="$UPDATE_PKG_NAMES $mismatched_requires"
+        fi
+    fi
+fi
+
 # Step 5.0: 私包 vendor Provider 完整性自检 + 自愈（真实踩坑：path repo 路径在服务器不存在
 # → 装失败 → vendor 缺 ServiceProvider → artisan 加载 provider 时炸）。
 # 救援用 update <私包列表> 而非 install：install 严守 lock，碰上 dev "dev-master" 跟 prod
@@ -594,7 +623,7 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
         info "（有 composer.lock → partial update 私包调和 lock 错配，再 install 同步）"
         # 一次性 update 全部私包（包含缺失 + 未缺失，composer 自己 dedupe）
         # shellcheck disable=SC2086
-        if ! rescue_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags 2>&1); then
+        if ! rescue_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES $rescue_flags 2>&1); then
             printf '%s\n' "$rescue_out"
             case "$(composer_failure_kind "$rescue_out")" in
                 vendor-filesystem)
@@ -603,13 +632,13 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
                 dependency-lock)
                     warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
                     # shellcheck disable=SC2086
-                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $rescue_flags 2>&1); then
+                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES --with-all-dependencies $rescue_flags 2>&1); then
                         printf '%s\n' "$rescue_retry_out"
                         abort_if_vendor_filesystem_failure "$rescue_retry_out"
                         rollback_composer_on_fail
                         error "vendor 救援 update 失败（带 -W 重试后仍失败）— 需人工调和依赖约束"
                         info "手动调和："
-                        info "  composer update $PRIVATE_PKG_NAMES --with-all-dependencies $rescue_flags"
+                        info "  composer update $UPDATE_PKG_NAMES --with-all-dependencies $rescue_flags"
                         exit 3
                     else
                         printf '%s\n' "$rescue_retry_out"
@@ -619,13 +648,13 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
                     explain_private_vendor_purge "私包 update 失败" "$rescue_out"
                     purge_private_vendor
                     # shellcheck disable=SC2086
-                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $rescue_flags 2>&1); then
+                    if ! rescue_retry_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES $rescue_flags 2>&1); then
                         printf '%s\n' "$rescue_retry_out"
                         abort_if_vendor_filesystem_failure "$rescue_retry_out"
                         rollback_composer_on_fail
                         error "vendor 救援 update 失败（删私包 vendor 重试后仍失败）— 可能 SSH key 没配 / 私包没权限 / 网络不通"
                         info "手动调和："
-                        info "  rm -rf vendor/charsen && composer update $PRIVATE_PKG_NAMES $rescue_flags"
+                        info "  rm -rf vendor/charsen && composer update $UPDATE_PKG_NAMES $rescue_flags"
                         info "  composer install $rescue_flags"
                         exit 3
                     else
@@ -634,7 +663,7 @@ if [ "$NEED_RESCUE" = "1" ] && [ -f "$DEPLOY_COMPOSER_JSON" ]; then
                     ;;
                 *)
                     rollback_composer_on_fail
-                    error "vendor 救援 update 失败: $PRIVATE_PKG_NAMES"
+                    error "vendor 救援 update 失败: $UPDATE_PKG_NAMES"
                     exit 3
                     ;;
             esac
@@ -704,7 +733,12 @@ fi
 
 # 强制更新所有私包到最新（vcs 模式下拉 gitee 锁定的 tag，path 模式下重建 symlink）
 # 用 update 不是 install，确保即使 composer.lock 锁了旧 commit 也能拉新版。
-info "强制更新私包: $PRIVATE_PKG_NAMES"
+# UPDATE_PKG_NAMES = 私包名 + Step 5.0 前置检测出的 lock 错配 root 直接依赖（多为公开包）。
+if [ "$UPDATE_PKG_NAMES" = "$PRIVATE_PKG_NAMES" ]; then
+    info "强制更新私包: $PRIVATE_PKG_NAMES"
+else
+    info "强制更新私包 + lock 错配的 root 直接依赖: $UPDATE_PKG_NAMES"
+fi
 update_flags="--optimize-autoloader"
 # 不加 --with-dependencies / -W：只更新私包本身，不动 root 其他依赖
 # （laravel/framework 等 transitive 升级需单独 review，避免不可控连带升级）。
@@ -755,7 +789,7 @@ if [ "$DEPLOY_COMPOSER_PROFILE" = "test" ] && [ ! -f "$DEPLOY_COMPOSER_LOCK" ]; 
     fi
 else
     # shellcheck disable=SC2086
-    if ! update_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
+    if ! update_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES $update_flags 2>&1); then
         printf '%s\n' "$update_out"
         case "$(composer_failure_kind "$update_out")" in
             vendor-filesystem)
@@ -765,11 +799,11 @@ else
                 explain_private_vendor_purge "私包 update 失败" "$update_out"
                 purge_private_vendor
                 # shellcheck disable=SC2086
-                if ! update_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES $update_flags 2>&1); then
+                if ! update_retry_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES $update_flags 2>&1); then
                     printf '%s\n' "$update_retry_out"
                     abort_if_vendor_filesystem_failure "$update_retry_out"
                     rollback_composer_on_fail
-                    error "composer update 私包失败（删私包 vendor 重试后仍失败）: $PRIVATE_PKG_NAMES"
+                    error "composer update 私包失败（删私包 vendor 重试后仍失败）: $UPDATE_PKG_NAMES"
                     exit 3
                 else
                     printf '%s\n' "$update_retry_out"
@@ -778,11 +812,11 @@ else
             dependency-lock)
                 warn "私包 update 失败 — 私包约束要求升级 lock 内依赖 → 带 -W 重试一次（按私包声明连带升级）"
                 # shellcheck disable=SC2086
-                if ! update_retry_out=$($COMPOSER_RUNNER update $PRIVATE_PKG_NAMES --with-all-dependencies $update_flags 2>&1); then
+                if ! update_retry_out=$($COMPOSER_RUNNER update $UPDATE_PKG_NAMES --with-all-dependencies $update_flags 2>&1); then
                     printf '%s\n' "$update_retry_out"
                     abort_if_vendor_filesystem_failure "$update_retry_out"
                     rollback_composer_on_fail
-                    error "composer update 私包失败（带 -W 重试后仍失败）: $PRIVATE_PKG_NAMES"
+                    error "composer update 私包失败（带 -W 重试后仍失败）: $UPDATE_PKG_NAMES"
                     exit 3
                 else
                     printf '%s\n' "$update_retry_out"
@@ -790,7 +824,7 @@ else
                 ;;
             *)
                 rollback_composer_on_fail
-                error "composer update 私包失败: $PRIVATE_PKG_NAMES"
+                error "composer update 私包失败: $UPDATE_PKG_NAMES"
                 exit 3
                 ;;
         esac

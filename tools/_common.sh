@@ -20,6 +20,7 @@
 #   - is_production                             : .env APP_ENV 判定（带 cache + 引号兼容）
 #   - current_app_env                           : .env APP_ENV 字面值（判定失败时的诊断信息）
 #   - composer_failure_kind <完整输出>           : Composer 失败分类（不执行重试或清理）
+#   - composer_lock_mismatched_requires <完整输出>  : lock 错配的 root 直接依赖包名（空格连接）
 #
 # 副作用（source 时自动执行）：
 #   - PATH guard: prepend /usr/local/php/bin 等 PHP 路径（如未在 PATH 中）
@@ -185,6 +186,23 @@ composer_failure_kind() {
             printf '%s' 'other'
             ;;
     esac
+}
+
+# ---- Composer lock 错配解析（纯函数）--------------------------------------
+# 从 `composer install`（含 --dry-run）的 lock 校验输出里抽出「root 直接依赖被 lock 钉在
+# 不满足当前 manifest 约束的版本」的包名，空格连接；无错配输出空串。
+# 只认 composer 的稳定英文签名（每包一行，只读 lock + composer.json，不访问远端）：
+#   - Required package "charsen/moo-feedback" is in the lock file as "0.1.3" but that does not satisfy your constraint "^0.1.7".
+# 这类错配 partial update 无法自愈：`composer update <私包名>` 的允许集里没有它，composer
+# 直接拒绝（"the package is fixed to … by a partial update"），而 -W 只放宽带更新包自身的
+# 依赖，不会把该包加入允许集。命中即说明该包的约束是 Host manifest 自己抬高过的。
+# 去重后按首次出现顺序输出；纯文本处理，退出码恒为 0，由调用方判空决定是否并入允许集。
+composer_lock_mismatched_requires() {
+    printf '%s\n' "$1" \
+        | sed -n 's/^[[:space:]]*- Required package "\([^"]*\)" is in the lock file as "[^"]*" but that does not satisfy your constraint ".*$/\1/p' \
+        | awk '!seen[$0]++' \
+        | tr '\n' ' ' \
+        | sed 's/[[:space:]]*$//'
 }
 
 # ---- PATH 守卫（source 时自动执行，纯副作用）-----------------------------
