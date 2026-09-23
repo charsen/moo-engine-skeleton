@@ -210,6 +210,16 @@ ssh -T git@gitee.com
 - 本地现行 profile 是 sibling `path` + `^x.y@dev`；历史 lock 里残留的 VCS（例如 `dev-master`）条目不会自动消失。测试/生产也会遇到 lock 生成时的约束与当前 `require` 不同。
 - 不要跑全量 `composer update`（会把公共依赖顺带升级），只手动 `composer update <私包> --no-dev --optimize-autoloader --no-scripts` 一次，之后 pull.sh 走正常 update；本地确认无需保留该 lock 时，删掉后让 Composer 按当前 profile 重新解析同样有效。
 
+### Composer 报「需要升级 lock」
+
+- 不要仅凭输出末尾的完整命令帮助判定锁冲突——其中固定包含 `--with-all-dependencies`；`Could not delete` 或指向 `vendor/composer` 的失败属于 vendor 文件系统问题。
+- 分清两类：
+  - **私包约束**（`extra.moo-private-packages` 内的包）要求连带升级 lock 内依赖：确认无并发 Composer 后定向更新对应私包，避免 `-W` 顺带升级无关第三方依赖。
+  - **`… but the package is fixed to <旧版> (lock file version) by a partial update and that version does not match.`**：本环境 lock 落后于 manifest，且该包不在私包允许集里（走 Packagist 的公开包，或第三方包）。`-W` 不解此错——它只放宽带更新包自身的依赖，不会把该包加入允许集，带 `-W` 重试只会停在同一条。
+    - `pull.sh` Step 5.0 前置已自愈：`composer install --dry-run --no-scripts` 让 Composer 点名错配的 root 直接依赖，并入本次 `composer update` 允许集（只放行这几个包，其余 lock 依赖照旧钉死）。
+    - 手工核对面：`cd engine && composer install --dry-run --no-scripts`，输出里 `- Required package "x/y" is in the lock file as … but that does not satisfy your constraint …` 的每一行即错配包。
+    - 手工调和（生产机先确认 `engine/composer.json` 是 production 副本）：`composer update <错配包名…> --with-all-dependencies --optimize-autoloader --no-scripts --no-dev`，再重跑同一 tag（见 `NOTES.md` 2026-09-23 条目）。
+
 ## 7. 首次生产部署踩坑归纳
 
 pull.sh 已把大部分坑**内化自动处理**，剩下几个是运维侧手动项：
