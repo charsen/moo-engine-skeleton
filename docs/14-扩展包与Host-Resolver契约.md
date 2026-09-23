@@ -24,7 +24,7 @@ order: 150
 ```php
 namespace Mooeen\Certificate\Contracts;
 
-interface OperatorNameResolver
+interface PersonnelNameResolver（示例：已随 2026-09-22 去重删除的包内别名）
 {
     /** @return array<int|string, ?string> */
     public function resolveNames(array $ids): array;
@@ -56,11 +56,9 @@ $names = app(OrgDirectory::class)->resolveNames($ids);
 ```php
 namespace App\Moo\Support;
 
-use Mooeen\Banner\Contracts\OperatorNameResolver as BannerOperatorNameResolver;
-use Mooeen\Certificate\Contracts\OperatorNameResolver as CertificateOperatorNameResolver;
 use Mooeen\System\Contracts\OrgDirectory;
 
-final class PersonnelNameResolver implements BannerOperatorNameResolver, CertificateOperatorNameResolver
+final class PersonnelNameResolver implements PersonnelNameResolver
 {
     public function __construct(private readonly OrgDirectory $org) {}
 
@@ -71,11 +69,11 @@ final class PersonnelNameResolver implements BannerOperatorNameResolver, Certifi
 }
 ```
 
-契约的**形状**已收敛到私有契约包 `charsen/moo-contract`：各包自家契约是 `Mooeen\Contract\PersonnelNameResolver` 的**兼容别名**（`interface OperatorNameResolver extends \Mooeen\Contract\PersonnelNameResolver {}`），Host 仍只做实现合一 —— 新增契约先落契约包，包内只留别名。随后在每个包自己的 Host provider 中绑定：
+契约的**形状**已收敛到私有契约包 `charsen/moo-contract`：各包自家契约是 `Mooeen\Contract\PersonnelNameResolver` 的**兼容别名**（`interface PersonnelNameResolver（示例：已随 2026-09-22 去重删除的包内别名） extends \Mooeen\Contract\PersonnelNameResolver {}`），Host 仍只做实现合一 —— 新增契约先落契约包，包内只留别名。随后在每个包自己的 Host provider 中绑定：
 
 ```php
 $this->app->bind(
-    \Mooeen\Certificate\Contracts\OperatorNameResolver::class,
+    \Mooeen\Contract\PersonnelNameResolver::class,
     \App\Moo\Support\PersonnelNameResolver::class,
 );
 ```
