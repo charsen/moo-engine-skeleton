@@ -71,21 +71,17 @@
 **本仓 manifest 私包清单**（`extra.moo-private-packages` 三份一致；`repositories` 按环境只差 `type` 与 URL）：
 
 <!-- BEGIN moo-manifest-table -->
-### 私包清单（`extra.moo-private-packages`，共 5 个）
-
 | name | repo-key | provider-rel | publish-tag | 本地约束 | 测试约束 | 生产约束 | 仓库 URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.2.7@dev | dev-dev | ^2.2.7 | git@gitee.com:charsen/moo-scaffold.git |
 | charsen/moo-monitor-laravel | monitor | src/MonitorProvider.php | — | ^0.1@dev | dev-dev | ^0.1.18 | git@gitee.com:charsen/moo-monitor-laravel.git |
-| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6.47@dev | dev-dev | ^1.6.47 | git@gitee.com:charsen/moo-system.git |
+| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6.51@dev | dev-dev | ^1.6.51 | git@gitee.com:charsen/moo-system.git |
 | charsen/moo-upload | upload | src/MooeenUploadServiceProvider.php | — | ^0.1@dev | dev-dev | ^0.1.12 | git@gitee.com:charsen/moo-upload.git |
-| charsen/moo-contract | contract | — | — | ^0.1@dev | dev-dev | ^0.1.0 | git@gitee.com:charsen/moo-contract.git |
-
-### 走 Packagist 的公开包（不在 `extra.moo-private-packages`，共 1 个）
+| charsen/moo-contract | contract | — | — | ^0.1.1@dev | dev-dev | ^0.1.1 | git@gitee.com:charsen/moo-contract.git |
 
 | name | 本地约束 | 测试约束 | 生产约束 | 是否有 repository |
 | --- | --- | --- | --- | --- |
-| charsen/moo-feedback | ^0.1@dev | dev-dev | ^0.1.7 | 是 |
+| charsen/moo-feedback | ^0.1.9@dev | dev-dev | ^0.1.9 | 是 |
 <!-- END moo-manifest-table -->
 
 `charsen/moo-scaffold` 的 `publish-tag` 是 `"public"`：`pull.sh` Step 5.5 会对它执行 `vendor:publish --tag=public --force`，
@@ -254,4 +250,4 @@ pull.sh 已把大部分坑**内化自动处理**，剩下几个是运维侧手�
 
 ## 统一组织与姓名接线的发布前提
 
-当前源码由 System 默认提供公共 OrgDirectory、PersonnelNameResolver 及 OrgOptions，Feedback 直接消费公共姓名契约，Host 仅保留反馈分类与身份差异。三份清单现有稳定下限是已发布基线，尚不能代表本轮新增接口及默认绑定已经发布。须按契约 → System/消费包 → Host 的顺序发布并提升最低约束、验证干净解析后再部署；详见 [第 14 章](docs/14-扩展包与Host-Resolver契约.md)。
+当前源码由 System 默认提供公共 OrgDirectory、PersonnelNameResolver 及 OrgOptions，Feedback 直接消费公共姓名契约，Host 仅保留反馈分类与身份差异。Contract、System 与 Feedback 的新稳定 tag 已发布，三份 Host manifest 已同步本轮最低约束。Host tag 与目标环境安装、部署须分别核对；详见 [第 14 章](docs/14-扩展包与Host-Resolver契约.md)。
