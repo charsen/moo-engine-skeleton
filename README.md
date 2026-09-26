@@ -35,7 +35,7 @@
 - 部署上线（nginx + supervisor + Redis）
 - 日常增量开发（改表 / 加接口 / 同步 ACL）
 
-教程共 14 章：前 6 章讲零商业依赖的基础能力，第 7 章接入 moo-system，第 8~11 章覆盖部署、增量开发、监控与身份契约，第 12 章提供正式的新项目起手入口，第 13 章用 moo-feedback 演示扩展包接入与独立安全组，第 14 章讲扩展包 resolver 与 Host 胶水组合。
+教程共 14 章：前 6 章讲零商业依赖的基础能力，第 7 章接入 moo-system，第 8~11 章覆盖部署、增量开发、监控与身份契约，第 12 章提供正式的新项目起手入口，第 13 章用 moo-feedback 演示扩展包接入与独立安全组，第 14 章讲公共组织/姓名契约、System 默认接线与 Host 覆盖；当前升级源码的发布前提见该章。
 
 ## 两种使用方式
 
@@ -88,10 +88,10 @@ php -S 127.0.0.1:9999
 
 ## 配套包（必读）
 
-本骨架依赖作者的另外几个包。4 个 manifest 私包（`moo-scaffold`、`moo-monitor-laravel`、
-`moo-system`、`moo-upload`）统一按 manifest 私包接线：本地用 sibling `path` 联调，测试 / 生产用
+本骨架依赖作者的另外几个包。5 个 manifest 私包（`moo-scaffold`、`moo-monitor-laravel`、
+`moo-system`、`moo-upload`、`moo-contract`）统一按 manifest 私包接线：本地用 sibling `path` 联调，测试 / 生产用
 Gitee `vcs` 授权仓库解析（见 [`PRIVATE-COMPOSER-PACKAGES.md`](./PRIVATE-COMPOSER-PACKAGES.md)）。
-只有 MIT 公开包 `charsen/moo-feedback` 直接走 Packagist。正式使用不要求 clone 到同级目录。
+`moo-feedback` 是 MIT 公开包，本仓也显式配置本地 path 与测试/生产 VCS 来源。正式使用不要求 clone 到同级目录。
 
 **访问前提**：
 
@@ -99,26 +99,27 @@ Gitee `vcs` 授权仓库解析（见 [`PRIVATE-COMPOSER-PACKAGES.md`](./PRIVATE-
 # 克隆本仓库
 git clone git@gitee.com:charsen/moo-engine-skeleton.git
 
-# 第 7 章需要 moo-system 与 moo-upload 的访问权；4 个 manifest 私包
-# （scaffold / monitor / system / upload）都在 Gitee VCS 清单里。
+# 第 7 章完成态需要 moo-system、moo-upload 与 moo-contract 的访问权；5 个 manifest 私包
+# （scaffold / monitor / system / upload / contract）都在 Gitee VCS 清单里。
 ```
 
 | 包 | 定位 | 是否必装 | 说明 |
 |---|---|---|---|
 | `moo-scaffold` | 开源（MIT，manifest 私包接线） | **必装** | 代码生成器 + 开发后台（教程第 2 章接入） |
 | `moo-system` | 进阶 / 私有包 | 可选 | 系统管理模块（部门 / 人员 / 角色，教程第 7 章接入） |
+| `moo-contract` | 私有契约包 | 随 System/消费包接入 | 统一姓名与组织只读接口，无 Provider |
 | `moo-upload` | 私有基础包 | 随 moo-system 接入 | purpose 约束上传、引用消费与清理；Host 配独立安全组 |
 | `moo-monitor-laravel` | 开源（MIT，manifest 私包接线） | **必装** | 监控采集 SDK（教程第 1.7 节显式接入） |
 | `moo-feedback` | 开源（MIT，发布到 Packagist） | 示例内置 | 意见反馈扩展包；第 13 章演示公开提交与独立后台认证组 |
 
 **为什么还要配置 VCS 仓库？**
 
-4 个 manifest 私包都不由 Packagist 解析，需要在三份 manifest 的 `repositories` 里声明 Gitee `vcs`
+5 个 manifest 私包都不由 Packagist 解析，需要在三份 manifest 的 `repositories` 里声明 Gitee `vcs`
 仓库（本地 profile 用 sibling `path`）；Composer 不继承依赖包自己的仓库配置。
-只有 `moo-feedback` 是 Packagist 公开包，不需要额外 `repositories` 配置。
+`moo-feedback` 不属于私包授权清单；本仓配置其 repository 以参与统一源码联调。
 
-> 本仓库口径：4 个 manifest 私包统一按三份 manifest 接线（本地 path、测试/生产 VCS），
-> `moo-feedback` 走 Packagist 正式版本。
+> 本仓库口径：5 个 manifest 私包统一按三份 manifest 接线（本地 path、测试/生产 VCS），
+> 公开的 `moo-feedback` 也配置 path/VCS 来源，具体约束见 manifest。
 
 ---
 
