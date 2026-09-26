@@ -9,15 +9,16 @@
 > | `charsen/moo-scaffold` | 开源（MIT）代码生成器 | 按 manifest 私包接线（本地 `path` / 测试生产 Gitee VCS） | **保持** manifest 私包接线 |
 > | `charsen/moo-monitor-laravel` | 开源（MIT）运行时/慢SQL 监控 | 按 manifest 私包接线（本地 `path` / 测试生产 Gitee VCS） | **保持** manifest 私包接线 |
 > | `charsen/moo-system` | **私有业务包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
+> | `charsen/moo-contract` | **私有契约包** | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 > | `charsen/moo-upload` | **私有基础包**（proprietary） | 私有 Gitee VCS + deploy key | **保持** VCS 授权分发 |
 >
 > `charsen/moo-scaffold` 与 `charsen/moo-monitor-laravel` 的源码虽然是 MIT 开源，但本仓与其它 host 一致，
 > 把它们按 manifest 私包接入三份 `repositories` 与 `extra.moo-private-packages`；本地 `path` symlink 仍可在 App 内联联调。
-> 4 个包中 `moo-system` 与 `moo-upload` 是闭源授权包，长期走 deploy key VCS——本文档 §4 的 deploy key 流程对它长期有效。
+> 5 个包中 `moo-system`、`moo-upload` 与 `moo-contract` 是闭源授权包，长期走 deploy key VCS——本文档 §4 的 deploy key 流程对它长期有效。
 
 ## 1. 解决什么问题
 
-1. **闭源包不能进公共 Packagist**（`moo-system` / `moo-upload` 授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
+1. **闭源包不能进公共 Packagist**（`moo-system` / `moo-upload` / `moo-contract` 授权）——生产 `composer install` 必须能凭 deploy key 从私仓拉到。
 2. **本地开发想改包源码即时生效**——本地使用 path profile。
 3. **测试服想验证多个私包的最新开发态**——测试 profile 统一追每个私包的 `dev`，无需反复打 tag 发版。
 
@@ -29,14 +30,14 @@
 
 | 文件 | 谁用 | `repositories` 段 | 效果 |
 | --- | --- | --- | --- |
-| `composer.json` | 本地开发（默认） | 4 个 manifest 私包用 sibling `path`（`../../moo-*`，`symlink`）；`moo-feedback` 直接走 Packagist | 改包源码即时可见 |
+| `composer.json` | 本地开发（默认） | 5 个 manifest 私包用 sibling `path`（`../../moo-*`，`symlink`）；公开 Feedback 也配 path 联调 | 改包源码即时可见 |
 | `composer.test.json` | 测试服务器 | `vcs`；manifest 私包直接使用包侧 branch alias 支撑的 `dev-dev` | Host 与私包统一验证 `dev` 最新内容 |
 | `composer.production.json` | 生产部署 | `vcs`（按稳定版本约束解析） | 装成实体目录、可显式更新私包 |
 
 **本地用 `path` 仓库的团队**（把包 clone 到 host 同级目录）：
 
 ```jsonc
-// composer.json —— 本地（以 system / upload 两个包示意，实际 4 个 manifest 私包同形）
+// composer.json —— 本地（以 system / upload 两个包示意，实际 5 个 manifest 私包同形）
 "repositories": {
   "system": { "type": "path", "url": "../../moo-system", "options": { "symlink": true, "versions": { "charsen/moo-system": "1.6.x-dev" } } },
   "upload": { "type": "path", "url": "../../moo-upload", "options": { "symlink": true, "versions": { "charsen/moo-upload": "0.1.x-dev" } } }
@@ -59,8 +60,8 @@
 }
 ```
 
-> **骨架当前口径**：4 个 manifest 私包（`moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload`）都进三份 `repositories` 与 `extra.moo-private-packages`；`charsen/moo-feedback`（`^0.1`）仍是 MIT 公开包，直接走 Packagist 正式版本。
-> 骨架本地 `composer.json` 即用 sibling `path`（`url` 为 `../../moo-scaffold` / `../../moo-monitor-laravel` / `../../moo-system` / `../../moo-upload`，`options.symlink: true`）联调；测试与生产 profile 均保持 VCS。
+> **骨架当前口径**：5 个 manifest 私包（`moo-scaffold` / `moo-monitor-laravel` / `moo-system` / `moo-upload` / `moo-contract`）都进三份 `repositories` 与 `extra.moo-private-packages`；`moo-feedback` 仍是 MIT 公开包，不进私包授权元数据，但本仓显式配置 path/VCS 来源和三档版本约束。
+> 骨架本地 `composer.json` 即用 sibling `path`（`url` 为 `../../moo-scaffold` / `../../moo-monitor-laravel` / `../../moo-system` / `../../moo-upload` / `../../moo-contract`，`options.symlink: true`）联调；测试与生产 profile 均保持 VCS。
 > `composer.test.json` 只允许 manifest 私包版本约束与 production 分流，其余 require、repositories、scripts、extra 等配置保持一致。
 
 **pull.sh 的私包 manifest** 从当前选择的 VCS profile 的 `extra."moo-private-packages"` 读（字段
@@ -70,25 +71,21 @@
 **本仓 manifest 私包清单**（`extra.moo-private-packages` 三份一致；`repositories` 按环境只差 `type` 与 URL）：
 
 <!-- BEGIN moo-manifest-table -->
-### 私包清单（`extra.moo-private-packages`，共 5 个）
-
 | name | repo-key | provider-rel | publish-tag | 本地约束 | 测试约束 | 生产约束 | 仓库 URL |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | charsen/moo-scaffold | scaffold | src/ScaffoldProvider.php | public | ^2.2.7@dev | dev-dev | ^2.2.7 | git@gitee.com:charsen/moo-scaffold.git |
 | charsen/moo-monitor-laravel | monitor | src/MonitorProvider.php | — | ^0.1@dev | dev-dev | ^0.1.18 | git@gitee.com:charsen/moo-monitor-laravel.git |
-| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6.47@dev | dev-dev | ^1.6.47 | git@gitee.com:charsen/moo-system.git |
+| charsen/moo-system | system | src/MooeenSystemServiceProvider.php | — | ^1.6.51@dev | dev-dev | ^1.6.51 | git@gitee.com:charsen/moo-system.git |
 | charsen/moo-upload | upload | src/MooeenUploadServiceProvider.php | — | ^0.1@dev | dev-dev | ^0.1.12 | git@gitee.com:charsen/moo-upload.git |
-| charsen/moo-contract | contract | — | — | ^0.1@dev | dev-dev | ^0.1.0 | git@gitee.com:charsen/moo-contract.git |
-
-### 走 Packagist 的公开包（不在 `extra.moo-private-packages`，共 1 个）
+| charsen/moo-contract | contract | — | — | ^0.1.1@dev | dev-dev | ^0.1.1 | git@gitee.com:charsen/moo-contract.git |
 
 | name | 本地约束 | 测试约束 | 生产约束 | 是否有 repository |
 | --- | --- | --- | --- | --- |
-| charsen/moo-feedback | ^0.1@dev | dev-dev | ^0.1.7 | 是 |
+| charsen/moo-feedback | ^0.1.9@dev | dev-dev | ^0.1.9 | 是 |
 <!-- END moo-manifest-table -->
 
 `charsen/moo-scaffold` 的 `publish-tag` 是 `"public"`：`pull.sh` Step 5.5 会对它执行 `vendor:publish --tag=public --force`，
-刷新 `engine/public/vendor/scaffold`。`charsen/moo-feedback`（`^0.1`）是 MIT 公开包，走 Packagist，不在本清单内。
+刷新 `engine/public/vendor/scaffold`。`charsen/moo-feedback` 是 MIT 公开包，不在私包授权清单内；实际来源与约束见上表及 manifest。
 
 ## 3. deploy 流程：用 `pull.sh` 而非 `cache.sh`
 
@@ -250,3 +247,7 @@ pull.sh 已把大部分坑**内化自动处理**，剩下几个是运维侧手�
 ---
 
 **相关**：脚本索引 [`SCRIPTS.md`](./SCRIPTS.md) ·  部署核对单 [`DEPLOY-CHECKLIST.md`](./DEPLOY-CHECKLIST.md) ·  教程 `docs/08-部署上线.md` / `docs/07-安装-moo-system.md`。
+
+## 统一组织与姓名接线的发布前提
+
+当前源码由 System 默认提供公共 OrgDirectory、PersonnelNameResolver 及 OrgOptions，Feedback 直接消费公共姓名契约，Host 仅保留反馈分类与身份差异。Contract、System 与 Feedback 的新稳定 tag 已发布，三份 Host manifest 已同步本轮最低约束。Host tag 与目标环境安装、部署须分别核对；详见 [第 14 章](docs/14-扩展包与Host-Resolver契约.md)。
