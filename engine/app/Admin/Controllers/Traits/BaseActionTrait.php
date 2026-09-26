@@ -14,9 +14,7 @@ namespace App\Admin\Controllers\Traits;
 use Closure;
 use Illuminate\Validation\ValidationException;
 use Mooeen\Scaffold\Foundation\BaseResource;
-use Mooeen\System\Models\Department;
-use Mooeen\System\Models\Enums\StaffStatus;
-use Mooeen\System\Models\Position;
+use Mooeen\System\Contracts\OrgOptions;
 
 trait BaseActionTrait
 {
@@ -148,21 +146,7 @@ trait BaseActionTrait
      */
     private function getPersonnelCascader($model = null, $multiple = false, $array = true, $strictly = false): array
     {
-        if ($model === null) {
-            $departments = Department::defaultOrder();
-            $model       = $departments->with(['personnels' => function ($query) {
-                $query->where('system_personnels.staff_status', StaffStatus::ON_JOB->value);
-            }])->get();
-        }
-
-        return [
-            'type'     => 'cascader',
-            'multiple' => $multiple,
-            'strictly' => $strictly,
-            'array'    => $array,
-            'options'  => $model->toTree()->toArray(),
-            'filter'   => ['label-value', 'id', 'department_name', '', ['personnels', 'id', 'real_name', '@']],
-        ];
+        return app(OrgOptions::class)->personnelCascader($model, $multiple, $array, $strictly);
     }
 
     /**
@@ -184,21 +168,6 @@ trait BaseActionTrait
      */
     private function getPositionCascader($multiple = false, $array = false, $strictly = false): array
     {
-        $departments = Department::defaultOrder();
-
-        $model = $departments->get()->map(function ($item) {
-            $item->positions = Position::whereJsonContains('department_ids', $item->id)->get();
-
-            return $item;
-        });
-
-        return [
-            'type'     => 'cascader',
-            'multiple' => $multiple,
-            'strictly' => $strictly,
-            'array'    => $array,
-            'options'  => $model->toTree()->toArray(),
-            'filter'   => ['label-value', 'id', 'display_name', '', ['positions', 'id', 'position_name']],
-        ];
+        return app(OrgOptions::class)->positionCascader($multiple, $array, $strictly);
     }
 }
