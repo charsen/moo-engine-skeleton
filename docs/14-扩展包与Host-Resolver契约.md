@@ -5,98 +5,77 @@ order: 150
 ---
 # 第 14 章　扩展包与 Host 的 Resolver 契约
 
-目标：让扩展包保持独立，同时由 Host 组合自己的人员、组织或业务目录能力。本文以“把 `creator_id/updater_id` 显示为姓名”为例，演示典型 resolver 接入。
+目标：共享人员与组织读取能力，Host 只实现自身差异。以下说明对应当前源码的统一契约接线。
 
-## 14.1 三层职责
+> **版本前提**：本轮契约升级尚未发布，不能把当前生产 manifest 的最低版本视为已支持以下全部行为。正式安装须等完整 moo-contract、配套 moo-system 与消费包稳定版本发布，再统一提高 Host 依赖下限。没有授权私包仓访问权时，继续使用前六章；本章不要求读者靠本机 sibling 源码完成安装。
 
-| 层 | 负责 | 不负责 |
-|---|---|---|
-| moo-scaffold | 当前操作人 ID、`HasOperator` 自动写入等通用机制 | 不读取 Personnel 或业务数据库 |
-| 业务扩展包 | 保存 ID、定义窄 resolver 契约、提供 Null 默认、批量注入展示字段 | 不依赖 moo-system，不认识 Host 模型 |
-| Host | 绑定 resolver，把扩展包契约适配到本项目人员体系 | 不修改 vendor 包源码 |
+## 14.1 职责
 
-使用 moo-system 的 Host 还可以注入 `Mooeen\System\Contracts\OrgDirectory`。数据库查询由拥有 `Personnel` 的 moo-system 完成；未安装 moo-system 的 Host 可以从自己的用户表、LDAP 或外部目录实现同一扩展包契约。
+| 层 | 职责 |
+| --- | --- |
+| moo-scaffold | 当前操作人身份、HasOperator 自动写入；不查询组织业务表 |
+| moo-contract | 公共 PersonnelNameResolver、OrgDirectory；零框架依赖，无 Provider、默认实现 |
+| moo-system | 组织数据所有者，实现公共契约并提供可覆盖的默认绑定 |
+| 业务扩展包 | 直接消费公共契约，维护自己的业务规则和响应形状 |
+| Host | 身份、ACL、业务类型与项目范围；外部目录需要时显式替换公共实现 |
 
-## 14.2 扩展包自持窄契约
+姓名与组织能力使用原有公共接口直接升级，不再为每个包建立同义子接口、转发适配器或 Null 姓名实现。带有实际领域差异的契约继续保留，例如骨架的 FeedbackTypeResolver。
 
-扩展包只声明自己需要的最小能力：
-
-```php
-namespace Mooeen\Certificate\Contracts;
-
-interface PersonnelNameResolver（示例：已随 2026-09-22 去重删除的包内别名）
-{
-    /** @return array<int|string, ?string> */
-    public function resolveNames(array $ids): array;
-}
-```
-
-包 Provider 用 `bindIf()` 注册 Null 默认实现。Null 返回空 map；展示层找不到姓名时回退原始 ID，保证未接入新契约的旧 Host 行为不变。
-
-列表必须收集当前页全部 `creator_id/updater_id` 后只调用一次 `resolveNames()`，再通过 `setAttribute('creator_id_txt', ...)` 注入瞬态字段。不要逐行查询，也不要用 `append()`：后者会寻找并不存在的 Eloquent accessor。
-
-## 14.3 moo-system 提供组织目录
-
-`OrgDirectory` 从 moo-system **1.6.38** 起提供，是对外统一的组织目录只读契约，覆盖人员、部门与岗位查询。采用本章示例时，生产依赖下限须为 `charsen/moo-system: ^1.6.38`（参考 `engine/composer.production.json`）；升级已有项目时同步替换旧接口注入点，不保留兼容别名。
-
-查询示例：
+## 14.2 批量姓名解析
 
 ```php
-use Mooeen\System\Contracts\OrgDirectory;
+use Mooeen\Contract\PersonnelNameResolver;
 
-$names = app(OrgDirectory::class)->resolveNames($ids);
+$names = app(PersonnelNameResolver::class)->resolveNames($ids);
 ```
 
-默认实现批量查询 `Personnel::withTrashed()`，让离职或软删人员的历史记录仍能显示姓名。业务扩展包不能直接引用这个契约；只有 Host 胶水层负责把两边组合起来。
+System 默认实现批量读取人员展示名，包含离职及软删历史人员；不存在的 ID 不进入返回 map。缺少契约绑定属于接入错误，应明确失败，不能用空实现掩盖。已绑定但查不到人员时，由具体响应契约决定空值或 ID 的展示方式。
 
-## 14.4 Host 合一实现
+列表先收集整页 ID，一次解析，再注入瞬态 `_txt` 字段；不要逐行调用，也不要给没有 accessor 的字段使用 `append()`。骨架的反馈详情和话题串直接消费这一公共姓名能力。
 
-多个扩展包 resolver 签名相同时，Host 可以用一个类同时实现：
+## 14.3 组织事实与表单选项
+
+业务包和 Host 组织读取使用 `Mooeen\Contract\OrgDirectory`：
 
 ```php
-namespace App\Moo\Support;
+use Mooeen\Contract\OrgDirectory;
 
-use Mooeen\System\Contracts\OrgDirectory;
-
-final class PersonnelNameResolver implements PersonnelNameResolver
-{
-    public function __construct(private readonly OrgDirectory $org) {}
-
-    public function resolveNames(array $ids): array
-    {
-        return $this->org->resolveNames($ids);
-    }
-}
+$directory = app(OrgDirectory::class);
+$postings = $directory->onJobPersonnelPostings($personnelIds);
+$departmentIds = $directory->departmentDescendantIds($departmentId);
 ```
 
-契约的**形状**已收敛到私有契约包 `charsen/moo-contract`：各包自家契约是 `Mooeen\Contract\PersonnelNameResolver` 的**兼容别名**（`interface PersonnelNameResolver（示例：已随 2026-09-22 去重删除的包内别名） extends \Mooeen\Contract\PersonnelNameResolver {}`），Host 仍只做实现合一 —— 新增契约先落契约包，包内只留别名。随后在每个包自己的 Host provider 中绑定：
+- `onJobPersonnelPostings(null)` 读取所有在职、未软删人员；`[]` 不查询。任职包含多部门、多岗位，无任职者保留空 postings。
+- `onJobPersonnelNamesByKeyword()` 用于在职搜索候选。组织事实接口本身不排除 root。
+- 可指派资格仍有独立的在册＋在职口径，不能作为候选列表的替代。
+- 主部门用于归属、展示或审计快照；授权范围按实时任职关系计算。
 
-```php
-$this->app->bind(
-    \Mooeen\Contract\PersonnelNameResolver::class,
-    \App\Moo\Support\PersonnelNameResolver::class,
-);
+需要 scaffold 级联 widget 的 System 消费方，直接使用 `Mooeen\System\Contracts\OrgOptions`。默认人员候选按多岗位挂人、仅在职并排除 root；显式部门模型集合保持历史回显。System 的子目录接口保留 Laravel Collection 等框架专属能力，业务包无需为此依赖 System。
+
+## 14.4 Host 接线
+
+安装配套 System 后，默认绑定关系为：
+
+```text
+公共 OrgDirectory → System OrgDirectory → EloquentOrgDirectory
+公共 PersonnelNameResolver → 公共 OrgDirectory
+System OrgOptions → System 的表单选项实现
 ```
 
-Provider 放在 `App\Moo\Certificate`，并登记到 `bootstrap/providers.php`。不要把所有包的绑定堆进 `AppServiceProvider`，也不要让一个扩展包直接依赖另一个扩展包。
+这些绑定使用 `bindIf`，Host 无需复制姓名查询或另建只做转发的 Provider。骨架现有 FeedbackServiceProvider 只绑定反馈分类；操作人身份仍由 ScaffoldServiceProvider 负责。
 
-## 14.5 验证清单
+不用 System 或需要外部目录时，Host 实现并显式绑定现有公共契约。只替换姓名时实现 PersonnelNameResolver 即可；替换组织目录时须实现其全部方法，同时升级所有实现方与消费者。不要创建第二套版本接口或用方法存在性探测回退。
 
-1. 包测试：未绑定 resolver 时仍返回原始 ID；绑定 stub 后返回姓名；整页只批量解析一次。
-2. 架构检查：扩展包 `src/` 与 Composer manifest 中没有 moo-system、Personnel 或 Host `App\*`。
-3. Host 测试：真实创建记录后，列表/详情的 `_txt` 字段等于当前人员姓名。
-4. 软删人员：历史记录仍能通过 `OrgDirectory` 解析姓名。
-5. 多 Host：没有接入 moo-system 的消费者仍能以自己的目录实现 resolver，或继续使用包的 ID 回退。
-6. 发版顺序：先发布提供目录能力的 moo-system **与零依赖的契约包 `charsen/moo-contract`**，再发布扩展包（各自 `require charsen/moo-contract`），最后更新 Host 约束与绑定。
+Composer 只采用根项目 repositories；私包的传递依赖也须在 Host 声明可解析来源。三份 manifest 与私包元数据同步维护，见 [私包接入说明](../PRIVATE-COMPOSER-PACKAGES.md)。
 
-`PersonnelDirectory` 已移除且没有兼容别名；契约包 `moo-contract` 只有接口、无 Provider、无默认实现（未绑定即显式失败），它的 `tests/Baselines/self-held-contracts.json` ratchet 基线用于防「自持契约」悄悄变多，升级到提供 `OrgDirectory` 的 moo-system 版本时必须同步修改 Host 注入点。
+## 14.5 定向验证与交付
 
-## 14.6 常见错误
+在 `engine/` 运行：
 
-- 在扩展包中直接 `DB::table('system_personnels')`：硬编码了别的包的数据结构。
-- 把 Personnel 查询放进 moo-scaffold：工具包越权读取业务数据库。
-- 每行调用一次 resolver：制造列表 N+1。
-- Null resolver 返回异常：未接入契约的 Host 被迫同步升级。
-- 只隐藏前端 ID：接口仍没有姓名，其他消费者继续显示裸值。
+```bash
+APP_ENV=testing DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync php artisan test tests/Unit/Services/SharedOrganizationBindingTest.php
+```
 
-这套模式不只适用于人员姓名，也适用于 Host 私有分类目录、组织树、业务对象标题和跨包事件联动：扩展包提供窄缝，Host 负责组合，真正拥有数据的一侧提供查询能力。
+该测试使用隔离内存库，验证真实 Host 默认绑定、批量历史姓名以及显式覆盖；失败时不应通过增加 Null 实现绕过。反馈消费者的姓名断言位于 `FeedbackExampleTest::test_feedback_detail_resolves_historical_names_through_system_default_binding`，可用 `--filter` 单独执行。
+
+公共契约升级核查四层：包源码、Host 调用、实现与绑定、测试与文档。发布顺序为完整契约 → 配套 System/消费包 → Host 依赖与接线；源码联调、稳定包安装和目标环境验收分别记录。

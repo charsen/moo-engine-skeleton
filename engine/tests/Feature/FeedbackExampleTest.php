@@ -95,4 +95,23 @@ class FeedbackExampleTest extends TestCase
             self::assertContains($key, $keys);
         }
     }
+
+    public function test_feedback_detail_resolves_historical_names_through_system_default_binding(): void
+    {
+        $personnel = \Mooeen\System\Models\Personnel::query()->firstOrFail();
+        $id        = (string) $personnel->id;
+        $name      = $personnel->real_name;
+        // 直接写隔离夹具，避免人员删除事件改变测试对象的其他关系。
+        \Illuminate\Support\Facades\DB::table('system_personnels')->where('id', $id)->update(['deleted_at' => now()]);
+        $feedback = Feedback::submit([
+            'feedback_type'         => 'SUGGESTION',
+            'feedback_content'      => '契约测试：历史姓名展示',
+            'feedback_submitter_id' => $id,
+        ]);
+
+        $resource = app(\Mooeen\Feedback\Http\Controllers\Admin\FeedbackController::class)->show($feedback->id);
+        $data     = $resource->resolve();
+
+        self::assertSame($name, $data['feedback_submitter_id_txt']);
+    }
 }
