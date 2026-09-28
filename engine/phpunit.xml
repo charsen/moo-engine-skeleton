@@ -18,6 +18,11 @@
         </include>
     </source>
     <php>
+        <!-- ⚠ 下面的 <env> **只在变量尚未存在于进程环境时才生效**：若运行 shell 已导出
+             SESSION_DRIVER / CACHE_STORE / DB_CONNECTION（部署脚本、容器或 `source .env` 常见），
+             这里的值会被跳过 ⇒ `/` 首页去查 sessions 表而 500（实测 shell 导出 database 时复现，
+             加 force="true" 也压不住）。跑测试前先 `printenv | grep -E 'SESSION_DRIVER|CACHE_STORE'`，
+             或在测试基类里用 config() 锁死，别只靠本文件。 -->
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
