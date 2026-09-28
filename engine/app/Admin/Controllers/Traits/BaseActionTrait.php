@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace App\Admin\Controllers\Traits;
 
 use Closure;
-use Illuminate\Validation\ValidationException;
+use Mooeen\Scaffold\Exceptions\BaseException;
 use Mooeen\Scaffold\Foundation\BaseResource;
 use Mooeen\System\Contracts\OrgOptions;
 
@@ -32,7 +32,7 @@ trait BaseActionTrait
     /**
      * 批量删除
      *
-     * @throws ValidationException
+     * @throws BaseException
      */
     private function destroyBatchAction($request, ?Closure $afterDelete = null): BaseResource
     {
@@ -51,7 +51,7 @@ trait BaseActionTrait
         });
 
         if (count($result) < 1) {
-            throw ValidationException::withMessages(['ids' => ['No batch operation results.']]);
+            throw new BaseException('No batch operation results.');
         }
 
         return BaseResource::make($result);
@@ -71,7 +71,7 @@ trait BaseActionTrait
     /**
      * 恢复
      *
-     * @throws ValidationException
+     * @throws BaseException
      */
     private function restoreAction($request): BaseResource
     {
@@ -86,7 +86,7 @@ trait BaseActionTrait
         });
 
         if (count($result) < 1) {
-            throw ValidationException::withMessages(['ids' => ['No batch operation results.']]);
+            throw new BaseException('No batch operation results.');
         }
 
         return BaseResource::make($result);

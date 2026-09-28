@@ -299,6 +299,18 @@ curl -sS -X POST "$BASE/api/admin/food" \
 | 编辑小王授权前就是 `HTTP 200` | `authorization.check` 是否为 `true`，修改后是否执行了 `config:clear` |
 | 新增接口返回 `HTTP 422` 而不是 `403` | 请求体没有通过 FormRequest；按错误正文补齐字段后再测 ACL |
 
+### 业务错误的表单与按钮出口
+
+`Mooeen\Scaffold\Foundation\FormRequest` 默认 `fieldValidation = true`，新增、编辑及实际搜索字段保留 `422 + errors.字段`。无表单按钮请求（例如 Food 批量删除、恢复）显式声明：
+
+```php
+protected bool $fieldValidation = false;
+```
+
+无表单业务拒绝直接 `throw new BaseException('错误原因');`，返回 HTTP 522 和 `error.msg`，不为单次业务另造异常类。混合表单须保留真实控件的 422，隐藏 ID 等上下文错误使用 522。401/403/404、真实并发冲突和技术异常按原语义处理。
+
+本仓已同步 `DestroyBatchRequest` 和 `BaseActionTrait`，定向回归见 `engine/tests/Feature/FoodBusinessExceptionTest.php`。部署前先升级到含该 FormRequest 选项的 Scaffold 稳定版本；本地 sibling 联调不代表当前稳定 tag 已含此功能。
+
 ## 5.4 两个容易误判的点
 
 1. **先 422 后 403**：表单校验发生在 ACL 之前。参数不合法时会先返回 422；
