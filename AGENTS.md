@@ -1,25 +1,19 @@
 # AGENTS.md
 
-本文件适用于仓库根目录及全部子目录。规则冲突时依次服从：系统/用户指令、当前目录适用的代理规则、用户批准的任务方案、`NOTES.md`、现行教程与代码。文档和代码不一致时先查清哪一边落后；本仓的目标是“教程能从零复现”，不能只让现成 `engine/` 偶然可运行。
+本文件适用于整个 `moo-engine-skeleton` 仓库，**只写本仓特有约束**。对话授权、提交 / 推送 / 打 tag / 发布、敏感信息与最小披露、
+验证门禁、E2E 与浏览器验证、Composer 三份 manifest、跨仓公共契约等通用规则随全局 `~/.agents/AGENTS.md`，本文件不重复。
+冲突时按「系统 / 用户当前指令 > 离目标最近的 `AGENTS.md` > 全局」判断；版本、命令与接口以当前代码、manifest 和测试核实。
 
 ## 开工顺序
 
-1. 先读 `NOTES.md`，再按任务阅读 `README.md`、`docs/README.md`、对应章节、`engine/` 现码和测试。
+1. 按任务阅读 `README.md`、`docs/README.md`、对应章节、`engine/` 现码和测试。
 2. 涉及初始化器或发布时，同时读 `init-project`、`release-check.sh`、开发/生产两套 Composer manifest、部署脚本与本地 lock 策略。
 3. 涉及 moo 包时，以本仓 manifest 和相邻包现码核实当前契约；`../某个内部 Host/PACKAGES.md` 只作生态索引，不复制 host 规则。
-4. 修改前读完目标文件及直接调用链。机械性、零语义且范围明确的小修可直接实施；非琐碎或涉及行为、接口、数据、权限、依赖、发布的改动先列计划并取得用户批准，范围或风险实质变化时重新确认。
-
-## 长期记忆
-
-- `NOTES.md` 是本仓已验证踩坑的长期底账。每条记录症状、根因、解法和日期；开工先读，踩坑确认后及时补充。
-- 只写经代码、命令、测试或真实操作证实、且以后仍有复用价值的结论；不写任务进度、猜测、固定测试数量和容易过期的版本快照。
-- 新证据推翻旧结论时修订原条目，避免同时保留互相矛盾的说法。
-- 不记录密码、token、私有仓地址、真实业务系统名或其他不应进入公开仓库的信息。
 
 ## 项目定位
 
 - 本仓是 Laravel 12 后端学习教程、可运行参考骨架和项目初始化器的组合，不是某个生产 host，也不是通用“最佳实践”全集。
-- `engine/` 是与教程对应的完成态参考实现；`docs/` 负责让读者从零搭出同样结果；根目录初始化器负责把教程骨架安全裁成新项目。
+- `engine/` 是与教程对应的完成态参考实现；`docs/` 负责让读者从零搭出同样结果；根目录初始化器负责把教程骨架安全裁成新项目。本仓目标是「教程能从零复现」，不能只让现成 `engine/` 偶然可运行。
 - 教学代码刻意保持 Controller / Model / Filter / Resource 的轻量结构。不要为了架构洁癖强加 Service、Repository 或复杂分层。
 - `Food` 是贯穿 schema、codegen、JWT、ACL、测试与增量开发的教学模块；删除或改名必须同时审查教程和初始化器清理行为。
 - 第 3～6 章使用自建 `User` 演示 admin/user 双守卫；第 7 章的商业 `moo-system` 是可选进阶，接入后仅后台主体切到 `Personnel`，移动端 `user` 守卫仍使用 `User`。
@@ -55,13 +49,9 @@
 - 本仓现状要如实理解：本地 profile 另含开发工具——10 项 `require-dev`（比测试/生产多 `beyondcode/laravel-dump-server`、`laravel/sail`、`pestphp/pest`、`pestphp/pest-plugin-laravel`）和 Laravel 默认 `scripts` 段（`setup` / `dev` / `lint` / `post-create-project-cmd` / `post-root-package-install`），测试与生产各只有 6 项 `require-dev` 和部署相关脚本（如 `clear-all`）。这是既有实态，不是私包分流违规，也不要为了“对齐”把这些开发工具搬进测试/生产 profile。
 - 私包清单与访问前提见 `PRIVATE-COMPOSER-PACKAGES.md`；公共组织/姓名接口由 `moo-contract` 提供，System 注册默认绑定。`moo-feedback` 是公开包，不进入私包授权元数据，但本仓显式配置 path/VCS 用于联调。
 - **新增、移除、改名私包**：三份清单同步改 `repositories`、`require` 约束与 `extra.moo-private-packages`，并同步 `PRIVATE-COMPOSER-PACKAGES.md` 的清单说明；随后在 `engine/` 跑 `php artisan test --filter ComposerProfilesTest` 与三份 `composer validate --strict --no-check-publish`。只改本地 profile 会在 CI/部署暴露；`pull.sh` 的私包列表是用 jq 从当前 profile 的 `extra.moo-private-packages` 现解析的，**不得在 `pull.sh` 里另维护一份包名列表**。
-- **生产约束不得伪装可发布**：远端只有分支、没有 tag 时，production 不得写 `dev` / `@` / ` as ` 形态的约束。顺序是先给包打 annotated semver tag 并推送，再接线三份清单。
-- **本地 path 联调只证明当前机器源码可用**，不证明分支已推送、tag 已发布、测试/生产服务器有仓库权限。这些要用远端引用核对与目标 profile 的干净解析分别验证。
 - `engine/composer.lock` 与 `engine/composer.test.lock` **不入 git**（见根 `.gitignore`），各环境由部署流程解析生成；不要把某个 profile 的 lock 当作跨环境真值。测试服首次没有 `composer.test.lock` 时会完整解析一次该 profile，之后每次只 `update` manifest 里的私包。
-- **只有根包的 `repositories` 生效**：依赖包自己 `composer.json` 里的 repositories 被 Composer 忽略，包的 path 口径只影响它自己的 `composer install` / 测试，不代表 host 或发布侧解析方式。
 - 测试服固定 `sh test-pull.sh`（导出 `DEPLOY_COMPOSER_PROFILE=test` 与 `DEPLOY_BRANCH=dev` 后 `exec sh pull.sh --latest`，令 Host 追 `dev` 且用 `composer.test.json`）；生产 `sh pull.sh --tag <host-tag>`（读 `composer.production.json`，Step 4 临时覆盖到 `composer.json`）。常规部署不得使用本仓仅有的两个跳过开关：`--skip-private-pkg`（跳过私包权限验证，只给本地 path 调试）和 `--force-reset`（丢弃本地已跟踪改动）。本仓没有 `--skip-migrate` / `--no-maintenance` 参数，迁移只在收尾 Step 6.5 检测待执行项、不自动跑；参数边界见 `SCRIPTS.md` 的 `pull.sh` 段。
 - **scaffold 前端资源（已解决）**：`charsen/moo-scaffold` 已进 manifest 且 `publish-tag` 为 `"public"`，部署时 `pull.sh` Step 5.5「同步私包 publish 副本」会对它执行 `vendor:publish --tag=public --force`，刷新 `engine/public/vendor/scaffold`（该目录被 `engine/.gitignore` 忽略）。scaffold 前端资源在本地仍靠 `composer.json` 的 `setup` 脚本里的 `vendor:publish --provider='Mooeen\Scaffold\ScaffoldProvider' --tag=public --force`，以及 `docs/02`、`docs/08` 的手工命令刷新——本地初始化仍然需要这些入口，但已不再是「部署不刷新」的状态。
-- 改包的 API、配置、migration 或 Resource 前，先列出真实 Host 消费方，再决定兼容与发布顺序。
 
 ## Schema 与生成边界
 
@@ -92,4 +82,3 @@
 - 文档改动至少运行 `git diff --check`，并逐项核对链接、路径、命令和版本。
 - PHP/教程代码改动先跑相关测试，再执行仓库当前完整门禁；涉及页面流程还需真实浏览器验证，涉及接口还需 curl/数据库闭环。
 - 初始化/发布相关改动运行 `./release-check.sh`，并如实说明开发与生产依赖、教程复现、真实部署哪些已验证。
-- 不主动 commit、push、tag、发布或部署。提交前展示完整 diff 和验证结果并取得用户明确确认；保留用户已有改动，不混入无关文件。

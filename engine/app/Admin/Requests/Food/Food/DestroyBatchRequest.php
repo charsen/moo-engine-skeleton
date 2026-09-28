@@ -18,6 +18,8 @@ class DestroyBatchRequest extends FormRequest
 {
     use FoodRequestTrait;
 
+    protected bool $fieldValidation = false;
+
     /**
      * Get the validation rules that apply to the request.
      */

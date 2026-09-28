@@ -16,7 +16,18 @@ return [
             '46c447ee55a627c6',
             'dffe71cfa5a3c405',
             'e9532ad1cd13af0a',
-            '42f63e42d2308d4f'
+            '42f63e42d2308d4f',
+            // 本文件由 `php artisan moo:auth <app>` 再生成。重跑 admin 后，必须把下面标注的
+            // moo-system 个人中心白名单重新合并，避免零授权角色登录后连自己的资料也无法访问。
+            // moo-system AdminController 个人中心（手动合并，生成器不会自动加入）—— 守护见 tests/Feature/FoodAclTest.php（坑 #20/#25）
+            '84470713dcb9a7c9',   // admin-system-admin-index（本人信息）
+            'f6d488cc41bea74a',   // admin-system-admin-edit（编辑表单）
+            'b00ef1ce449c970b',   // admin-system-admin-update（更新资料）
+            'cbc32275c4bdb06c',   // admin-system-admin-password-form（改密码表单）
+            '88e610dbb210a3dc',   // admin-system-admin-password（修改密码）
+            '1fcbfd9524aebb83',   // admin-system-admin-avatar-form（头像表单）
+            'd59a5622ff031201',   // admin-system-admin-avatar（更新头像）
+            'e389e65e330e8af2',   // admin-system-admin-logins（登录记录）
         ],
         'actions' => [
             'module-6e1ee1805962ce1b' => [
