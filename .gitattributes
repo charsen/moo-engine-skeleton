@@ -1,0 +1,17 @@
+# 让 `composer create-project` / 归档下载拿到的是「一个能直接开工的项目」：仓库自身的研发流程产物不进包。
+# ⚠ 本仓是 host 骨架（composer type=project）：消费方若用 `git clone` 安装，本文件**完全不生效**
+#   （export-ignore 只作用于 git archive / dist 归档）；属性取自被归档的那棵树，所以改动必须进提交、进 tag。
+#
+# 保留（有意随包分发，别当遗漏）：
+#   engine/  docs/（教程与配图）  tools/  init-project/  根目录部署脚本（*.sh）
+#   AGENTS.md / CLAUDE.md / NOTES.md / TODOS.md —— host 骨架与扩展包不同：新项目要**继承**这套协作文档作为起点，
+#   所以这里不裁 NOTES.md / TODOS.md（扩展包基准版裁掉它们，因为依赖包的笔记对消费方无意义）。
+#   SCRIPTS.md / DEPLOY-CHECKLIST.md / PRIVATE-COMPOSER-PACKAGES.md / SQLITE-DEPLOYMENT-TEMPLATE.md / CHANGELOG（若有）
+# 裁掉：仓库自身的过程产物
+/.github         export-ignore
+/.gitattributes  export-ignore
+/.vscode         export-ignore
+/HANDOFF.md      export-ignore
+/overview.md     export-ignore
+/plans           export-ignore
+/release-records export-ignore
