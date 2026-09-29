@@ -106,7 +106,7 @@ return Application::configure(basePath: dirname(__DIR__))
             BaseException::class,
         ]);
 
-        // 运行时异常采集:scaffold 3.9.0 起由 moo-monitor-laravel 的 MonitorProvider
+        // 运行时异常采集:scaffold 3.9.0 起由 moo-monitor-laravel 的 MooeenMonitorLaravelServiceProvider
         // 自动挂 reportable 钩子,无需手动接入(落盘 storage/moo-monitor/runtimes,推送上云后在云端查看)。
 
         // 上报节流：阈值放宽到 1000 条/分钟，避免高频 5xx 时关键日志被吞
