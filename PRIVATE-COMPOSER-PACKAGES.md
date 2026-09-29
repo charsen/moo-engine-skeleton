@@ -251,3 +251,18 @@ pull.sh 已把大部分坑**内化自动处理**，剩下几个是运维侧手�
 ## 统一组织与姓名接线的发布前提
 
 当前源码由 System 默认提供公共 OrgDirectory、PersonnelNameResolver 及 OrgOptions，Feedback 直接消费公共姓名契约，Host 仅保留反馈分类与身份差异。Contract、System 与 Feedback 的新稳定 tag 已发布，三份 Host manifest 已同步本轮最低约束。Host tag 与目标环境安装、部署须分别核对；详见 [第 14 章](docs/14-扩展包与Host-Resolver契约.md)。
+
+## 传递私包依赖：消费 host 必须自行声明仓库条目
+
+Composer **只用根包（host）的 `repositories`** —— 依赖包自己 manifest 里的仓库（含各包的本地 `path` 双轨）一律被忽略。
+因此当下游扩展包新增一个**未发布在 Packagist 的私包**依赖时（例如某包开始 require 取号包）：
+
+1. **先给该私包打 annotated 稳定 tag 并推送**（远端只有分支、没有 tag 时**不许**写 production 约束）；
+2. **每一个消费该包的 host 都要在三份清单同步补**：① `repositories` 条目（local = `path` + `versions: <x.y>x-dev`；
+   test = `vcs` + `require dev-dev`；production = `vcs` + `require ^x.y`）、② `require` 约束（local 带 `@dev`）、
+   ③ `extra.moo-private-packages` 元数据（三份含顺序必须逐字一致）；
+3. **校验**：`php artisan test --filter=ComposerProfiles` —— scaffold 的 `ComposerProfiles::problems()` 是权威口径
+   （它会同时查三份一致性、path 版本形态、`@dev` 口径与 `provider-rel`）。
+
+⚠ 症状与陷阱：漏接线时 **`composer update` / 干净部署**在解析阶段报 `could not be found in any version`（装不上，fail-fast ✓）；
+但 **`composer install` 从旧 lock 走**时**不报错**，会**静默沿用旧依赖图** —— 最危险的是「本地看起来一切正常，到服务器才炸」。
