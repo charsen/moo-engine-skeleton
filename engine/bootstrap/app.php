@@ -70,8 +70,14 @@ return Application::configure(basePath: dirname(__DIR__))
             SubstituteBindings::class,
         ]);
 
-        // 扩展包后台统一使用完整认证链，但每个包保留独立命名组，不能借用 admin / moo-system。
-        // 新增带后台路由的 moo 包时，在这里登记自己的 moo-<name> 组，并让包配置指向它。
+        // 扩展包后台统一使用完整认证链，但每个包保留**独立命名组**：不得借用 admin，也不得借别的包的组。
+        //
+        // 这里为什么是**显式清单**而不是「运行时从各包 config 派生」：本回调在
+        // `afterResolving(HttpKernel::class)` 时执行，早于 `LoadConfiguration`，`config()` 尚不可用。
+        // 因此清单保持显式，并由 `tests/Feature/AdminMiddlewareWiringTest.php` 兜底：
+        // 它会从各包 config 的 `admin.middleware` 反推应有组名，断言「包默认值不是 admin 且 host 已注册同名组」，
+        // 新增包漏登记、或包默认值退回 admin，都会当场变红。
+        // （历史事故：`moo-system`/`moo-feedback` 的 host 组已存在，包默认值却仍写 admin，属反向不一致。）
         $packageAdminMiddleware = [
             'jwt.assign.guard:admin',
             'jwt.guard.auth:admin',
@@ -82,9 +88,15 @@ return Application::configure(basePath: dirname(__DIR__))
             OperationLog::class,
         ];
 
-        $middleware->group('moo-system', $packageAdminMiddleware);
-        $middleware->group('moo-upload', $packageAdminMiddleware);
-        $middleware->group('moo-feedback', $packageAdminMiddleware);
+        foreach ([
+            'moo-attachment', 'moo-banner', 'moo-camera-recognition', 'moo-category', 'moo-certificate',
+            'moo-cms', 'moo-collect', 'moo-comment', 'moo-enterprise-information', 'moo-feedback',
+            'moo-like', 'moo-media', 'moo-meeting', 'moo-mini-app', 'moo-page', 'moo-process',
+            'moo-process-application', 'moo-product', 'moo-radar', 'moo-richtext', 'moo-system',
+            'moo-trail', 'moo-upload',
+        ] as $packageGroup) {
+            $middleware->group($packageGroup, $packageAdminMiddleware);
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 这些异常属于预期控制流，不上报；同一异常只报一次
