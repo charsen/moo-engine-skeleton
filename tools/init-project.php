@@ -232,7 +232,7 @@ run(['php', 'artisan', 'migrate', '--seed', '--force'], $engine);
 run(['php', 'artisan', 'moo:fresh'], $engine);
 run([
     'php', 'artisan', 'vendor:publish',
-    '--provider=Mooeen\\Scaffold\\ScaffoldProvider',
+    '--provider=Mooeen\\Scaffold\\MooeenScaffoldServiceProvider',
     '--tag=public', '--force',
 ], $engine);
 run([

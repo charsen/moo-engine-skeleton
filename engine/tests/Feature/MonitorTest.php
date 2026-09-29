@@ -6,8 +6,8 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
-use Mooeen\Monitor\ExceptionDispatcher;
-use Mooeen\Monitor\Recorder\RuntimeErrorRecorder;
+use Mooeen\MonitorLaravel\ExceptionDispatcher;
+use Mooeen\MonitorLaravel\Recorder\RuntimeErrorRecorder;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;

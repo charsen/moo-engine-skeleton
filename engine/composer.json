@@ -121,7 +121,7 @@
             "@php artisan key:generate",
             "@php artisan jwt:secret --force",
             "@php artisan migrate --seed --force",
-            "@php artisan vendor:publish --provider='Mooeen\\Scaffold\\ScaffoldProvider' --tag=public --force",
+            "@php artisan vendor:publish --provider='Mooeen\\Scaffold\\MooeenScaffoldServiceProvider' --tag=public --force",
             "npm install",
             "npm run build"
         ],
@@ -162,13 +162,13 @@
             {
                 "name": "charsen/moo-scaffold",
                 "repo-key": "scaffold",
-                "provider-rel": "src/ScaffoldProvider.php",
+                "provider-rel": "src/MooeenScaffoldServiceProvider.php",
                 "publish-tag": "public"
             },
             {
                 "name": "charsen/moo-monitor-laravel",
                 "repo-key": "monitor",
-                "provider-rel": "src/MonitorProvider.php",
+                "provider-rel": "src/MooeenMonitorLaravelServiceProvider.php",
                 "publish-tag": null
             },
             {

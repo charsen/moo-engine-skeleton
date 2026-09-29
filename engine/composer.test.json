@@ -106,13 +106,13 @@
             {
                 "name": "charsen/moo-scaffold",
                 "repo-key": "scaffold",
-                "provider-rel": "src/ScaffoldProvider.php",
+                "provider-rel": "src/MooeenScaffoldServiceProvider.php",
                 "publish-tag": "public"
             },
             {
                 "name": "charsen/moo-monitor-laravel",
                 "repo-key": "monitor",
-                "provider-rel": "src/MonitorProvider.php",
+                "provider-rel": "src/MooeenMonitorLaravelServiceProvider.php",
                 "publish-tag": null
             },
             {
