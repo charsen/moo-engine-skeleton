@@ -290,3 +290,7 @@ moo-engine-skeleton/
 
 给新手一套可用的教程，从 0 开始、零付费依赖地搭出带 JWT + ACL 的 Laravel 12 骨架；
 进阶者再用 moo-system 一键升级成完整系统管理后端。
+
+## License
+
+MIT — 见 [LICENSE](LICENSE)。
