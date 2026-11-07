@@ -36,22 +36,10 @@
 
 ## Composer 三份 Manifest 与私包接入
 
-`engine/` 下有三份 Composer 清单，按环境分流，不是三套可独立演进的配置：
-
-| 文件 | 环境 | 私包 Repository | 私包约束 |
-| --- | --- | --- | --- |
-| `engine/composer.json` | 本地开发 | sibling `path`（`options.symlink: true`） | `^x.y@dev` |
-| `engine/composer.test.json` | 测试服务器 | Gitee `vcs` | `dev-dev`（跟随各包远端 `dev`） |
-| `engine/composer.production.json` | 生产服务器 | Gitee `vcs` | **已发布稳定 semver** |
-
-- **必须一致**：以三份 manifest 为准的私包依赖集合、PHP/Laravel 与非 Moo 运行时依赖基线、测试/生产仓库 URL，以及 `extra.moo-private-packages` 元数据。契约包无 Provider 和发布资源，两个字段均为 `null`；一致性由 `ComposerProfilesTest` 守护。
-- **按环境分流**：repository 类型与包版本约束按本节表格设置，具体值从 manifest 读取，不在规则中固定版本快照。
-- 本仓现状要如实理解：本地 profile 另含开发工具——10 项 `require-dev`（比测试/生产多 `beyondcode/laravel-dump-server`、`laravel/sail`、`pestphp/pest`、`pestphp/pest-plugin-laravel`）和 Laravel 默认 `scripts` 段（`setup` / `dev` / `lint` / `post-create-project-cmd` / `post-root-package-install`），测试与生产各只有 6 项 `require-dev` 和部署相关脚本（如 `clear-all`）。这是既有实态，不是私包分流违规，也不要为了“对齐”把这些开发工具搬进测试/生产 profile。
-- 私包清单与访问前提见 `PRIVATE-COMPOSER-PACKAGES.md`；公共组织/姓名接口由 `moo-contract` 提供，System 注册默认绑定。`moo-feedback` 是公开包，不进入私包授权元数据，但本仓显式配置 path/VCS 用于联调。
-- **新增、移除、改名私包**：三份清单同步改 `repositories`、`require` 约束与 `extra.moo-private-packages`，并同步 `PRIVATE-COMPOSER-PACKAGES.md` 的清单说明；随后在 `engine/` 跑 `php artisan test --filter ComposerProfilesTest` 与三份 `composer validate --strict --no-check-publish`。只改本地 profile 会在 CI/部署暴露；`pull.sh` 的私包列表是用 jq 从当前 profile 的 `extra.moo-private-packages` 现解析的，**不得在 `pull.sh` 里另维护一份包名列表**。
-- `engine/composer.lock` 与 `engine/composer.test.lock` **不入 git**（见根 `.gitignore`），各环境由部署流程解析生成；不要把某个 profile 的 lock 当作跨环境真值。测试服首次没有 `composer.test.lock` 时会完整解析一次该 profile，之后每次只 `update` manifest 里的私包。
-- 测试服固定 `sh test-pull.sh`（导出 `DEPLOY_COMPOSER_PROFILE=test` 与 `DEPLOY_BRANCH=dev` 后 `exec sh pull.sh --latest`，令 Host 追 `dev` 且用 `composer.test.json`）；生产 `sh pull.sh --tag <host-tag>`（读 `composer.production.json`，Step 4 临时覆盖到 `composer.json`）。常规部署不得使用本仓仅有的两个跳过开关：`--skip-private-pkg`（跳过私包权限验证，只给本地 path 调试）和 `--force-reset`（丢弃本地已跟踪改动）。本仓没有 `--skip-migrate` / `--no-maintenance` 参数，迁移只在收尾 Step 6.5 检测待执行项、不自动跑；参数边界见 `SCRIPTS.md` 的 `pull.sh` 段。
-- **scaffold 前端资源（已解决）**：`charsen/moo-scaffold` 已进 manifest 且 `publish-tag` 为 `"public"`，部署时 `pull.sh` Step 5.5「同步私包 publish 副本」会对它执行 `vendor:publish --tag=public --force`，刷新 `engine/public/vendor/scaffold`（该目录被 `engine/.gitignore` 忽略）。scaffold 前端资源在本地仍靠 `composer.json` 的 `setup` 脚本里的 `vendor:publish --provider='Mooeen\Scaffold\ScaffoldProvider' --tag=public --force`，以及 `docs/02`、`docs/08` 的手工命令刷新——本地初始化仍然需要这些入口，但已不再是「部署不刷新」的状态。
+- 通用规则见 `~/.agents/moo.md`「Composer 三份 Manifest 与环境分流」，本文件不重复。
+- 本仓三份：`engine/composer.json`（本地 path+symlink）、`engine/composer.test.json`（测试 Gitee vcs）、`engine/composer.production.json`（生产稳定 semver）；一致性由 `ComposerProfilesTest` 守护。
+- 本仓现状：本地 profile 另有 10 项 `require-dev`（比测试/生产多 `beyondcode/laravel-dump-server`、`laravel/sail`、`pestphp/pest`、`pestphp/pest-plugin-laravel`）与 Laravel 默认 `scripts`；测试/生产各 6 项 `require-dev`，属既有实态，不要为此“对齐”。
+- `moo-feedback` 是公开包，不进私包授权元数据，本仓显式配置 path/VCS 联调；私包清单见 `PRIVATE-COMPOSER-PACKAGES.md`。
 
 ## Schema 与生成边界
 
